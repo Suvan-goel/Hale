@@ -32,10 +32,7 @@ import { PosePipeline } from '../pose/pipeline';
 import { DEFAULT_VOICE_ID } from '../profile/voices';
 import { RecordingVisualSurface } from '../recording/RecordingVisualSurface';
 import { movementProfileV2InstructionTextForStage } from '../training/instructionProfiles';
-import type {
-  PoseAvatarActiveDomain,
-  PoseAvatarRendererHandle,
-} from '../render/poseAvatarTypes';
+import type { RecordingRendererHandle } from '../render/recordingRendererTypes';
 import {
   CheckUpRecordingShell,
   type CheckUpRecordingAreaContext,
@@ -162,7 +159,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   const completedRef = React.useRef(false);
   const rawNotifiedRef = React.useRef(false);
   const [confirmLeaveVisible, setConfirmLeaveVisible] = React.useState(false);
-  const skeletonRef = React.useRef<PoseAvatarRendererHandle>(null);
+  const rendererRef = React.useRef<RecordingRendererHandle>(null);
   const diagnosticsEnabled = React.useMemo(() => isMovementProfileV2DiagnosticsEnabled(), []);
 
   const publishLive = React.useCallback(
@@ -331,7 +328,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       const receivedAtMs = defaultNowMs();
       const out = pipeline.process(payload);
       const sourceAspect = payload.sourceWidth / payload.sourceHeight;
-      skeletonRef.current?.update(out, sourceAspect);
+      rendererRef.current?.update(out, sourceAspect);
 
       const active = liveRef.current;
       const sample = createMovementProfileV2LivePoseSample({
@@ -521,11 +518,10 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   ]);
 
   const renderFitFrameRecordingArea = React.useCallback(
-    ({ cameraViewport, poseWindow }: CheckUpRecordingAreaContext) => (
+    ({ poseWindow }: CheckUpRecordingAreaContext) => (
       <RecordingVisualSurface
-        rendererRef={skeletonRef}
+        rendererRef={rendererRef}
         cameraAvailability={cameraAvailability}
-        cameraViewport={cameraViewport}
         poseWindow={poseWindow}
         guidance={live.recordingVisualGuidance}
         mirrored
@@ -545,7 +541,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       onLandmarks={onLandmarks}
       onPoseError={onPoseError}
       onAvailabilityChange={setCameraAvailability}
-      skeletonRef={skeletonRef}
       sessionNotice={movementProfileV2ShellNotice({
         live,
         cameraAvailability,
@@ -1031,37 +1026,24 @@ function movementProfileV2ShellNotice({
   };
 }
 
-function movementProfileV2AvatarDomain(stage: MovementProfileV2LiveStage): PoseAvatarActiveDomain | null {
+function movementProfileV2DomainLabel(stage: MovementProfileV2LiveStage): string | null {
   switch (stage) {
     case 'chair_setup':
     case 'chair_practice':
     case 'chair_countdown':
     case 'chair_active':
-      return 'strength_power';
+      return 'Strength & power';
     case 'balance_setup':
     case 'balance_ready':
     case 'balance_trial':
     case 'balance_rest':
-      return 'balance';
+      return 'Balance';
     case 'shoulder_setup':
     case 'shoulder_ready':
     case 'shoulder_active':
     case 'shoulder_retry_ready':
     case 'hinge_setup':
     case 'hinge_active':
-      return 'mobility';
-    default:
-      return null;
-  }
-}
-
-function movementProfileV2DomainLabel(stage: MovementProfileV2LiveStage): string | null {
-  switch (movementProfileV2AvatarDomain(stage)) {
-    case 'strength_power':
-      return 'Strength & power';
-    case 'balance':
-      return 'Balance';
-    case 'mobility':
       return 'Mobility';
     default:
       return null;

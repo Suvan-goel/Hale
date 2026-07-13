@@ -33,7 +33,7 @@ import {
   parseStoredScoreSnapshot,
   type ScoreSnapshotCompatibility,
   type VersionedCheckUpScoreSnapshot,
-} from '../scoring';
+} from '../scoring/scoreSnapshot';
 
 export const HISTORY_SCHEMA_VERSION = 1;
 

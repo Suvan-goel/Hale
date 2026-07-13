@@ -56,6 +56,11 @@ describe('no health data in backup shapes', () => {
     }
   });
 
+  it('keeps legacy check-up/restore services out of the live backend barrel', () => {
+    const barrel = readFileSync(join(BACKEND_DIR, 'index.ts'), 'utf8');
+    expect(barrel).not.toMatch(/checkupSyncService|restoreService|dataExportService/);
+  });
+
   it('never references programme health state or the legacy health fields', () => {
     const banned = [
       // Programme engine v2 (never synced from day one)

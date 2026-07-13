@@ -149,7 +149,7 @@ export function interpretShoulderIqr({
   rawDegrees,
   protocolEvidence,
   profile,
-  source,
+  source: _source,
 }: {
   result: ActiveShoulderReachV2Result | null;
   rawDegrees: number | null;

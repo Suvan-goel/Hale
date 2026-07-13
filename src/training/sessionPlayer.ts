@@ -1114,7 +1114,7 @@ export class TrainingSessionPlayer {
    * An in-flight set is discarded — it restarts from waiting_ready on resume
    * (nothing was measured; the honest unit is a whole confirmed set).
    */
-  haltVoiceSession(stopRequested: boolean, atMs: number = this.lastTimestampMs): boolean {
+  haltVoiceSession(stopRequested: boolean, _atMs: number = this.lastTimestampMs): boolean {
     if (!this.isVoiceMode) return false;
     if (
       this.phase !== 'waiting_ready' &&

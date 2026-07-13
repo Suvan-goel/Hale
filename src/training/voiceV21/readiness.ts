@@ -1,5 +1,4 @@
 import {
-  getTrainingVoiceContractV21,
   maybeTrainingVoiceContractV21,
   validateTrainingVoiceContractRegistryV21,
 } from './contracts';

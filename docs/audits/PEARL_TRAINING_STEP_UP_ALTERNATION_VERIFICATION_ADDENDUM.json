@@ -1,0 +1,1552 @@
+{
+  "auditVersion": 2,
+  "generatedAt": "2026-06-25T12:41:49.323Z",
+  "primaryVerdict": "TRAINING_STEP_UP_ALTERNATION_MODEL_COMPLETE_RUNTIME_INTEGRATION_PENDING",
+  "repositorySnapshot": {
+    "taskStart": {
+      "branch": "dev",
+      "head": "be514ce21312387ac0ab902dd0a92552166718a7",
+      "shortHead": "be514ce",
+      "upstream": "origin/dev",
+      "status": "## dev...origin/dev [ahead 1]\n M App.tsx\n M src/pearlFlow/__tests__/movementProfileV2OfficialRetestTransition.test.ts\n M src/results/__tests__/movementProfileV2ResultsAdapter.test.ts\n M src/services/backend/__tests__/blockReportSyncService.test.ts\n?? docs/audits/PEARL_TRAINING_STEP_UP_VERIFICATION_ADDENDUM_CODEX_PROMPT.md",
+      "diffNameOnly": [
+        "App.tsx",
+        "src/pearlFlow/__tests__/movementProfileV2OfficialRetestTransition.test.ts",
+        "src/results/__tests__/movementProfileV2ResultsAdapter.test.ts",
+        "src/services/backend/__tests__/blockReportSyncService.test.ts"
+      ],
+      "diffStat": " App.tsx                                            |   3 +\n ...vementProfileV2OfficialRetestTransition.test.ts |   8 ++\n .../movementProfileV2ResultsAdapter.test.ts        |  85 +++++++++++\n .../__tests__/blockReportSyncService.test.ts       | 159 +++++++++++++++++++++\n 4 files changed, 255 insertions(+)",
+      "preExistingAudioDiffNameOnly": []
+    },
+    "current": {
+      "branch": "dev",
+      "head": "2b3e28bc48bde987e82f599a5e811d0f801686b8",
+      "shortHead": "2b3e28b",
+      "upstream": "origin/dev",
+      "status": "## dev...origin/dev [ahead 1]\n M docs/decisions.md\n M src/diagnostics/__tests__/poseLatencyDiagnostics.test.ts\n M src/diagnostics/poseRendererReplay.ts\n M src/pearlFlow/movementProfileV2BlockReport.ts\n M src/render/PoseAvatarRenderer.tsx\n M src/render/__tests__/poseAvatarConfig.test.ts\n M src/render/poseAvatarTypes.ts\n M src/screens/PoseOverlayBenchmarkScreen.tsx\n M src/screens/SettingsScreen.tsx\n M src/screens/__tests__/PoseOverlayBenchmarkScreen.constellationV2.test.ts\n?? docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_EVENT_EVIDENCE.csv\n?? docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_SCENARIOS_V2.csv\n?? docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_VERIFICATION_ADDENDUM.json\n?? docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_VERIFICATION_ADDENDUM.md\n?? docs/audits/PEARL_TRAINING_STEP_UP_RUNTIME_INTEGRATION_TRACE.csv\n?? docs/audits/PEARL_UNIFIED_MOVEMENT_CHECKUP_STAGE_H4_OFFICIAL_RETEST_REPORT_NEXT_BLOCK.md\n?? docs/audits/PEARL_VOICE_PROJECT_POST_STEP_UP_VERIFICATION_HANDOFF.md\n?? scripts/audits/audit-training-step-up-alternation-addendum.mjs\n?? src/render/ContourFieldRenderer.tsx\n?? src/render/__tests__/contourFieldGeometry.test.ts\n?? src/render/contourFieldGeometry.ts",
+      "diffNameOnly": [
+        "docs/decisions.md",
+        "src/diagnostics/__tests__/poseLatencyDiagnostics.test.ts",
+        "src/diagnostics/poseRendererReplay.ts",
+        "src/pearlFlow/movementProfileV2BlockReport.ts",
+        "src/render/PoseAvatarRenderer.tsx",
+        "src/render/__tests__/poseAvatarConfig.test.ts",
+        "src/render/poseAvatarTypes.ts",
+        "src/screens/PoseOverlayBenchmarkScreen.tsx",
+        "src/screens/SettingsScreen.tsx",
+        "src/screens/__tests__/PoseOverlayBenchmarkScreen.constellationV2.test.ts"
+      ],
+      "diffStat": "docs/decisions.md                                  | 18 ++++++++++++\n .../__tests__/poseLatencyDiagnostics.test.ts       |  9 ++++--\n src/diagnostics/poseRendererReplay.ts              | 26 +++++++++++++++++\n src/pearlFlow/movementProfileV2BlockReport.ts       |  2 +-\n src/render/PoseAvatarRenderer.tsx                  |  3 ++\n src/render/__tests__/poseAvatarConfig.test.ts      |  5 ++++\n src/render/poseAvatarTypes.ts                      |  1 +\n src/screens/PoseOverlayBenchmarkScreen.tsx         | 33 +++++++++++++++++++++-\n src/screens/SettingsScreen.tsx                     | 25 ++++++++--------\n ...eOverlayBenchmarkScreen.constellationV2.test.ts | 18 ++++++++++++\n 10 files changed, 124 insertions(+), 16 deletions(-)",
+      "audioDiffNameOnly": []
+    }
+  },
+  "sourceFreshness": {
+    "existingArtifactsRead": [
+      "docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_IMPLEMENTATION.md",
+      "docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_AUDIT.md",
+      "docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_AUDIT.json",
+      "docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_SCENARIOS.csv",
+      "docs/audits/PEARL_TRAINING_STEP_UP_REP_EVIDENCE_MATRIX.csv",
+      "docs/audits/PEARL_VOICE_PROJECT_POST_STEP_UP_HANDOFF.md",
+      "scripts/audits/audit-training-step-up-alternation.mjs"
+    ],
+    "sourceFilesInspected": [
+      "src/training/stepUpAlternation/",
+      "src/training/sessionPlayer.ts",
+      "src/screens/TrainingSessionScreen.tsx",
+      "src/exercises/stepUp.ts",
+      "src/exercises/setGraders.ts",
+      "src/training/workoutGeneration.ts",
+      "src/training/serialize.ts",
+      "src/training/progression.ts",
+      "src/training/validTimeProgression.ts",
+      "src/services/backend/trainingStateSyncService.ts",
+      "src/services/backend/restoreService.ts",
+      "src/training/voiceV21/"
+    ],
+    "sourceDriftVerdict": "current source could be verified; no rebase required"
+  },
+  "summary": {
+    "previousVerdict": "TRAINING_STEP_UP_ALTERNATION_SOFTWARE_COMPLETE_DEFAULT_CLOSED",
+    "previousScenarioCount": 27,
+    "verificationScenarioCount": 53,
+    "runtimeIntegrationMissingLinkCount": 5,
+    "runtimeIntegrationPartialLinkCount": 7,
+    "floorGateBlocked": true
+  },
+  "canonicalScenarioIds": [
+    "step_up_left_first_set_12_reps",
+    "step_up_right_first_set_12_reps",
+    "step_up_three_sets_left_initial",
+    "step_up_three_sets_right_initial",
+    "step_up_six_left_six_right",
+    "step_up_both_feet_floor_each_rep",
+    "wrong_lead_on_first_rep",
+    "wrong_lead_after_five_reps",
+    "wrong_lead_returns_to_floor_then_corrects",
+    "wrong_lead_does_not_flip_expected",
+    "generic_rep_without_lead_evidence_rejected",
+    "opposite_chain_clearer_not_auto_credited",
+    "top_reached_no_floor_return",
+    "one_foot_remains_on_step",
+    "duplicate_completion_callback",
+    "stale_callback_after_next_rep_started",
+    "threshold_noise_single_credit",
+    "descent_order_not_overconstrained",
+    "tracking_loss_mid_left_lead_rep",
+    "tracking_loss_mid_right_lead_rep",
+    "pause_mid_rep",
+    "background_mid_rep",
+    "restore_after_six_reps",
+    "restore_mid_rep",
+    "cancel_mid_set",
+    "skip_mid_set",
+    "default_target_12",
+    "even_scaled_target_10",
+    "odd_scaled_target_9_blocked",
+    "noninteger_target_blocked",
+    "short_session_final_target",
+    "visible_voice_runtime_target_match",
+    "seed_defaults_left",
+    "successful_completion_flips_seed",
+    "skip_does_not_flip_seed",
+    "manual_practice_does_not_flip_seed",
+    "duplicate_completion_idempotent",
+    "sync_restore_preserves_seed",
+    "one_set_one_progression_event",
+    "lead_counts_do_not_double_set_count",
+    "valid_time_not_doubled",
+    "twelve_total_unequal_sides_rejected",
+    "broken_alternation_not_progression_eligible",
+    "legacy_result_still_parses",
+    "step_up_start_left_logical_plan",
+    "step_up_start_right_logical_plan",
+    "wrong_lead_left_correction_plan",
+    "wrong_lead_right_correction_plan",
+    "no_per_rep_spoken_switch",
+    "feature_off_legacy_unchanged",
+    "alternation_flag_alone_no_half_activation",
+    "training_voice_remains_default_closed",
+    "balance_v2_remains_default_closed"
+  ],
+  "scenarioCoverage": {
+    "canonicalScenarioCount": 53,
+    "requiredCanonicalScenarioCount": 53,
+    "omittedCanonicalScenarioCount": 0,
+    "omittedCanonicalScenarioIds": [],
+    "scenarioRows": 54,
+    "eventRows": 134,
+    "traceRows": 16
+  },
+  "runtimeIntegrationTrace": [
+    {
+      "linkId": 1,
+      "fromComponent": "Exercise registry",
+      "toComponent": "Generated session item",
+      "sourceFile": "src/exercises/stepUp.ts;src/training/workoutGeneration.ts",
+      "sourceSymbol": "stepUpDefinition;GeneratedExercise",
+      "reachableWhenEnabled": "yes",
+      "evidenceType": "static+executable",
+      "evidenceDetail": "Step-up registry definition is present and generated exercise metadata type can represent exerciseId/sets/reps.",
+      "testCoverage": "workout generation and step-up addendum scenarios",
+      "status": "connected_verified",
+      "blockerId": "",
+      "notes": "Step-up can exist as a generated training item."
+    },
+    {
+      "linkId": 2,
+      "fromComponent": "Final prescription",
+      "toComponent": "Alternation plan",
+      "sourceFile": "src/training/stepUpAlternation/generatedSession.ts",
+      "sourceSymbol": "deriveStepUpAlternationPlanForGeneratedExercise",
+      "reachableWhenEnabled": "only if helper called",
+      "evidenceType": "executable",
+      "evidenceDetail": "Plan derivation from generated exercise preserves 12 total reps and 6/6 split.",
+      "testCoverage": "SCENARIOS_V2 target rows",
+      "status": "connected_verified",
+      "blockerId": "",
+      "notes": "Pure helper is verified."
+    },
+    {
+      "linkId": 3,
+      "fromComponent": "Feature/readiness selection",
+      "toComponent": "Internal runtime path",
+      "sourceFile": "src/training/stepUpAlternation/readiness.ts;src/training/sessionPlayer.ts",
+      "sourceSymbol": "selectTrainingStepUpAlternationMode;TrainingSessionPlayer",
+      "reachableWhenEnabled": "no",
+      "evidenceType": "static",
+      "evidenceDetail": "Selector exists, but TrainingSessionPlayer has no branch that selects a step-up alternation runtime owner.",
+      "testCoverage": "source inspection",
+      "status": "model_only_not_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Feature/readiness does not route the active session into the internal path."
+    },
+    {
+      "linkId": 4,
+      "fromComponent": "Training screen/session controller",
+      "toComponent": "Alternation runtime owner",
+      "sourceFile": "src/screens/TrainingSessionScreen.tsx;src/training/sessionPlayer.ts",
+      "sourceSymbol": "TrainingSessionScreen;TrainingSessionPlayer",
+      "reachableWhenEnabled": "no",
+      "evidenceType": "static",
+      "evidenceDetail": "Screen creates TrainingSessionPlayer(exerciseIds, preflight) only; player owns ExerciseSetGrader only.",
+      "testCoverage": "source inspection",
+      "status": "model_only_not_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "No StepUpAlternationRuntimeState owner is present in live runtime."
+    },
+    {
+      "linkId": 5,
+      "fromComponent": "Pose/grader output",
+      "toComponent": "Lead-leg evidence",
+      "sourceFile": "src/exercises/setGraders.ts;src/training/stepUpAlternation/evidence.ts",
+      "sourceSymbol": "RepsSetGrader.update;resolveStepUpRepEvidence",
+      "reachableWhenEnabled": "no",
+      "evidenceType": "static",
+      "evidenceDetail": "RepsSetGrader reports generic repCredited/repCount and sticky near side, but does not emit observed lead, both-feet-floor boundary, or top/floor evidence for StepUpRepEvidence.",
+      "testCoverage": "source inspection",
+      "status": "model_only_not_connected",
+      "blockerId": "F-STEPUP-POSE-EVIDENCE-ADAPTER",
+      "notes": "Camera-verifiable evidence adapter is absent."
+    },
+    {
+      "linkId": 6,
+      "fromComponent": "Lead-leg evidence",
+      "toComponent": "State-machine action",
+      "sourceFile": "src/training/stepUpAlternation/stateMachine.ts",
+      "sourceSymbol": "advanceStepUpAlternationState(APPLY_REP_EVIDENCE)",
+      "reachableWhenEnabled": "model only",
+      "evidenceType": "executable",
+      "evidenceDetail": "Pure action works in scenarios, but no live adapter dispatches it.",
+      "testCoverage": "SCENARIOS_V2 rep rows",
+      "status": "model_only_not_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Reducer is correct in isolation."
+    },
+    {
+      "linkId": 7,
+      "fromComponent": "Accepted rep",
+      "toComponent": "Rep-credit SFX",
+      "sourceFile": "src/screens/TrainingSessionScreen.tsx;src/training/sessionPlayer.ts",
+      "sourceSymbol": "u.playRepSound;SfxChannel.play",
+      "reachableWhenEnabled": "legacy only",
+      "evidenceType": "static",
+      "evidenceDetail": "Screen plays SFX from generic grader update, not from step-up alternation accepted evidence.",
+      "testCoverage": "source inspection",
+      "status": "legacy_only",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Step-up model repSfxCount is not live SFX source."
+    },
+    {
+      "linkId": 8,
+      "fromComponent": "State machine",
+      "toComponent": "SetResult",
+      "sourceFile": "src/training/stepUpAlternation/aggregation.ts;src/training/sessionPlayer.ts",
+      "sourceSymbol": "stepUpSetResultToLegacySetResult;grader.finish",
+      "reachableWhenEnabled": "model only",
+      "evidenceType": "static+executable",
+      "evidenceDetail": "Adapter produces SetResult in scenarios, but TrainingSessionPlayer still pushes grader.finish(ts).",
+      "testCoverage": "SCENARIOS_V2 progression rows",
+      "status": "model_only_not_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Live SetResult does not include alternation metadata."
+    },
+    {
+      "linkId": 9,
+      "fromComponent": "SetResult",
+      "toComponent": "Progression",
+      "sourceFile": "src/training/progression.ts",
+      "sourceSymbol": "summarizeItem",
+      "reachableWhenEnabled": "if supplied",
+      "evidenceType": "executable",
+      "evidenceDetail": "Progression accepts adapted SetResult if supplied, but live runtime does not supply it.",
+      "testCoverage": "SCENARIOS_V2 progression rows",
+      "status": "partially_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Compatible downstream, missing upstream connection."
+    },
+    {
+      "linkId": 10,
+      "fromComponent": "SetResult",
+      "toComponent": "Valid-time summary",
+      "sourceFile": "src/training/validTimeProgression.ts",
+      "sourceSymbol": "summarizeValidTimeSets",
+      "reachableWhenEnabled": "not applicable for reps",
+      "evidenceType": "executable",
+      "evidenceDetail": "Step-up rep SetResults have no validTime payload; summarizeValidTimeSets returns null.",
+      "testCoverage": "SCENARIOS_V2 valid_time_not_doubled",
+      "status": "not_applicable",
+      "blockerId": "",
+      "notes": "No doubled valid time for rep-only step-up."
+    },
+    {
+      "linkId": 11,
+      "fromComponent": "Session item/state",
+      "toComponent": "Local serialization",
+      "sourceFile": "src/training/serialize.ts;src/training/stepUpAlternation/persistence.ts",
+      "sourceSymbol": "validGeneratedExerciseSummaries;serializeStepUpAlternationRuntimeState",
+      "reachableWhenEnabled": "partial",
+      "evidenceType": "static+executable",
+      "evidenceDetail": "Generated metadata and model runtime envelopes serialize, but live TrainingState has no active step-up runtime state field.",
+      "testCoverage": "SCENARIOS_V2 restore rows",
+      "status": "partially_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Metadata path exists; active runtime restore is not wired."
+    },
+    {
+      "linkId": 12,
+      "fromComponent": "Local serialization",
+      "toComponent": "Restore",
+      "sourceFile": "src/training/serialize.ts;src/training/stepUpAlternation/persistence.ts",
+      "sourceSymbol": "deserializeTrainingState;deserializeStepUpAlternationRuntimeState",
+      "reachableWhenEnabled": "partial",
+      "evidenceType": "static+executable",
+      "evidenceDetail": "Deserializer accepts generated metadata and runtime envelope helper validates fingerprint, but live restore does not reconstruct a session-owned alternation state.",
+      "testCoverage": "SCENARIOS_V2 restore rows",
+      "status": "partially_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Restore helper is isolated."
+    },
+    {
+      "linkId": 13,
+      "fromComponent": "Training state",
+      "toComponent": "Backend JSON sync/restore",
+      "sourceFile": "src/services/backend/trainingStateSyncService.ts;src/services/backend/restoreService.ts",
+      "sourceSymbol": "sanitizeGeneratedExerciseSummary;mapRemoteTrainingStateRowToLocal",
+      "reachableWhenEnabled": "partial",
+      "evidenceType": "static",
+      "evidenceDetail": "Backend sanitizer omits stepUpAlternationPlan and stepUpInitialLeadSide from generated exercise summaries.",
+      "testCoverage": "source inspection",
+      "status": "partially_connected",
+      "blockerId": "F-STEPUP-BACKEND-SYNC",
+      "notes": "Remote compact snapshot drops step-up generated metadata."
+    },
+    {
+      "linkId": 14,
+      "fromComponent": "Successful main-plan completion",
+      "toComponent": "Initial-lead seed flip",
+      "sourceFile": "src/training/bothSidesRounds/startSide.ts",
+      "sourceSymbol": "applyBothSidesExerciseCompletionToStartSideSeed",
+      "reachableWhenEnabled": "model only",
+      "evidenceType": "static+executable",
+      "evidenceDetail": "Seed helper supports step-up and is idempotent, but no live completion path calls it for step-up.",
+      "testCoverage": "SCENARIOS_V2 seed rows",
+      "status": "partially_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Helper exists; runtime call site missing."
+    },
+    {
+      "linkId": 15,
+      "fromComponent": "Manual/Explore path",
+      "toComponent": "No main-seed mutation",
+      "sourceFile": "src/training/bothSidesRounds/startSide.ts;src/pearlFlow/exploreViewModel.ts",
+      "sourceSymbol": "applyBothSidesExerciseCompletionToStartSideSeed",
+      "reachableWhenEnabled": "model only",
+      "evidenceType": "static+executable",
+      "evidenceDetail": "Helper can avoid manual mutation with countsTowardMainPlan=false, but live manual/explore completion is not integrated with the helper.",
+      "testCoverage": "SCENARIOS_V2 seed rows",
+      "status": "partially_connected",
+      "blockerId": "F-STEPUP-RUNTIME-INTEGRATION",
+      "notes": "Isolation policy proven only at helper level."
+    },
+    {
+      "linkId": 16,
+      "fromComponent": "Training Voice V2.1 planner",
+      "toComponent": "Current expected lead/target",
+      "sourceFile": "src/training/voiceV21/sequencePlanner.ts;src/training/voiceV21/targetGrammar.ts",
+      "sourceSymbol": "planTrainingVoiceSequenceV21;resolveTrainingVoiceTargetV21",
+      "reachableWhenEnabled": "yes when supplied context",
+      "evidenceType": "executable",
+      "evidenceDetail": "Planner emits start-left/start-right and wrong-lead correction logical plans from StepUpContext; V2.1 remains default closed.",
+      "testCoverage": "SCENARIOS_V2 voice rows",
+      "status": "connected_verified",
+      "blockerId": "",
+      "notes": "Voice logical model is connected to plan context, not to live runtime."
+    }
+  ],
+  "metrics": {
+    "canonicalScenarioCount": 53,
+    "scenarioVariantCount": 54,
+    "passedScenarioCount": 54,
+    "failedScenarioCount": 0,
+    "wrongLeadCreditedRepCount": 0,
+    "genericUnknownLeadCreditedRepCount": 0,
+    "repCreditedWithoutStartBoundaryCount": 0,
+    "repCreditedWithoutTopPhaseCount": 0,
+    "repCreditedBeforeFloorReturnCount": 0,
+    "duplicateRepCreditCount": 0,
+    "staleCallbackMutationCount": 0,
+    "thresholdNoiseExtraCreditCount": 0,
+    "wrongAttemptExpectedLeadFlipCount": 0,
+    "trackingInterruptedRepCreditCount": 0,
+    "pausePartialRepCreditCount": 0,
+    "backgroundPartialRepCreditCount": 0,
+    "restorePartialRepCreditCount": 0,
+    "validSetLeftRightMismatchCount": 0,
+    "setCompletedBeforeTargetCount": 0,
+    "setCompletedWithBrokenAlternationCount": 0,
+    "repSfxMismatchCount": 0,
+    "extraSetEventCount": 0,
+    "oddTargetSilentlyAdjustedCount": 0,
+    "nonintegerTargetSilentlyAdjustedCount": 0,
+    "visibleVoiceRuntimeTargetMismatchCount": 0,
+    "seedDefaultFailureCount": 0,
+    "successfulCompletionSeedFlipFailureCount": 0,
+    "skipCancelSeedFlipCount": 0,
+    "manualPracticeSeedMutationCount": 0,
+    "duplicateCompletionSeedFlipCount": 0,
+    "syncRestoreSeedDriftCount": 0,
+    "progressionInvalidAlternationAcceptedCount": 0,
+    "sideImbalanceMaskedByTotalCount": 0,
+    "validTimeDoubleCount": 0,
+    "duplicateProgressionEventCount": 0,
+    "legacyParseFailureCount": 0,
+    "startLeadLogicalMismatchCount": 0,
+    "wrongLeadCorrectionLogicalMismatchCount": 0,
+    "perRepSpokenSwitchCount": 0,
+    "spokenSetCountCueCount": 0,
+    "legacyV21MixedSemanticsCount": 0,
+    "runtimeIntegrationMissingLinkCount": 5,
+    "runtimeIntegrationPartialLinkCount": 7,
+    "runtimeIntegrationUncertainLinkCount": 0,
+    "irVoiceStepAlternationRemaining": 0,
+    "trainingVoiceSelectableCount": 0,
+    "audioAssetDiffCount": 0,
+    "p0": 0,
+    "p1": 0,
+    "p2": 3,
+    "p3": 2
+  },
+  "metricEvidence": {
+    "canonicalScenarioCount": {
+      "value": 53,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps",
+        "step_up_three_sets_left_initial",
+        "step_up_three_sets_right_initial",
+        "step_up_six_left_six_right",
+        "step_up_both_feet_floor_each_rep",
+        "wrong_lead_on_first_rep",
+        "wrong_lead_after_five_reps",
+        "wrong_lead_returns_to_floor_then_corrects",
+        "wrong_lead_does_not_flip_expected",
+        "generic_rep_without_lead_evidence_rejected",
+        "opposite_chain_clearer_not_auto_credited",
+        "top_reached_no_floor_return",
+        "one_foot_remains_on_step",
+        "duplicate_completion_callback",
+        "stale_callback_after_next_rep_started",
+        "threshold_noise_single_credit",
+        "descent_order_not_overconstrained",
+        "tracking_loss_mid_left_lead_rep",
+        "tracking_loss_mid_right_lead_rep",
+        "pause_mid_rep",
+        "background_mid_rep",
+        "restore_after_six_reps",
+        "restore_mid_rep",
+        "cancel_mid_set",
+        "skip_mid_set",
+        "default_target_12",
+        "even_scaled_target_10",
+        "odd_scaled_target_9_blocked",
+        "noninteger_target_blocked",
+        "short_session_final_target",
+        "visible_voice_runtime_target_match",
+        "seed_defaults_left",
+        "successful_completion_flips_seed",
+        "skip_does_not_flip_seed",
+        "manual_practice_does_not_flip_seed",
+        "duplicate_completion_idempotent",
+        "sync_restore_preserves_seed",
+        "one_set_one_progression_event",
+        "lead_counts_do_not_double_set_count",
+        "valid_time_not_doubled",
+        "twelve_total_unequal_sides_rejected",
+        "broken_alternation_not_progression_eligible",
+        "legacy_result_still_parses",
+        "step_up_start_left_logical_plan",
+        "step_up_start_right_logical_plan",
+        "wrong_lead_left_correction_plan",
+        "wrong_lead_right_correction_plan",
+        "no_per_rep_spoken_switch",
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation",
+        "training_voice_remains_default_closed",
+        "balance_v2_remains_default_closed",
+        "audio_assets_unchanged"
+      ],
+      "sourceEventFilters": [
+        "recompute canonicalScenarioCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.canonicalScenarioCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "scenarioVariantCount": {
+      "value": 54,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps",
+        "step_up_three_sets_left_initial",
+        "step_up_three_sets_right_initial",
+        "step_up_six_left_six_right",
+        "step_up_both_feet_floor_each_rep",
+        "wrong_lead_on_first_rep",
+        "wrong_lead_after_five_reps",
+        "wrong_lead_returns_to_floor_then_corrects",
+        "wrong_lead_does_not_flip_expected",
+        "generic_rep_without_lead_evidence_rejected",
+        "opposite_chain_clearer_not_auto_credited",
+        "top_reached_no_floor_return",
+        "one_foot_remains_on_step",
+        "duplicate_completion_callback",
+        "stale_callback_after_next_rep_started",
+        "threshold_noise_single_credit",
+        "descent_order_not_overconstrained",
+        "tracking_loss_mid_left_lead_rep",
+        "tracking_loss_mid_right_lead_rep",
+        "pause_mid_rep",
+        "background_mid_rep",
+        "restore_after_six_reps",
+        "restore_mid_rep",
+        "cancel_mid_set",
+        "skip_mid_set",
+        "default_target_12",
+        "even_scaled_target_10",
+        "odd_scaled_target_9_blocked",
+        "noninteger_target_blocked",
+        "short_session_final_target",
+        "visible_voice_runtime_target_match",
+        "seed_defaults_left",
+        "successful_completion_flips_seed",
+        "skip_does_not_flip_seed",
+        "manual_practice_does_not_flip_seed",
+        "duplicate_completion_idempotent",
+        "sync_restore_preserves_seed",
+        "one_set_one_progression_event",
+        "lead_counts_do_not_double_set_count",
+        "valid_time_not_doubled",
+        "twelve_total_unequal_sides_rejected",
+        "broken_alternation_not_progression_eligible",
+        "legacy_result_still_parses",
+        "step_up_start_left_logical_plan",
+        "step_up_start_right_logical_plan",
+        "wrong_lead_left_correction_plan",
+        "wrong_lead_right_correction_plan",
+        "no_per_rep_spoken_switch",
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation",
+        "training_voice_remains_default_closed",
+        "balance_v2_remains_default_closed",
+        "audio_assets_unchanged"
+      ],
+      "sourceEventFilters": [
+        "recompute scenarioVariantCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.scenarioVariantCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "passedScenarioCount": {
+      "value": 54,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps",
+        "step_up_three_sets_left_initial",
+        "step_up_three_sets_right_initial",
+        "step_up_six_left_six_right",
+        "step_up_both_feet_floor_each_rep",
+        "wrong_lead_on_first_rep",
+        "wrong_lead_after_five_reps",
+        "wrong_lead_returns_to_floor_then_corrects",
+        "wrong_lead_does_not_flip_expected",
+        "generic_rep_without_lead_evidence_rejected",
+        "opposite_chain_clearer_not_auto_credited",
+        "top_reached_no_floor_return",
+        "one_foot_remains_on_step",
+        "duplicate_completion_callback",
+        "stale_callback_after_next_rep_started",
+        "threshold_noise_single_credit",
+        "descent_order_not_overconstrained",
+        "tracking_loss_mid_left_lead_rep",
+        "tracking_loss_mid_right_lead_rep",
+        "pause_mid_rep",
+        "background_mid_rep",
+        "restore_after_six_reps",
+        "restore_mid_rep",
+        "cancel_mid_set",
+        "skip_mid_set",
+        "default_target_12",
+        "even_scaled_target_10",
+        "odd_scaled_target_9_blocked",
+        "noninteger_target_blocked",
+        "short_session_final_target",
+        "visible_voice_runtime_target_match",
+        "seed_defaults_left",
+        "successful_completion_flips_seed",
+        "skip_does_not_flip_seed",
+        "manual_practice_does_not_flip_seed",
+        "duplicate_completion_idempotent",
+        "sync_restore_preserves_seed",
+        "one_set_one_progression_event",
+        "lead_counts_do_not_double_set_count",
+        "valid_time_not_doubled",
+        "twelve_total_unequal_sides_rejected",
+        "broken_alternation_not_progression_eligible",
+        "legacy_result_still_parses",
+        "step_up_start_left_logical_plan",
+        "step_up_start_right_logical_plan",
+        "wrong_lead_left_correction_plan",
+        "wrong_lead_right_correction_plan",
+        "no_per_rep_spoken_switch",
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation",
+        "training_voice_remains_default_closed",
+        "balance_v2_remains_default_closed",
+        "audio_assets_unchanged"
+      ],
+      "sourceEventFilters": [
+        "recompute passedScenarioCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.passedScenarioCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "failedScenarioCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps",
+        "step_up_three_sets_left_initial",
+        "step_up_three_sets_right_initial",
+        "step_up_six_left_six_right",
+        "step_up_both_feet_floor_each_rep",
+        "wrong_lead_on_first_rep",
+        "wrong_lead_after_five_reps",
+        "wrong_lead_returns_to_floor_then_corrects",
+        "wrong_lead_does_not_flip_expected",
+        "generic_rep_without_lead_evidence_rejected",
+        "opposite_chain_clearer_not_auto_credited",
+        "top_reached_no_floor_return",
+        "one_foot_remains_on_step",
+        "duplicate_completion_callback",
+        "stale_callback_after_next_rep_started",
+        "threshold_noise_single_credit",
+        "descent_order_not_overconstrained",
+        "tracking_loss_mid_left_lead_rep",
+        "tracking_loss_mid_right_lead_rep",
+        "pause_mid_rep",
+        "background_mid_rep",
+        "restore_after_six_reps",
+        "restore_mid_rep",
+        "cancel_mid_set",
+        "skip_mid_set",
+        "default_target_12",
+        "even_scaled_target_10",
+        "odd_scaled_target_9_blocked",
+        "noninteger_target_blocked",
+        "short_session_final_target",
+        "visible_voice_runtime_target_match",
+        "seed_defaults_left",
+        "successful_completion_flips_seed",
+        "skip_does_not_flip_seed",
+        "manual_practice_does_not_flip_seed",
+        "duplicate_completion_idempotent",
+        "sync_restore_preserves_seed",
+        "one_set_one_progression_event",
+        "lead_counts_do_not_double_set_count",
+        "valid_time_not_doubled",
+        "twelve_total_unequal_sides_rejected",
+        "broken_alternation_not_progression_eligible",
+        "legacy_result_still_parses",
+        "step_up_start_left_logical_plan",
+        "step_up_start_right_logical_plan",
+        "wrong_lead_left_correction_plan",
+        "wrong_lead_right_correction_plan",
+        "no_per_rep_spoken_switch",
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation",
+        "training_voice_remains_default_closed",
+        "balance_v2_remains_default_closed",
+        "audio_assets_unchanged"
+      ],
+      "sourceEventFilters": [
+        "recompute failedScenarioCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.failedScenarioCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "wrongLeadCreditedRepCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "wrong_lead_on_first_rep",
+        "wrong_lead_after_five_reps",
+        "wrong_lead_returns_to_floor_then_corrects"
+      ],
+      "sourceEventFilters": [
+        "events[outcome=wrong_lead && credited=true]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.wrongLeadCreditedRepCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "genericUnknownLeadCreditedRepCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "generic_rep_without_lead_evidence_rejected"
+      ],
+      "sourceEventFilters": [
+        "events[eventType=rep_evidence && observedLead=\"\" && credited=true]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.genericUnknownLeadCreditedRepCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "repCreditedWithoutStartBoundaryCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "step_up_both_feet_floor_each_rep"
+      ],
+      "sourceEventFilters": [
+        "events[credited=true && bothFeetAtStart=false]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.repCreditedWithoutStartBoundaryCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "repCreditedWithoutTopPhaseCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "top_reached_no_floor_return"
+      ],
+      "sourceEventFilters": [
+        "events[credited=true && topPhaseValid=false]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.repCreditedWithoutTopPhaseCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "repCreditedBeforeFloorReturnCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "top_reached_no_floor_return",
+        "one_foot_remains_on_step"
+      ],
+      "sourceEventFilters": [
+        "events[credited=true && bothFeetReturnedToFloor=false]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.repCreditedBeforeFloorReturnCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "duplicateRepCreditCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "duplicate_completion_callback"
+      ],
+      "sourceEventFilters": [
+        "events[eventType=duplicate_callback && credited=true]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.duplicateRepCreditCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "staleCallbackMutationCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "stale_callback_after_next_rep_started"
+      ],
+      "sourceEventFilters": [
+        "events[eventType=stale_callback && credited=true]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.staleCallbackMutationCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "thresholdNoiseExtraCreditCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "threshold_noise_single_credit"
+      ],
+      "sourceEventFilters": [
+        "max(0, count(events[scenarioId=threshold_noise_single_credit && credited=true])-1)"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.thresholdNoiseExtraCreditCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "wrongAttemptExpectedLeadFlipCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "wrong_lead_does_not_flip_expected"
+      ],
+      "sourceEventFilters": [
+        "events[outcome=wrong_lead && expectedLeadBefore!=expectedLeadAfter]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.wrongAttemptExpectedLeadFlipCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "trackingInterruptedRepCreditCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "tracking_loss_mid_left_lead_rep",
+        "tracking_loss_mid_right_lead_rep"
+      ],
+      "sourceEventFilters": [
+        "events[eventType=tracking_interrupted && credited=true]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.trackingInterruptedRepCreditCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "pausePartialRepCreditCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "pause_mid_rep"
+      ],
+      "sourceEventFilters": [
+        "events[eventType=pause_callback && credited=true]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.pausePartialRepCreditCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "backgroundPartialRepCreditCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "background_mid_rep"
+      ],
+      "sourceEventFilters": [
+        "events[eventType=background_callback && credited=true]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.backgroundPartialRepCreditCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "restorePartialRepCreditCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "restore_mid_rep"
+      ],
+      "sourceEventFilters": [
+        "events[eventType=restore_callback && credited=true]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.restorePartialRepCreditCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "validSetLeftRightMismatchCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps"
+      ],
+      "sourceEventFilters": [
+        "recompute validSetLeftRightMismatchCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.validSetLeftRightMismatchCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "setCompletedBeforeTargetCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps"
+      ],
+      "sourceEventFilters": [
+        "recompute setCompletedBeforeTargetCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.setCompletedBeforeTargetCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "setCompletedWithBrokenAlternationCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "broken_alternation_not_progression_eligible"
+      ],
+      "sourceEventFilters": [
+        "recompute setCompletedWithBrokenAlternationCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.setCompletedWithBrokenAlternationCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "repSfxMismatchCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps"
+      ],
+      "sourceEventFilters": [
+        "events[credited != sfxPlayed]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.repSfxMismatchCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "extraSetEventCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "lead_counts_do_not_double_set_count"
+      ],
+      "sourceEventFilters": [
+        "recompute extraSetEventCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.extraSetEventCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "oddTargetSilentlyAdjustedCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "odd_scaled_target_9_blocked"
+      ],
+      "sourceEventFilters": [
+        "recompute oddTargetSilentlyAdjustedCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.oddTargetSilentlyAdjustedCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "nonintegerTargetSilentlyAdjustedCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "noninteger_target_blocked"
+      ],
+      "sourceEventFilters": [
+        "recompute nonintegerTargetSilentlyAdjustedCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.nonintegerTargetSilentlyAdjustedCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "visibleVoiceRuntimeTargetMismatchCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "visible_voice_runtime_target_match"
+      ],
+      "sourceEventFilters": [
+        "recompute visibleVoiceRuntimeTargetMismatchCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.visibleVoiceRuntimeTargetMismatchCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "seedDefaultFailureCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "seed_defaults_left"
+      ],
+      "sourceEventFilters": [
+        "recompute seedDefaultFailureCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.seedDefaultFailureCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "successfulCompletionSeedFlipFailureCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "successful_completion_flips_seed"
+      ],
+      "sourceEventFilters": [
+        "recompute successfulCompletionSeedFlipFailureCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.successfulCompletionSeedFlipFailureCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "skipCancelSeedFlipCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "skip_does_not_flip_seed",
+        "skip_mid_set"
+      ],
+      "sourceEventFilters": [
+        "recompute skipCancelSeedFlipCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.skipCancelSeedFlipCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "manualPracticeSeedMutationCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "manual_practice_does_not_flip_seed"
+      ],
+      "sourceEventFilters": [
+        "recompute manualPracticeSeedMutationCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.manualPracticeSeedMutationCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "duplicateCompletionSeedFlipCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "duplicate_completion_idempotent"
+      ],
+      "sourceEventFilters": [
+        "recompute duplicateCompletionSeedFlipCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.duplicateCompletionSeedFlipCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "syncRestoreSeedDriftCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "sync_restore_preserves_seed"
+      ],
+      "sourceEventFilters": [
+        "recompute syncRestoreSeedDriftCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.syncRestoreSeedDriftCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "progressionInvalidAlternationAcceptedCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "broken_alternation_not_progression_eligible"
+      ],
+      "sourceEventFilters": [
+        "recompute progressionInvalidAlternationAcceptedCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.progressionInvalidAlternationAcceptedCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "sideImbalanceMaskedByTotalCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "twelve_total_unequal_sides_rejected"
+      ],
+      "sourceEventFilters": [
+        "recompute sideImbalanceMaskedByTotalCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.sideImbalanceMaskedByTotalCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "validTimeDoubleCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "valid_time_not_doubled"
+      ],
+      "sourceEventFilters": [
+        "recompute validTimeDoubleCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.validTimeDoubleCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "duplicateProgressionEventCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "lead_counts_do_not_double_set_count"
+      ],
+      "sourceEventFilters": [
+        "recompute duplicateProgressionEventCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.duplicateProgressionEventCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "legacyParseFailureCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "legacy_result_still_parses"
+      ],
+      "sourceEventFilters": [
+        "recompute legacyParseFailureCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.legacyParseFailureCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "startLeadLogicalMismatchCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "step_up_start_left_logical_plan",
+        "step_up_start_right_logical_plan"
+      ],
+      "sourceEventFilters": [
+        "recompute startLeadLogicalMismatchCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.startLeadLogicalMismatchCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "wrongLeadCorrectionLogicalMismatchCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "wrong_lead_left_correction_plan",
+        "wrong_lead_right_correction_plan"
+      ],
+      "sourceEventFilters": [
+        "recompute wrongLeadCorrectionLogicalMismatchCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.wrongLeadCorrectionLogicalMismatchCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "perRepSpokenSwitchCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "no_per_rep_spoken_switch"
+      ],
+      "sourceEventFilters": [
+        "recompute perRepSpokenSwitchCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.perRepSpokenSwitchCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "spokenSetCountCueCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "no_per_rep_spoken_switch"
+      ],
+      "sourceEventFilters": [
+        "recompute spokenSetCountCueCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.spokenSetCountCueCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "legacyV21MixedSemanticsCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "feature_off_legacy_unchanged",
+        "training_voice_remains_default_closed"
+      ],
+      "sourceEventFilters": [
+        "recompute legacyV21MixedSemanticsCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.legacyV21MixedSemanticsCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "runtimeIntegrationMissingLinkCount": {
+      "value": 5,
+      "sourceScenarioIds": [
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation"
+      ],
+      "sourceEventFilters": [
+        "trace[status=model_only_not_connected]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.runtimeIntegrationMissingLinkCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "runtimeIntegrationPartialLinkCount": {
+      "value": 7,
+      "sourceScenarioIds": [
+        "one_set_one_progression_event",
+        "sync_restore_preserves_seed"
+      ],
+      "sourceEventFilters": [
+        "trace[status=partially_connected|legacy_only]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.runtimeIntegrationPartialLinkCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "runtimeIntegrationUncertainLinkCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "feature_off_legacy_unchanged"
+      ],
+      "sourceEventFilters": [
+        "trace[status=uncertain]"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.runtimeIntegrationUncertainLinkCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "irVoiceStepAlternationRemaining": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "training_voice_remains_default_closed"
+      ],
+      "sourceEventFilters": [
+        "recompute irVoiceStepAlternationRemaining from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.irVoiceStepAlternationRemaining",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "trainingVoiceSelectableCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "training_voice_remains_default_closed"
+      ],
+      "sourceEventFilters": [
+        "recompute trainingVoiceSelectableCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.trainingVoiceSelectableCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "audioAssetDiffCount": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "audio_assets_unchanged"
+      ],
+      "sourceEventFilters": [
+        "recompute audioAssetDiffCount from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.audioAssetDiffCount",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "p0": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps",
+        "step_up_three_sets_left_initial",
+        "step_up_three_sets_right_initial",
+        "step_up_six_left_six_right",
+        "step_up_both_feet_floor_each_rep",
+        "wrong_lead_on_first_rep",
+        "wrong_lead_after_five_reps",
+        "wrong_lead_returns_to_floor_then_corrects",
+        "wrong_lead_does_not_flip_expected",
+        "generic_rep_without_lead_evidence_rejected",
+        "opposite_chain_clearer_not_auto_credited",
+        "top_reached_no_floor_return",
+        "one_foot_remains_on_step",
+        "duplicate_completion_callback",
+        "stale_callback_after_next_rep_started",
+        "threshold_noise_single_credit",
+        "descent_order_not_overconstrained",
+        "tracking_loss_mid_left_lead_rep",
+        "tracking_loss_mid_right_lead_rep",
+        "pause_mid_rep",
+        "background_mid_rep",
+        "restore_after_six_reps",
+        "restore_mid_rep",
+        "cancel_mid_set",
+        "skip_mid_set",
+        "default_target_12",
+        "even_scaled_target_10",
+        "odd_scaled_target_9_blocked",
+        "noninteger_target_blocked",
+        "short_session_final_target",
+        "visible_voice_runtime_target_match",
+        "seed_defaults_left",
+        "successful_completion_flips_seed",
+        "skip_does_not_flip_seed",
+        "manual_practice_does_not_flip_seed",
+        "duplicate_completion_idempotent",
+        "sync_restore_preserves_seed",
+        "one_set_one_progression_event",
+        "lead_counts_do_not_double_set_count",
+        "valid_time_not_doubled",
+        "twelve_total_unequal_sides_rejected",
+        "broken_alternation_not_progression_eligible",
+        "legacy_result_still_parses",
+        "step_up_start_left_logical_plan",
+        "step_up_start_right_logical_plan",
+        "wrong_lead_left_correction_plan",
+        "wrong_lead_right_correction_plan",
+        "no_per_rep_spoken_switch",
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation",
+        "training_voice_remains_default_closed",
+        "balance_v2_remains_default_closed",
+        "audio_assets_unchanged"
+      ],
+      "sourceEventFilters": [
+        "recompute p0 from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.p0",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "p1": {
+      "value": 0,
+      "sourceScenarioIds": [
+        "step_up_left_first_set_12_reps",
+        "step_up_right_first_set_12_reps",
+        "step_up_three_sets_left_initial",
+        "step_up_three_sets_right_initial",
+        "step_up_six_left_six_right",
+        "step_up_both_feet_floor_each_rep",
+        "wrong_lead_on_first_rep",
+        "wrong_lead_after_five_reps",
+        "wrong_lead_returns_to_floor_then_corrects",
+        "wrong_lead_does_not_flip_expected",
+        "generic_rep_without_lead_evidence_rejected",
+        "opposite_chain_clearer_not_auto_credited",
+        "top_reached_no_floor_return",
+        "one_foot_remains_on_step",
+        "duplicate_completion_callback",
+        "stale_callback_after_next_rep_started",
+        "threshold_noise_single_credit",
+        "descent_order_not_overconstrained",
+        "tracking_loss_mid_left_lead_rep",
+        "tracking_loss_mid_right_lead_rep",
+        "pause_mid_rep",
+        "background_mid_rep",
+        "restore_after_six_reps",
+        "restore_mid_rep",
+        "cancel_mid_set",
+        "skip_mid_set",
+        "default_target_12",
+        "even_scaled_target_10",
+        "odd_scaled_target_9_blocked",
+        "noninteger_target_blocked",
+        "short_session_final_target",
+        "visible_voice_runtime_target_match",
+        "seed_defaults_left",
+        "successful_completion_flips_seed",
+        "skip_does_not_flip_seed",
+        "manual_practice_does_not_flip_seed",
+        "duplicate_completion_idempotent",
+        "sync_restore_preserves_seed",
+        "one_set_one_progression_event",
+        "lead_counts_do_not_double_set_count",
+        "valid_time_not_doubled",
+        "twelve_total_unequal_sides_rejected",
+        "broken_alternation_not_progression_eligible",
+        "legacy_result_still_parses",
+        "step_up_start_left_logical_plan",
+        "step_up_start_right_logical_plan",
+        "wrong_lead_left_correction_plan",
+        "wrong_lead_right_correction_plan",
+        "no_per_rep_spoken_switch",
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation",
+        "training_voice_remains_default_closed",
+        "balance_v2_remains_default_closed",
+        "audio_assets_unchanged"
+      ],
+      "sourceEventFilters": [
+        "recompute p1 from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.p1",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "p2": {
+      "value": 3,
+      "sourceScenarioIds": [
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation",
+        "one_set_one_progression_event",
+        "generic_rep_without_lead_evidence_rejected",
+        "opposite_chain_clearer_not_auto_credited",
+        "step_up_both_feet_floor_each_rep",
+        "sync_restore_preserves_seed",
+        "restore_after_six_reps"
+      ],
+      "sourceEventFilters": [
+        "recompute p2 from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.p2",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    },
+    "p3": {
+      "value": 2,
+      "sourceScenarioIds": [
+        "step_up_both_feet_floor_each_rep",
+        "opposite_chain_clearer_not_auto_credited",
+        "step_up_start_left_logical_plan",
+        "wrong_lead_right_correction_plan"
+      ],
+      "sourceEventFilters": [
+        "recompute p3 from SCENARIOS_V2/EVENT_EVIDENCE/TRACE"
+      ],
+      "recomputeMethod": "scripts/audits/audit-training-step-up-alternation-addendum.mjs recomputeFromWrittenArtifacts -> computeMetrics.p3",
+      "independentCheck": "CSV artifacts were written, reopened, parsed, and metrics were recomputed before JSON emission."
+    }
+  },
+  "findings": [
+    {
+      "id": "F-STEPUP-RUNTIME-INTEGRATION",
+      "severity": "P2",
+      "title": "Step-up alternation is not connected end to end to the training runtime",
+      "triggeringMetric": "runtimeIntegrationMissingLinkCount/runtimeIntegrationPartialLinkCount",
+      "affectedScenarios": [
+        "feature_off_legacy_unchanged",
+        "alternation_flag_alone_no_half_activation",
+        "one_set_one_progression_event"
+      ],
+      "sourceEvidence": "3:model_only_not_connected:src/training/stepUpAlternation/readiness.ts;src/training/sessionPlayer.ts | 4:model_only_not_connected:src/screens/TrainingSessionScreen.tsx;src/training/sessionPlayer.ts | 5:model_only_not_connected:src/exercises/setGraders.ts;src/training/stepUpAlternation/evidence.ts | 6:model_only_not_connected:src/training/stepUpAlternation/stateMachine.ts | 7:legacy_only:src/screens/TrainingSessionScreen.tsx;src/training/sessionPlayer.ts | 8:model_only_not_connected:src/training/stepUpAlternation/aggregation.ts;src/training/sessionPlayer.ts | 9:partially_connected:src/training/progression.ts | 11:partially_connected:src/training/serialize.ts;src/training/stepUpAlternation/persistence.ts | 12:partially_connected:src/training/serialize.ts;src/training/stepUpAlternation/persistence.ts | 13:partially_connected:src/services/backend/trainingStateSyncService.ts;src/services/backend/restoreService.ts | 14:partially_connected:src/training/bothSidesRounds/startSide.ts | 15:partially_connected:src/training/bothSidesRounds/startSide.ts;src/pearlFlow/exploreViewModel.ts",
+      "userConsequence": "Enabling the flag would not make the live camera session own alternation state, adapt lead-leg evidence, or emit alternation-aware SetResults.",
+      "blocksFloorGateHandoff": true,
+      "recommendedNextTask": "Training step-up alternation runtime integration patch"
+    },
+    {
+      "id": "F-STEPUP-POSE-EVIDENCE-ADAPTER",
+      "severity": "P2",
+      "title": "Live step-up grader does not produce lead-leg and floor-boundary evidence",
+      "triggeringMetric": "runtimeIntegrationMissingLinkCount",
+      "affectedScenarios": [
+        "generic_rep_without_lead_evidence_rejected",
+        "opposite_chain_clearer_not_auto_credited",
+        "step_up_both_feet_floor_each_rep"
+      ],
+      "sourceEvidence": "src/exercises/setGraders.ts exposes generic repCredited/repCount; src/training/stepUpAlternation/evidence.ts requires observedLeadSide and floor/top flags.",
+      "userConsequence": "The live camera path cannot prove the FD-005 accepted-rep contract from real pose frames.",
+      "blocksFloorGateHandoff": true,
+      "recommendedNextTask": "Training step-up alternation runtime integration patch"
+    },
+    {
+      "id": "F-STEPUP-BACKEND-SYNC",
+      "severity": "P2",
+      "title": "Backend compact training-state sync omits step-up alternation generated metadata",
+      "triggeringMetric": "runtimeIntegrationPartialLinkCount",
+      "affectedScenarios": [
+        "sync_restore_preserves_seed",
+        "restore_after_six_reps"
+      ],
+      "sourceEvidence": "src/services/backend/trainingStateSyncService.ts sanitizeGeneratedExerciseSummary omits stepUpAlternationPlan and stepUpInitialLeadSide.",
+      "userConsequence": "A remote compact snapshot would not preserve the generated alternation plan metadata needed by an integrated runtime path.",
+      "blocksFloorGateHandoff": true,
+      "recommendedNextTask": "Training step-up alternation runtime integration patch"
+    },
+    {
+      "id": "F-STEPUP-PHYSICAL-QA-DEFERRED",
+      "severity": "P3",
+      "title": "Physical-device validation of lead-leg/floor-boundary reliability is deferred",
+      "triggeringMetric": "project boundary",
+      "affectedScenarios": [
+        "step_up_both_feet_floor_each_rep",
+        "opposite_chain_clearer_not_auto_credited"
+      ],
+      "sourceEvidence": "Project boundary explicitly defers physical-device QA.",
+      "userConsequence": "The pure model is verified, but camera reliability in real homes remains unproven.",
+      "blocksFloorGateHandoff": false,
+      "recommendedNextTask": "Perform device QA after runtime integration exists."
+    },
+    {
+      "id": "F-STEPUP-HUMAN-LISTENING-WAIVED",
+      "severity": "P3",
+      "title": "Human listening remains waived for new logical step-up cues",
+      "triggeringMetric": "project boundary",
+      "affectedScenarios": [
+        "step_up_start_left_logical_plan",
+        "wrong_lead_right_correction_plan"
+      ],
+      "sourceEvidence": "Training Voice V2.1 audio remains default closed and no audio assets changed.",
+      "userConsequence": "Logical cue plans are verified, but spoken audio review is still pending for any future recording.",
+      "blocksFloorGateHandoff": false,
+      "recommendedNextTask": "Keep audio approval as a later Training Voice task."
+    }
+  ],
+  "completionGates": [
+    {
+      "id": "coverage_canonical_53",
+      "passed": true,
+      "observed": 53,
+      "required": 53,
+      "notes": ""
+    },
+    {
+      "id": "scenario_rows_parse",
+      "passed": true,
+      "observed": "yes",
+      "required": "yes",
+      "notes": ""
+    },
+    {
+      "id": "event_rows_parse",
+      "passed": true,
+      "observed": "yes",
+      "required": "yes",
+      "notes": ""
+    },
+    {
+      "id": "independent_metric_recompute",
+      "passed": true,
+      "observed": "passed",
+      "required": "passed",
+      "notes": ""
+    },
+    {
+      "id": "rep_validity",
+      "passed": true,
+      "observed": "see metrics",
+      "required": "all zero",
+      "notes": ""
+    },
+    {
+      "id": "interruption_restore",
+      "passed": true,
+      "observed": "see metrics",
+      "required": "all zero",
+      "notes": ""
+    },
+    {
+      "id": "set_progression",
+      "passed": true,
+      "observed": "see metrics",
+      "required": "all zero",
+      "notes": ""
+    },
+    {
+      "id": "target_seed",
+      "passed": true,
+      "observed": "see metrics",
+      "required": "all zero",
+      "notes": ""
+    },
+    {
+      "id": "voice_isolation",
+      "passed": true,
+      "observed": "see metrics",
+      "required": "all zero",
+      "notes": ""
+    },
+    {
+      "id": "runtime_integration",
+      "passed": false,
+      "observed": "5/7/0",
+      "required": "0/0/0",
+      "notes": "Blocks verified-complete verdict."
+    },
+    {
+      "id": "project_defaults",
+      "passed": true,
+      "observed": "defaults closed",
+      "required": "defaults closed",
+      "notes": ""
+    },
+    {
+      "id": "audio_unchanged",
+      "passed": true,
+      "observed": 0,
+      "required": 0,
+      "notes": ""
+    }
+  ],
+  "validation": {
+    "scenarioRowsParse": true,
+    "eventRowsParse": true,
+    "traceRowsParse": true,
+    "independentMetricRecompute": "passed",
+    "recomputedMetricNames": [
+      "audioAssetDiffCount",
+      "backgroundPartialRepCreditCount",
+      "canonicalScenarioCount",
+      "duplicateCompletionSeedFlipCount",
+      "duplicateProgressionEventCount",
+      "duplicateRepCreditCount",
+      "extraSetEventCount",
+      "failedScenarioCount",
+      "genericUnknownLeadCreditedRepCount",
+      "irVoiceStepAlternationRemaining",
+      "legacyParseFailureCount",
+      "legacyV21MixedSemanticsCount",
+      "manualPracticeSeedMutationCount",
+      "nonintegerTargetSilentlyAdjustedCount",
+      "oddTargetSilentlyAdjustedCount",
+      "p0",
+      "p1",
+      "p2",
+      "p3",
+      "passedScenarioCount",
+      "pausePartialRepCreditCount",
+      "perRepSpokenSwitchCount",
+      "progressionInvalidAlternationAcceptedCount",
+      "repCreditedBeforeFloorReturnCount",
+      "repCreditedWithoutStartBoundaryCount",
+      "repCreditedWithoutTopPhaseCount",
+      "repSfxMismatchCount",
+      "restorePartialRepCreditCount",
+      "runtimeIntegrationMissingLinkCount",
+      "runtimeIntegrationPartialLinkCount",
+      "runtimeIntegrationUncertainLinkCount",
+      "scenarioVariantCount",
+      "seedDefaultFailureCount",
+      "setCompletedBeforeTargetCount",
+      "setCompletedWithBrokenAlternationCount",
+      "sideImbalanceMaskedByTotalCount",
+      "skipCancelSeedFlipCount",
+      "spokenSetCountCueCount",
+      "staleCallbackMutationCount",
+      "startLeadLogicalMismatchCount",
+      "successfulCompletionSeedFlipFailureCount",
+      "syncRestoreSeedDriftCount",
+      "thresholdNoiseExtraCreditCount",
+      "trackingInterruptedRepCreditCount",
+      "trainingVoiceSelectableCount",
+      "validSetLeftRightMismatchCount",
+      "validTimeDoubleCount",
+      "visibleVoiceRuntimeTargetMismatchCount",
+      "wrongAttemptExpectedLeadFlipCount",
+      "wrongLeadCorrectionLogicalMismatchCount",
+      "wrongLeadCreditedRepCount"
+    ],
+    "artifactPaths": {
+      "reportMd": "docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_VERIFICATION_ADDENDUM.md",
+      "reportJson": "docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_VERIFICATION_ADDENDUM.json",
+      "scenariosCsv": "docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_SCENARIOS_V2.csv",
+      "eventsCsv": "docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_EVENT_EVIDENCE.csv",
+      "traceCsv": "docs/audits/PEARL_TRAINING_STEP_UP_RUNTIME_INTEGRATION_TRACE.csv",
+      "handoffMd": "docs/audits/PEARL_VOICE_PROJECT_POST_STEP_UP_VERIFICATION_HANDOFF.md"
+    }
+  },
+  "nextTask": "Training step-up alternation runtime integration patch"
+}

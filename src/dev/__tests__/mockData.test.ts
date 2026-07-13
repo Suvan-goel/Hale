@@ -55,11 +55,9 @@ describe('generateMockJourney', () => {
 
     const progress = buildMovementProfileV2ProgressViewModel({
       history,
-      blocks: [],
-      reports: [],
-      today: NOW.toISOString(),
     });
     expect(progress.status).toBe('ready');
+    if (progress.status !== 'ready') throw new Error(progress.status);
     expect(progress.officialHistory).toHaveLength(3);
 
     // Each check-up resolves to a per-check-up Results view model.

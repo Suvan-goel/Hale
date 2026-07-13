@@ -311,7 +311,7 @@ mechanism-shape, never diagnostic; through the fences; worse-never-bare helper
 enforces pairing on every below-band row).
 
 ### 6.2 GP-escalation (BUILT this time; trigger fires only when data exists)
-Pure trigger over the Clarity series (`src/haleFlow/clarityEscalation.ts`):
+Pure trigger over the Clarity series (`src/pearlFlow/clarityEscalation.ts`):
 **the same series below her rolling band for ≥3 consecutive monthly official
 check-ups, with ≥5 lifetime readings on that series** → one calm card on the Clarity
 surface: "Your check-ins have trended down for a few months. That's worth a

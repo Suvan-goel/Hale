@@ -1,14 +1,13 @@
 /**
- * THE app shell (programme engine v2, PROMOTED 2026-07-08 — the C4 parallel
- * build became the default and its flag was retired): mounted unconditionally
+ * Pearl's app shell: mounted unconditionally
  * by App.tsx inside AuthProvider. Owns store loading (auth-scoped,
  * guest-adopting), the merged onboarding flow, the session/check-up phases,
  * and the three-tab shell (Home / Plan / Progress) with the Settings flow —
  * all rendered by the SHARED app screens.
  *
- * Coupling rules: programme STATE stays zero-coupled to the old engine (no
+ * Coupling rules: programme state stays independent from retired training state (no
  * TrainingStore/TrainingState reads — pinned by the parity review); with the
- * extra-practice catalogue gone, the shell no longer touches the old engine's
+ * extra-practice catalogue gone, the shell does not touch retired preset
  * preset generation at all. Pain-exclusion rows are absent from Settings by
  * the Pain A ruling (§12 regression is v1's answer).
  *
@@ -25,16 +24,17 @@ import {
   requestCameraPermissionsAsync,
   setAndroidNavigationBarVisibleAsync,
 } from '../../modules/expo-pose-detection';
-import { LOCAL_USER_ID } from '../adherence';
+import { LOCAL_USER_ID } from '../adherence/types';
 import { configureSessionAudio } from '../audio/voicePlayer';
 import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
+import { isOnlineProfilesEnabled } from '../config/onlineProfiles';
 import {
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
-  type CheckUp,
-} from '../checkup';
+  PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+} from '../checkup/measurementProtocolRegistry';
+import type { CheckUp } from '../checkup/types';
 import { adoptGuestLocalFiles, createExpoHistoryFs } from '../history/fsAdapter';
 import {
   HistoryStore,
@@ -43,16 +43,15 @@ import {
   type StoredCheckUp,
   type StoredCheckUpType,
 } from '../history';
-import {
-  materializeOfficialMovementProfileV2Artifacts,
-  type MovementProfileV2ReferenceProfile,
-} from '../reference/movementProfileV2';
+import { materializeOfficialMovementProfileV2Artifacts } from '../reference/movementProfileV2/persistence';
+import type { MovementProfileV2ReferenceProfile } from '../reference/movementProfileV2/types';
+import { validOfficialMovementProfileV2Assessments } from '../pearlFlow/checkupHistory';
+import { buildClarityTrendViewModel } from '../pearlFlow/clarityTrend';
+import { adoptGuestSessionFunnelFiles } from '../telemetry/fsAdapter';
 import {
   buildMovementProfileV2ProgressViewModel,
-  buildClarityTrendViewModel,
   movementProfileV2ProgressProfileBySourceCheckUpId,
-  validOfficialMovementProfileV2Assessments,
-} from '../pearlFlow';
+} from '../pearlFlow/movementProfileV2ProgressViewModel';
 import { movementProfileV2ResultsViewModelForRecord } from '../movementProfileV2/viewModel';
 import { TAB_BAR_SCROLL_CLEARANCE, TabBar, type TabKey } from '../navigation/TabBar';
 import {
@@ -97,15 +96,32 @@ import {
 import type { OnboardingQuestionStepId } from '../programme';
 import {
   onboardingActivityLevel,
+  OnlineProfileSyncStore,
   ProfileStore,
   type AppSettings,
   type Preferences,
   type UserProfile,
 } from '../profile';
-import { clearLocalPearlData, useAuth } from '../services/backend';
-import type { TrainingSessionResult } from '../training/sessionPlayer';
+import {
+  clearLocalPearlData,
+  DISABLED_ONLINE_PROFILE_STATE,
+  authenticatedUserId,
+  reconcileOnlineProfile,
+  SIGNED_OUT_ONLINE_PROFILE_STATE,
+  SYNCING_ONLINE_PROFILE_STATE,
+  useAuth,
+  type OnlineProfileConflictResolution,
+  type OnlineProfileSyncState,
+} from '../services/backend';
+import {
+  claimGuestAdoption,
+  completeGuestAdoption,
+  guestAdoptionOwner,
+} from '../services/backend/guestAdoptionStore';
+import type { TrainingSessionResult } from '../training/voiceSessionPlayer';
 import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
 import { CameraSetupScreen } from './CameraSetupScreen';
+import { AuthScreen } from './AuthScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './MovementProfileV2UnifiedResultsScreen';
 import { PlanScreen } from './PlanScreen';
 import { ProgressScreen } from './ProgressScreen';
@@ -120,6 +136,7 @@ import {
   voiceSessionInputsFromPlan,
 } from '../programme';
 import { generateMockJourney } from '../dev/mockData';
+import { assessmentStatusAfterHealthChange } from '../settings/healthAnswerPreferences';
 
 type ShellPhase =
   | 'loading'
@@ -140,11 +157,15 @@ export function ProgrammeV2Root() {
   // another account inherit local state. Guests use the unscoped store; the
   // first sign-in on a device with guest data adopts it (move, not copy)
   // only when the account scope is still empty.
-  const { user } = useAuth();
-  const backendUserId = user?.id ?? null;
+  const { isSignedIn, refreshProfile, signOut, user } = useAuth();
+  const backendUserId = authenticatedUserId({ isSignedIn, user });
   const localFs = React.useMemo(() => createExpoHistoryFs({ userId: backendUserId }), [backendUserId]);
   const store = React.useMemo(() => new ProgrammeStore(localFs), [localFs]);
   const profileStore = React.useMemo(() => new ProfileStore(localFs), [localFs]);
+  const onlineProfileSyncStore = React.useMemo(
+    () => new OnlineProfileSyncStore(localFs),
+    [localFs]
+  );
   const historyStore = React.useMemo(() => new HistoryStore(localFs), [localFs]);
   const checkUpDraftStore = React.useMemo(
     () => new OfficialCheckUpDraftStore(localFs),
@@ -167,6 +188,17 @@ export function ProgrammeV2Root() {
   const [prefs, setPrefs] = React.useState<Preferences | null>(null);
   const [history, setHistory] = React.useState<readonly StoredCheckUp[]>([]);
   const [checkUpDraft, setCheckUpDraft] = React.useState<OfficialCheckUpDraft | null>(null);
+  const [onlineProfileSyncState, setOnlineProfileSyncState] =
+    React.useState<OnlineProfileSyncState>(SIGNED_OUT_ONLINE_PROFILE_STATE);
+  const onlineProfileSyncSequenceRef = React.useRef<Promise<void>>(Promise.resolve());
+  const onlineProfileSyncRevisionRef = React.useRef(0);
+  const onlineProfileSyncLifecycleRef = React.useRef(0);
+  const onlineProfileSyncUserRef = React.useRef<string | null>(backendUserId);
+  if (onlineProfileSyncUserRef.current !== backendUserId) {
+    onlineProfileSyncUserRef.current = backendUserId;
+    onlineProfileSyncLifecycleRef.current += 1;
+    onlineProfileSyncRevisionRef.current += 1;
+  }
   const [flowState, setFlowState] = React.useState(initialOnboardingFlowState());
   const [plan, setPlan] = React.useState<ProgrammeSessionPlan | null>(null);
   const [sessionResult, setSessionResult] = React.useState<TrainingSessionResult | null>(null);
@@ -175,12 +207,86 @@ export function ProgrammeV2Root() {
   >({});
   const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
   const [cameraPermission, setCameraPermission] = React.useState<CameraPermission>('checking');
+  const [onboardingAuthVisible, setOnboardingAuthVisible] = React.useState(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
   // The expectation CTA's promise when Check-up #0 runs first: completing the
   // check-up chains into the first session (abandoning it lands home — the
   // home CTA remains the unsurprising way in).
   const pendingFirstSessionRef = React.useRef(false);
   const assessmentContinuationStateRef = React.useRef<ProgrammeState | null>(null);
+
+  const queueOnlineProfileSync = React.useCallback(
+    (
+      localPreferences: Preferences,
+      resolution: OnlineProfileConflictResolution = 'automatic'
+    ) => {
+      if (!backendUserId) {
+        setOnlineProfileSyncState(SIGNED_OUT_ONLINE_PROFILE_STATE);
+        return;
+      }
+      if (!isOnlineProfilesEnabled()) {
+        setOnlineProfileSyncState(DISABLED_ONLINE_PROFILE_STATE);
+        return;
+      }
+
+      const revision = ++onlineProfileSyncRevisionRef.current;
+      const lifecycle = onlineProfileSyncLifecycleRef.current;
+      const expectedUserId = backendUserId;
+      const shouldContinue = () =>
+        revision === onlineProfileSyncRevisionRef.current &&
+        lifecycle === onlineProfileSyncLifecycleRef.current &&
+        expectedUserId === onlineProfileSyncUserRef.current;
+      setOnlineProfileSyncState((current) => ({
+        ...SYNCING_ONLINE_PROFILE_STATE,
+        lastSyncedAt: current.lastSyncedAt,
+      }));
+      onlineProfileSyncSequenceRef.current = onlineProfileSyncSequenceRef.current
+        .catch(() => {})
+        .then(async () => {
+          const result = await reconcileOnlineProfile({
+            localPreferences,
+            metadataStore: onlineProfileSyncStore,
+            resolution,
+            shouldContinue,
+          });
+          if (revision !== onlineProfileSyncRevisionRef.current || !shouldContinue()) return;
+
+          try {
+            if (result.preferences) {
+              profileStore.save(result.preferences);
+              if (!shouldContinue()) return;
+              setPrefs(result.preferences);
+            }
+            if (!shouldContinue()) return;
+            result.finalize?.();
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.warn('[online-profile] local hydration commit failed', error);
+            setOnlineProfileSyncState({
+              status: 'failed',
+              lastSyncedAt: null,
+              error: message,
+            });
+            return;
+          }
+          setOnlineProfileSyncState({
+            status: result.status,
+            lastSyncedAt: result.lastSyncedAt,
+            error: result.error,
+          });
+          if (result.status === 'synced') void refreshProfile();
+        });
+    },
+    [backendUserId, onlineProfileSyncStore, profileStore, refreshProfile]
+  );
+
+  React.useEffect(
+    () => () => {
+      onlineProfileSyncLifecycleRef.current += 1;
+      onlineProfileSyncRevisionRef.current += 1;
+    },
+    []
+  );
 
   React.useEffect(() => {
     let cancelled = false;
@@ -191,24 +297,44 @@ export function ProgrammeV2Root() {
         historyStore.loadAll(),
         checkUpDraftStore.load(),
       ]);
-      if (
-        backendUserId &&
-        !loaded.onboardingCompletedAtIso &&
-        storedHistory.length === 0
-      ) {
-        // Account scope is empty → adopt any guest data into it, then reload.
+      if (backendUserId) {
+        let adoptionClaimed = false;
         try {
-          const { moved } = await adoptGuestLocalFiles(backendUserId);
-          if (moved > 0) {
-            [loaded, loadedPrefs, storedHistory, storedDraft] = await Promise.all([
-              store.load(),
-              profileStore.load(),
-              historyStore.loadAll(),
-              checkUpDraftStore.load(),
-            ]);
+          const accountScopeAppearsEmpty =
+            createExpoHistoryFs({ userId: backendUserId, strictErrors: true }).list().length === 0;
+          const existingOwner = await guestAdoptionOwner();
+          if (existingOwner === backendUserId || (!existingOwner && accountScopeAppearsEmpty)) {
+            adoptionClaimed = await claimGuestAdoption(backendUserId);
           }
         } catch (error) {
-          console.warn('[programme-v2] guest adoption failed', error);
+          console.warn('[programme-v2] guest adoption claim failed', error);
+        }
+
+        if (adoptionClaimed) {
+          const moves = await Promise.allSettled([
+            adoptGuestLocalFiles(backendUserId),
+            adoptGuestSessionFunnelFiles(backendUserId),
+          ]);
+          const failedMoves = moves.filter((result) => result.status === 'rejected').length;
+          if (failedMoves === 0) {
+            try {
+              await completeGuestAdoption(backendUserId);
+            } catch (error) {
+              console.warn('[programme-v2] guest adoption completion marker failed', error);
+            }
+          } else {
+            console.warn(`[programme-v2] guest adoption had ${failedMoves} failed move(s)`);
+          }
+
+          // Always reload after a claimed attempt, including partial failure:
+          // moved preferences/health/programme files are authoritative and
+          // must be used before any online-profile reconciliation starts.
+          [loaded, loadedPrefs, storedHistory, storedDraft] = await Promise.all([
+            store.load(),
+            profileStore.load(),
+            historyStore.loadAll(),
+            checkUpDraftStore.load(),
+          ]);
         }
       }
       if (cancelled) return;
@@ -300,6 +426,11 @@ export function ProgrammeV2Root() {
       if (regression.applied || journeyReconciled) store.save(reconciledState);
       setProgrammeState(reconciledState);
       setPrefs(loadedPrefs);
+      if (backendUserId) {
+        queueOnlineProfileSync(loadedPrefs);
+      } else {
+        setOnlineProfileSyncState(SIGNED_OUT_ONLINE_PROFILE_STATE);
+      }
       setHistory(storedHistory);
       if (
         storedDraft &&
@@ -316,7 +447,14 @@ export function ProgrammeV2Root() {
     return () => {
       cancelled = true;
     };
-  }, [store, profileStore, historyStore, checkUpDraftStore, backendUserId]);
+  }, [
+    store,
+    profileStore,
+    historyStore,
+    checkUpDraftStore,
+    backendUserId,
+    queueOnlineProfileSync,
+  ]);
 
   React.useEffect(() => {
     getCameraPermissionsAsync()
@@ -399,7 +537,7 @@ export function ProgrammeV2Root() {
               record.checkUp.measurementProtocol?.protocolVersion ===
                 MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1 &&
               record.checkUp.measurementProtocol?.protocolVariant ===
-                PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT)
+                PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT)
         );
         return hasPriorBaselineAttempt ? 'baseline_retake' : 'baseline';
       }
@@ -511,8 +649,9 @@ export function ProgrammeV2Root() {
     (next: Preferences) => {
       setPrefs(next);
       profileStore.save(next);
+      queueOnlineProfileSync(next);
     },
-    [profileStore]
+    [profileStore, queueOnlineProfileSync]
   );
 
   const finishOnboarding = React.useCallback(
@@ -670,7 +809,15 @@ export function ProgrammeV2Root() {
   );
 
   const handleClearDeviceData = React.useCallback(async () => {
-    const result = await clearLocalPearlData({ fs: localFs });
+    // Cancel every queued/in-flight reconciliation before deletion. The
+    // coordinator checks this generation before any device write, so a late
+    // network response cannot recreate preferences or sync metadata.
+    onlineProfileSyncLifecycleRef.current += 1;
+    onlineProfileSyncRevisionRef.current += 1;
+    // Let the deletion service construct its strict adapter; the ordinary
+    // store adapter is deliberately best-effort and must not be used to
+    // certify that destructive deletion succeeded.
+    const result = await clearLocalPearlData({ userId: backendUserId });
     if (result.failures.length > 0) {
       throw new Error(`Could not clear ${result.failures.length} local data item(s).`);
     }
@@ -692,7 +839,9 @@ export function ProgrammeV2Root() {
     sessionStartRef.current = null;
     pendingFirstSessionRef.current = false;
     assessmentContinuationStateRef.current = null;
-  }, [localFs, profileStore]);
+    setOnlineProfileSyncState(SIGNED_OUT_ONLINE_PROFILE_STATE);
+    if (backendUserId) await signOut();
+  }, [backendUserId, profileStore, signOut]);
 
   const handleDataCleared = React.useCallback(() => {
     setFlow(null);
@@ -757,6 +906,10 @@ export function ProgrammeV2Root() {
 
   if (phase === 'loading' || !audioReady || !programmeState || !prefs) return <Screen>{null}</Screen>;
 
+  if (phase === 'onboarding' && onboardingAuthVisible && !isSignedIn) {
+    return <AuthScreen onContinueWithoutAccount={() => setOnboardingAuthVisible(false)} />;
+  }
+
   if (phase === 'onboarding') {
     return (
       <ProgrammeOnboardingScreen
@@ -795,6 +948,11 @@ export function ProgrammeV2Root() {
           void finishOnboarding(action, next);
         }}
         onBack={() => setFlowState((current) => undoLastOnboardingStep(current))}
+        onSignIn={
+          isOnlineProfilesEnabled() && !isSignedIn
+            ? () => setOnboardingAuthVisible(true)
+            : undefined
+        }
       />
     );
   }
@@ -859,6 +1017,7 @@ export function ProgrammeV2Root() {
       <ProgrammeVoiceSession
         plan={plan}
         voiceId={prefs.settings.voiceId}
+        userId={backendUserId}
         firstSessionStarted={!programmeState.profile.firstSessionStarted}
         voiceSetup={voiceSetup}
         onVoiceSetupChange={handleVoiceSetupChange}
@@ -893,15 +1052,7 @@ export function ProgrammeV2Root() {
     // Routine completion returns Home from the effort answer. Only a technique
     // gateway may interrupt that path because it gates safe progression.
     const surface = postSessionSurface(programmeState, lastDecisions);
-    if (!surface) {
-      return (
-        <ProgrammeMomentScreen
-          eyebrow="Session done"
-          title="Your session is saved"
-          actions={[{ label: 'Back to Home', onPress: () => setPhase('home') }]}
-        />
-      );
-    }
+    if (!surface) return null;
     const ladder = programmeState.ladders[surface.pattern];
     return (
       <ProgrammeMomentScreen
@@ -971,7 +1122,7 @@ export function ProgrammeV2Root() {
     }
     // The movement battery is staged as a recoverable draft first. Only after
     // Everyday Clarity has been offered does the assembled record enter
-    // official history and advance the 12-week journey. Monthly checks refresh
+    // official history and advance the 12-week journey. Programme checkpoints refresh
     // the next phase prescription but never mechanically demote ladder levels
     // from one noisy day.
     return (
@@ -1231,10 +1382,14 @@ export function ProgrammeV2Root() {
         startingEffort={onboardingActivityLevel(programmeState.profile.activityLevel)}
         safetyPreferences={{
           balanceSupportDefault: programmeState.profile.balanceSupportDefault,
+          balanceSupportRequired: programmeState.profile.balanceSupportRequired,
           lowImpact: programmeState.profile.pelvicRouting === 'low_impact',
           quietMode: programmeState.profile.quietMode,
           hasStairs: programmeState.profile.hasStairs,
           consentHealthData: programmeState.profile.consentHealthData,
+          gentleStartActive: programmeState.profile.gentleStartActive,
+          gpConfirmed: programmeState.profile.gpConfirmed,
+          jointFlags: programmeState.profile.jointFlags,
         }}
         onProfileChange={(next: UserProfile) => persistPrefs({ ...prefs, profile: next })}
         onSettingsChange={(next: AppSettings) => persistPrefs({ ...prefs, settings: next })}
@@ -1251,22 +1406,37 @@ export function ProgrammeV2Root() {
             profile: {
               ...programmeState.profile,
               balanceSupportDefault: next.balanceSupportDefault,
+              balanceSupportRequired: next.balanceSupportRequired,
               pelvicRouting: next.lowImpact ? 'low_impact' : 'none',
               quietMode: next.quietMode,
               hasStairs: next.hasStairs,
+              consentHealthData: next.consentHealthData,
+              gentleStartActive: next.gentleStartActive,
+              gpConfirmed: next.gpConfirmed,
+              jointFlags: next.jointFlags,
+              assessmentStatus: assessmentStatusAfterHealthChange(
+                programmeState.profile.assessmentStatus,
+                next
+              ),
             },
           })
         }
         onOpenCameraSetup={() => setFlow('camera-setup')}
+        cameraPermission={cameraPermission}
+        onRequestCameraPermission={requestCameraPermission}
         onClearDeviceData={handleClearDeviceData}
         onDataCleared={handleDataCleared}
+        onlineProfileSyncState={onlineProfileSyncState}
+        onRetryOnlineProfileSync={() => queueOnlineProfileSync(prefs)}
+        onResolveOnlineProfileConflict={(resolution) =>
+          queueOnlineProfileSync(prefs, resolution)
+        }
         onFillSampleData={handleFillSampleData}
         onResetSampleData={handleResetSampleData}
         // No pain-exclusion rows in v2 by the Pain A ruling (2026-07-07):
-        // the §12 pain regression is v1's answer to exercise pain. The
-        // life-goal review flow retired in the simplification pass
-        // (2026-07-08): the goal is set once in onboarding and shown
-        // read-only in the profile details.
+        // the §12 pain regression is v1's answer to exercise pain. The goal
+        // remains a small Settings preference: changing it affects future
+        // emphasis and never rewrites frozen check-up artifacts.
         onBack={() => {
           setFlow(null);
           if (!programmeState.onboardingCompletedAtIso) setPhase('onboarding');
@@ -1280,8 +1450,6 @@ export function ProgrammeV2Root() {
       <CameraSetupScreen
         permissionGranted={cameraPermission === 'granted'}
         onRequestPermission={requestCameraPermission}
-        showBeginAction={false}
-        onBegin={() => setFlow('settings')}
         onCancel={() => setFlow('settings')}
       />
     );
@@ -1294,14 +1462,10 @@ export function ProgrammeV2Root() {
         <View style={styles.tabContent}>
           {tab === 'progress' ? (
             <ProgressScreen
-              onBeginFirstCheckUp={checkUpAccess.allowed ? goAssessment : undefined}
-              onStartMovementProfileV2CheckUp={checkUpAccess.allowed ? goAssessment : undefined}
+              onStartCheckUp={checkUpAccess.allowed ? goAssessment : undefined}
               checkUpBlockedReason={checkUpAccess.allowed ? undefined : checkUpAccess.reason}
               movementProfileV2Progress={buildMovementProfileV2ProgressViewModel({
                 history,
-                blocks: [],
-                reports: [],
-                today: nowIso,
               })}
               onViewMovementProfileV2Profile={(sourceCheckUpId) =>
                 setResultsView({ sourceCheckUpId, variant: 'history' })
@@ -1317,12 +1481,22 @@ export function ProgrammeV2Root() {
                 physicalFocus: currentPrescription?.physicalFocus ?? null,
               }}
               checkUpBlockedReason={checkUpAccess.allowed ? undefined : checkUpAccess.reason}
+              checkUpDraftInProgress={checkUpDraft !== null && checkUpAccess.allowed}
               onOpenSettings={openSettings}
+              onStartNextSession={startSessionFromHome}
             />
           ) : (
             <TodayScreen
               profile={prefs.profile}
-              programme={{ today: todayVm }}
+              programme={{
+                today: todayVm,
+                journey: {
+                  status: journeyProgress.status,
+                  physicalFocus: currentPrescription?.physicalFocus ?? null,
+                  currentWeekSummary: journeyProgress.currentWeekSummary,
+                  checkUpDraftInProgress: checkUpDraft !== null && checkUpAccess.allowed,
+                },
+              }}
               onPrimaryAction={() =>
                 todayVm.primaryAction.type === 'start_baseline_checkup'
                   ? goAssessment()
@@ -1341,6 +1515,7 @@ export function ProgrammeV2Root() {
 function ProgrammeVoiceSession({
   plan,
   voiceId,
+  userId,
   firstSessionStarted,
   voiceSetup,
   onVoiceSetupChange,
@@ -1350,6 +1525,7 @@ function ProgrammeVoiceSession({
 }: {
   plan: ProgrammeSessionPlan;
   voiceId?: string;
+  userId?: string | null;
   firstSessionStarted: boolean;
   voiceSetup: VoiceSetupPrefs;
   onVoiceSetupChange: (next: VoiceSetupPrefs) => void;
@@ -1372,6 +1548,7 @@ function ProgrammeVoiceSession({
       resolveSafetyProfile={inputs.resolveSafetyProfile}
       sessionTitle="Your session"
       voiceId={voiceId}
+      userId={userId}
       firstSessionStarted={firstSessionStarted}
       voiceSetup={voiceSetup}
       onVoiceSetupChange={onVoiceSetupChange}

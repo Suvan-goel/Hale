@@ -1,32 +1,27 @@
 import * as React from 'react';
-import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import {
   Card,
   Screen,
 } from '../components/ui';
 import { ClarityProgressCard } from '../components/ClarityProgressCard';
-import { HeaderLogo } from '../components/HeaderLogo';
 import {
-  type MovementProfileV2ProgressChange,
   type MovementProfileV2ProgressChangeDomain,
   type MovementProfileV2ProgressViewModel,
-} from '../pearlFlow';
+} from '../pearlFlow/movementProfileV2ProgressViewModel';
 import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
 import type { OfficialCheckUpBlockedReason } from '../programme';
 import type { ClarityTrendViewModel } from '../pearlFlow/clarityTrend';
-import { type Domain } from '../scoring';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
-import { compactTypography, useResponsiveLayout } from '../theme/responsive';
-import { SettingsIcon } from '../navigation/icons';
+import { colors, fonts, radius, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
+import { MenuIcon } from '../navigation/icons';
 
 import { BRAND } from '../brand';
-const PROGRESS_HERO_IMAGE = require('../../assets/images/progress-hero-botanical.png');
 
 export function ProgressScreen({
-  onBeginFirstCheckUp,
-  onStartMovementProfileV2CheckUp,
+  onStartCheckUp,
   movementProfileV2Progress,
   onViewMovementProfileV2Profile,
   clarityTrend,
@@ -36,34 +31,39 @@ export function ProgressScreen({
   const responsive = useResponsiveLayout();
   const progress = movementProfileV2Progress ?? null;
   const checkUpHistory =
-    progress?.status === 'ready' && progress.officialHistory.length >= 2
+    progress?.status === 'ready' && progress.officialHistory.length >= 1
       ? progress.officialHistory
       : null;
 
   return (
-    <Screen contentStyle={styles.screenContent}>
+    <Screen
+      contentStyle={[
+        styles.screenContent,
+        { paddingHorizontal: responsive.isCompactWidth ? spacing.xl : spacing.xxl },
+      ]}
+    >
       <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleGroup}>
-            <HeaderLogo />
-            <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Progress</Text>
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
-            onPress={onOpenSettings}
-            accessibilityRole="button"
-            accessibilityLabel="Open settings"
-          >
-            <SettingsIcon size={25} color={colors.textSecondary} strokeWidth={1.8} />
-          </Pressable>
-        </View>
+        <Text
+          style={[styles.title, responsive.isCompactPhone && styles.compactTitle]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.9}
+        >
+          Your progress
+        </Text>
+        <Pressable
+          style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
+          onPress={onOpenSettings}
+          accessibilityRole="button"
+          accessibilityLabel="Open settings"
+        >
+          <MenuIcon size={24} color={colors.textPrimary} strokeWidth={1.55} />
+        </Pressable>
       </View>
 
       <MovementProfileV2ProgressContent
         viewModel={progress}
-        onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
-        onContinue={onBeginFirstCheckUp}
-        onViewProfile={onViewMovementProfileV2Profile}
+        onStartCheckUp={onStartCheckUp}
         checkUpBlockedReason={checkUpBlockedReason}
       />
 
@@ -82,7 +82,7 @@ function ProgressEmptyState() {
   return (
     <Card style={styles.emptyProgressCard}>
       <View style={styles.emptyProgressIcon}>
-        <ProgressPictogram name="calendar" size={24} color={colors.accent} />
+        <ProgressPictogram size={24} color={colors.accent} />
       </View>
       <View style={styles.emptyProgressCopy}>
         <Text style={styles.emptyProgressTitle}>Your progress will appear here</Text>
@@ -99,21 +99,17 @@ function ProgressEmptyState() {
 function MovementProfileV2ProgressContent({
   viewModel,
   onStartCheckUp,
-  onContinue,
-  onViewProfile,
   checkUpBlockedReason,
 }: {
   viewModel: MovementProfileV2ProgressViewModel | null;
   onStartCheckUp?: () => void;
-  onContinue?: () => void;
-  onViewProfile?: (sourceCheckUpId: string) => void;
   checkUpBlockedReason?: OfficialCheckUpBlockedReason;
 }) {
   if (!viewModel) {
     return (
       <MovementProfileV2RecoveryCard
-        title="Strength Profile needs attention"
-        body={`Your saved Strength Profile data is still on this phone, but ${BRAND.appName} cannot safely show it here yet.`}
+        title="Check-up results need attention"
+        body={`Your saved check-up data is still on this phone, but ${BRAND.appName} cannot safely show it here yet.`}
       />
     );
   }
@@ -130,23 +126,12 @@ function MovementProfileV2ProgressContent({
         title={viewModel.recovery.title}
         body={viewModel.recovery.body}
         actionLabel={primary?.label}
-        onPress={
-          primary?.id === 'start_movement_checkup'
-            ? onStartCheckUp
-            : primary && onContinue
-              ? onContinue
-              : undefined
-        }
+        onPress={primary?.id === 'start_movement_checkup' ? onStartCheckUp : undefined}
       />
     );
   }
 
-  return (
-    <>
-      <MovementProfileCard viewModel={viewModel} onViewProfile={onViewProfile} />
-      {viewModel.change ? <MovementProfileV2ChangeCard change={viewModel.change} /> : null}
-    </>
-  );
+  return <MovementProfileCard viewModel={viewModel} />;
 }
 
 function MovementProfileV2RecoveryCard({
@@ -184,130 +169,313 @@ function MovementProfileV2RecoveryCard({
   );
 }
 
-// One "Movement Profile" card: the botanical banner names the focus, and the
-// body carries the date, the three domain readings, and the read-only results
-// link (restored 2026-07-08 with the per-check-up results page).
+// The reference-led Progress experience: one physical domain at a time, with
+// personal change as the hero and the latest check-up kept within easy reach.
 function MovementProfileCard({
   viewModel,
-  onViewProfile,
 }: {
   viewModel: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>;
-  onViewProfile?: (sourceCheckUpId: string) => void;
 }) {
   const { hero } = viewModel;
+  const availableDomains = hero.domains.filter(
+    (domain) => domain.domain === 'strength_power' || domain.domain === 'balance'
+  );
+  const [selectedDomain, setSelectedDomain] = React.useState<MovementProfileV2Domain>(
+    availableDomains[0]?.domain ?? 'strength_power'
+  );
+  const current = availableDomains.find((domain) => domain.domain === selectedDomain)
+    ?? availableDomains[0];
+  const change = viewModel.change?.domains.find((domain) => domain.domain === current?.domain);
+  const readiness = viewModel.change ? null : viewModel.changeReadiness;
+
+  if (!current) return null;
+
   return (
     <View style={styles.profileCard}>
-      <ImageBackground
-        source={PROGRESS_HERO_IMAGE}
-        style={styles.profileBanner}
-        imageStyle={styles.profileBannerImage}
-        resizeMode="cover"
-      >
-        <View style={styles.profileBannerScrim} />
-        <View style={styles.profileBannerContent}>
-          <Text style={styles.profileBannerEyebrow}>Where to focus</Text>
-          <Text style={styles.profileBannerTitle} numberOfLines={2}>{hero.focusTitle}</Text>
-        </View>
-      </ImageBackground>
-      <View style={styles.profileBody}>
-        <Text style={styles.profileMeta}>Last check-up · {hero.dateLabel}</Text>
-        <Text style={styles.profileFocusBody}>{hero.focusBody}</Text>
-        <View style={styles.profileRows}>
-          {hero.domains.map((card, index) => (
-            <MovementProfileV2ProgressRow key={card.domain} card={card} showDivider={index > 0} />
-          ))}
-        </View>
-        {onViewProfile ? (
-          <ProgressActionRow
-            title="See full results"
-            body="Your complete check-up breakdown."
-            onPress={() => onViewProfile(hero.profileId)}
-            accessibilityLabel={`See full results. Your complete breakdown from ${hero.dateLabel}.`}
+      <DomainTabs
+        domains={availableDomains}
+        selected={current.domain}
+        onSelect={setSelectedDomain}
+      />
+
+      <View style={styles.progressHero}>
+        <Text style={styles.eyebrow}>YOUR CHECK-UPS</Text>
+        <Text style={styles.progressHeroTitle}>{progressHeroTitle(current.domain, change)}</Text>
+        <Text style={styles.progressDelta}>
+          {change
+            ? progressDelta(change)
+            : readiness && readiness.status !== 'ready'
+              ? readiness.body
+              : 'Your first comparable result is saved.'}
+        </Text>
+      </View>
+
+      <ProgressChart domain={current.domain} change={change} currentMetric={current.metric} />
+
+      <View style={styles.metricSummary}>
+        <ProgressSummaryMetric
+          label="Current level"
+          value={currentMetricValue(current.metric)}
+          unit={currentMetricUnit(current.domain)}
+          supportingText={`Latest check-up · ${hero.dateLabel}`}
+        />
+      </View>
+
+      {change?.supportCopy ? <Text style={styles.changeSupport}>{change.supportCopy}</Text> : null}
+    </View>
+  );
+}
+
+function DomainTabs({
+  domains,
+  selected,
+  onSelect,
+}: {
+  domains: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['hero']['domains'];
+  selected: MovementProfileV2Domain;
+  onSelect: (domain: MovementProfileV2Domain) => void;
+}) {
+  return (
+    <View style={styles.domainTabs} accessibilityRole="tablist">
+      {domains.map((domain) => {
+        const active = domain.domain === selected;
+        const label = progressDomainTitle(domain.domain, domain.title);
+        return (
+          <Pressable
+            key={domain.domain}
+            style={({ pressed }) => [
+              styles.domainTab,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => onSelect(domain.domain)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={`${label} progress`}
+          >
+            <Text style={[styles.domainTabText, active && styles.domainTabTextActive]}>
+              {label}
+            </Text>
+            <View style={[styles.domainTabTrack, active && styles.domainTabTrackActive]} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function ProgressChart({
+  domain,
+  change,
+  currentMetric,
+}: {
+  domain: MovementProfileV2Domain;
+  change?: MovementProfileV2ProgressChangeDomain;
+  currentMetric: string;
+}) {
+  const series = change?.series ?? [];
+  const values = series.length > 0
+    ? series.map((point) => point.value)
+    : [Number(currentMetric.match(/[\d.]+/)?.[0] ?? 0)];
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const spread = rawMax - rawMin;
+  const padding = spread > 0 ? Math.max(1, spread * 0.38) : Math.max(1, rawMax * 0.12);
+  const paddedMin = Math.max(0, rawMin - padding);
+  const paddedMax = rawMax + padding;
+  let tickStep = Math.max(1, Math.ceil((paddedMax - paddedMin) / 4));
+  let min = Math.max(0, Math.floor(paddedMin / tickStep) * tickStep);
+  if (min + tickStep * 4 < paddedMax && min + tickStep <= rawMin) {
+    min += tickStep;
+  }
+  while (min + tickStep * 4 < paddedMax) {
+    tickStep += 1;
+    min = Math.max(0, Math.floor(paddedMin / tickStep) * tickStep);
+  }
+  const max = min + tickStep * 4;
+  const plotLeft = 8;
+  const plotRight = 304;
+  const plotTop = 14;
+  const plotBottom = 168;
+  const chartPoints = values.map((value, index) => ({
+    x: values.length === 1
+      ? (plotLeft + plotRight) / 2
+      : plotLeft + (index / (values.length - 1)) * (plotRight - plotLeft),
+    y: plotBottom - ((value - min) / (max - min)) * (plotBottom - plotTop),
+  }));
+  const ticks = [max, min + tickStep * 2, min];
+  const includeDay = series.length > 1 && new Set(series.map((point) => monthKey(point.atIso))).size < series.length;
+  const accessibilityLabel = series.length > 1
+    ? `${progressDomainTitle(domain, domain)} changed from ${series[0].value} to ${series[series.length - 1].value} across ${series.length} comparable check-ups.`
+    : `${progressDomainTitle(domain, domain)} baseline saved at ${values[0]}.`;
+  const chartTitle = domain === 'balance' ? 'One-leg balance' : '30-second chair stand';
+  const chartUnit = domain === 'balance' ? 'Seconds' : 'Rises';
+
+  return (
+    <View style={styles.chartSection}>
+      <View style={styles.chartHeader}>
+        <Text style={styles.chartTitle}>{chartTitle}</Text>
+        <Text style={styles.chartUnit}>{chartUnit}</Text>
+      </View>
+      <View style={styles.chart} accessible accessibilityLabel={`${chartTitle}, ${chartUnit}. ${accessibilityLabel}`}>
+        <Svg width="100%" height="100%" viewBox="0 0 360 214" fill="none">
+        <Path
+          d={`M ${plotLeft} ${plotBottom} H ${plotRight}`}
+          stroke={colors.textTertiary}
+          strokeWidth={1}
+        />
+        {chartPoints.length > 1 ? (
+          <Path
+            d={straightChartPath(chartPoints)}
+            stroke={colors.accentDeep}
+            strokeWidth={2.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         ) : null}
+        {chartPoints.map((point, index) => {
+          const latest = index === chartPoints.length - 1;
+          return latest ? (
+            <React.Fragment key={`${point.x}-${point.y}`}>
+              <Circle
+                cx={point.x}
+                cy={point.y}
+                r={7.5}
+                fill={colors.background}
+                stroke={colors.accentDeep}
+                strokeWidth={1.5}
+              />
+              <Circle cx={point.x} cy={point.y} r={3.8} fill={colors.accentDeep} />
+            </React.Fragment>
+          ) : (
+            <Circle key={`${point.x}-${point.y}`} cx={point.x} cy={point.y} r={4.8} fill={colors.accentDeep} />
+          );
+        })}
+        {ticks.map((tick, index) => (
+          <SvgText
+            key={tick}
+            x={351}
+            y={plotTop + (index / 2) * (plotBottom - plotTop) + 4}
+            fill={colors.textSecondary}
+            fontFamily={fonts.sansRegular}
+            fontSize={12}
+            textAnchor="end"
+          >
+            {formatAxisValue(tick)}
+          </SvgText>
+        ))}
+        {series.map((point, index) => (
+          <SvgText
+            key={point.atIso}
+            x={chartPoints[index].x}
+            y={199}
+            fill={colors.textSecondary}
+            fontFamily={fonts.sansMedium}
+            fontSize={11.5}
+            letterSpacing={0.7}
+            textAnchor={index === 0 ? 'start' : index === series.length - 1 ? 'end' : 'middle'}
+          >
+            {formatChartDate(point.atIso, includeDay)}
+          </SvgText>
+        ))}
+        </Svg>
       </View>
     </View>
   );
 }
 
-// "Am I improving?" — the reason a Progress tab exists. Only rendered when the
-// view model has a comparable change across at least two check-ups.
-function MovementProfileV2ChangeCard({ change }: { change: MovementProfileV2ProgressChange }) {
-  return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Your change over time</Text>
-      <Text style={styles.sectionIntro}>{change.headline}</Text>
-      <View style={styles.changeRows}>
-        {change.domains.map((domain, index) => (
-          <MovementProfileV2ChangeRow key={domain.domain} domain={domain} showDivider={index > 0} />
-        ))}
-      </View>
-    </Card>
-  );
-}
-
-function MovementProfileV2ChangeRow({
-  domain,
-  showDivider,
+function ProgressSummaryMetric({
+  label,
+  value,
+  unit,
+  supportingText,
+  accent = false,
 }: {
-  domain: MovementProfileV2ProgressChangeDomain;
-  showDivider: boolean;
+  label: string;
+  value: string;
+  unit: string;
+  supportingText?: string;
+  accent?: boolean;
 }) {
-  const tonePill =
-    domain.direction === 'up'
-      ? styles.changePillUp
-      : domain.direction === 'down'
-        ? styles.changePillDown
-        : styles.changePillSteady;
-  const toneText =
-    domain.direction === 'up'
-      ? styles.changePillTextUp
-      : domain.direction === 'down'
-        ? styles.changePillTextDown
-        : styles.changePillTextSteady;
   return (
-    <View style={[styles.changeRowBlock, showDivider && styles.rowDivider]}>
-      <View style={styles.changeRow}>
-        <IconBadge domain={domainIconForMovementProfileV2(domain.domain)} size={36} iconSize={22} />
-        <View style={styles.changeRowText}>
-          <Text style={styles.changeRowTitle} numberOfLines={1}>{domain.title}</Text>
-          <Text style={styles.changeRowMetric} numberOfLines={1}>{domain.value}</Text>
-        </View>
-        <View style={[styles.changePill, tonePill]}>
-          <Text style={[styles.changePillText, toneText]} numberOfLines={1}>{domain.caption}</Text>
-        </View>
+    <View style={styles.summaryMetric}>
+      <View style={styles.summaryMetricRow}>
+        <Text style={styles.summaryMetricLabel}>{label}</Text>
+        <Text style={[styles.summaryMetricValue, accent && styles.summaryMetricValueAccent]}>
+          {value} <Text style={styles.summaryMetricUnit}>{unit}</Text>
+        </Text>
       </View>
-      {domain.supportCopy ? (
-        // Worse never bare: a lower reading always carries the trainable path.
-        <Text style={styles.changeSupport}>{domain.supportCopy}</Text>
+      {supportingText ? (
+        <Text style={styles.summaryMetricSupportingText}>{supportingText}</Text>
       ) : null}
     </View>
   );
 }
 
-function MovementProfileV2ProgressRow({
-  card,
-  showDivider,
-}: {
-  card: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['hero']['domains'][number];
-  showDivider: boolean;
-}) {
-  return (
-    <View style={[styles.profileRow, showDivider && styles.rowDivider]}>
-      <IconBadge domain={domainIconForMovementProfileV2(card.domain)} size={36} iconSize={22} />
-      <View style={styles.profileRowText}>
-        <Text style={styles.profileRowTitle} numberOfLines={1}>{card.title}</Text>
-        <Text style={styles.profileRowMetric} numberOfLines={2}>{card.metric}</Text>
-      </View>
-      <View style={styles.profileStatusPill}>
-        <Text style={styles.profileStatusText} numberOfLines={2}>{card.interpretation}</Text>
-      </View>
-    </View>
+function straightChartPath(points: readonly { x: number; y: number }[]): string {
+  if (points.length === 0) return '';
+  return points.slice(1).reduce(
+    (path, point) => `${path} L ${point.x} ${point.y}`,
+    `M ${points[0].x} ${points[0].y}`
   );
 }
 
-// Older check-ups stay available without making the default Progress page a
-// long archive. The latest result already has a full-results link above.
+function progressHeroTitle(
+  domain: MovementProfileV2Domain,
+  change?: MovementProfileV2ProgressChangeDomain
+): string {
+  if (!change) return 'Baseline saved';
+  if (change.direction === 'up') {
+    return `${domain === 'balance' ? 'Steadier' : 'Stronger'} than in ${sinceMonth(change)}`;
+  }
+  if (change.direction === 'down') return 'Lower this time';
+  return 'Holding steady';
+}
+
+function progressDelta(change: MovementProfileV2ProgressChangeDomain): string {
+  const since = sinceMonth(change);
+  if (change.direction === 'steady') return `Holding steady since ${since}`;
+  const sign = change.direction === 'up' ? '+' : '−';
+  const match = change.caption.match(/(?:Up|Down)\s+([\d.]+)\s*(.*)/i);
+  return match ? `${sign}${match[1]} ${match[2]} since ${since}` : `${change.caption} since ${since}`;
+}
+
+function currentMetricValue(metric: string): string {
+  return metric.match(/[\d.]+/)?.[0] ?? metric;
+}
+
+function currentMetricUnit(domain: MovementProfileV2Domain): string {
+  return domain === 'balance' ? 'sec best hold' : 'rises in 30 sec';
+}
+
+function sinceMonth(change: MovementProfileV2ProgressChangeDomain): string {
+  const iso = change.series[0]?.atIso;
+  if (!iso) return 'baseline';
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? 'baseline'
+    : new Intl.DateTimeFormat('en', { month: 'long' }).format(date);
+}
+
+function formatAxisValue(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function monthKey(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : `${date.getFullYear()}-${date.getMonth()}`;
+}
+
+function formatChartDate(iso: string, includeDay: boolean): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'CHECK-UP';
+  return new Intl.DateTimeFormat('en', includeDay
+    ? { month: 'short', day: 'numeric' }
+    : { month: 'short' }).format(date).toUpperCase();
+}
+
+// Details and history share one disclosure so the main Progress story has a
+// single quiet exit instead of competing links and archive controls.
 function MovementProfileV2HistoryCard({
   history,
   onViewProfile,
@@ -316,33 +484,31 @@ function MovementProfileV2HistoryCard({
   onViewProfile?: (sourceCheckUpId: string) => void;
 }) {
   const [expanded, setExpanded] = React.useState(false);
-  const earlierCheckUps = history.slice(1);
-  const countLabel = `${earlierCheckUps.length} earlier ${earlierCheckUps.length === 1 ? 'check-up' : 'check-ups'}`;
+  const countLabel = `${history.length} ${history.length === 1 ? 'check-up' : 'check-ups'} saved on this device`;
+  const shortCountLabel = `${history.length} saved`;
 
   return (
-    <Card style={styles.historyDisclosureCard}>
+    <View style={styles.historyDisclosureCard}>
       <Pressable
         style={({ pressed }) => [styles.historyDisclosure, pressed && styles.pressed]}
         onPress={() => setExpanded((current) => !current)}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${expanded ? 'Hide' : 'See'} check-up history. ${countLabel} saved on this device.`}
+        accessibilityLabel={`${expanded ? 'Hide' : 'See'} check-up details and history. ${countLabel}.`}
+        accessibilityHint={expanded ? 'Collapses your saved check-ups' : 'Expands your saved check-ups'}
       >
-        <View style={styles.latestResultsIconWell}>
-          <ProgressPictogram name="calendar" size={20} color={colors.accent} />
+        <Text style={styles.historyDisclosureLabel}>
+          {expanded ? 'Hide check-up history' : 'Check-up details and history'}
+        </Text>
+        <View style={styles.historyDisclosureValueGroup}>
+          <Text style={styles.historyDisclosureValue}>{shortCountLabel}</Text>
+          <Text style={[styles.historyDisclosureChevron, expanded && styles.historyDisclosureChevronOpen]}>›</Text>
         </View>
-        <View style={styles.latestResultsCopy}>
-          <Text style={styles.latestResultsTitle}>
-            {expanded ? 'Hide check-up history' : 'See check-up history'}
-          </Text>
-          <Text style={styles.latestResultsBody}>{countLabel} saved on this device.</Text>
-        </View>
-        <Text style={[styles.historyDisclosureChevron, expanded && styles.historyDisclosureChevronOpen]}>›</Text>
       </Pressable>
 
       {expanded ? (
         <View style={styles.historyList}>
-          {earlierCheckUps.map((entry, index) => (
+          {history.map((entry, index) => (
             <MovementProfileV2HistoryRow
               key={entry.id}
               entry={entry}
@@ -352,7 +518,7 @@ function MovementProfileV2HistoryCard({
           ))}
         </View>
       ) : null}
-    </Card>
+    </View>
   );
 }
 
@@ -421,7 +587,7 @@ function ProgressActionRow({
       disabled={!onPress}
     >
       <View style={styles.latestResultsIconWell}>
-        <ProgressPictogram name="calendar" size={20} color={colors.accent} />
+        <ProgressPictogram size={20} color={colors.accent} />
       </View>
       <View style={styles.latestResultsCopy}>
         <Text style={styles.latestResultsTitle} numberOfLines={1}>{title}</Text>
@@ -433,8 +599,7 @@ function ProgressActionRow({
 }
 
 interface ProgressScreenProps {
-  onBeginFirstCheckUp?: () => void;
-  onStartMovementProfileV2CheckUp?: () => void;
+  onStartCheckUp?: () => void;
   movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
   /** Opens the saved read-only results page (restored 2026-07-08). */
   onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
@@ -456,13 +621,13 @@ function blockedCheckUpCopy(reason?: OfficialCheckUpBlockedReason): {
   if (reason === 'gentle_start_safety_gate') {
     return {
       title: 'Gentle Start is active',
-      body: `${BRAND.appName} keeps the effort-based Movement Check-Up unavailable while your Gentle Start safety gate is active.`,
+      body: `${BRAND.appName} keeps the private Movement Check-Up unavailable while your Gentle Start safety gate is active.`,
     };
   }
   if (reason === 'journey_completed') {
     return {
       title: 'Your 12-week check-ups are complete',
-      body: 'Your baseline and monthly results remain saved here for review.',
+      body: 'Your baseline, week-4, week-8 and week-12 results remain saved here for review.',
     };
   }
   return {
@@ -471,84 +636,29 @@ function blockedCheckUpCopy(reason?: OfficialCheckUpBlockedReason): {
   };
 }
 
-function domainIconForMovementProfileV2(domain: MovementProfileV2Domain): Domain {
-  if (domain === 'strength_power') return 'strength';
-  return domain;
-}
-
-
-
-
-
-
-function IconBadge({
-  domain,
-  size,
-  iconSize,
-}: {
-  domain: Domain | 'calendar';
-  size: number;
-  iconSize: number;
-}) {
-  return (
-    <View style={[styles.iconBadge, { width: size, height: size, borderRadius: size / 2 }]}>
-      <ProgressPictogram name={domain} size={iconSize} color={colors.accent} />
-    </View>
-  );
+function progressDomainTitle(domain: MovementProfileV2Domain, fallback: string): string {
+  if (domain === 'strength_power') return 'Strength';
+  if (domain === 'balance') return 'Balance';
+  return fallback;
 }
 
 function ProgressPictogram({
-  name,
   size,
   color,
 }: {
-  name: Domain | 'calendar';
   size: number;
   color: string;
 }) {
   const s = iconStroke(color);
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {name === 'strength' ? (
-        <>
-          <Path d="M5 8.5 V15.5" {...s} />
-          <Path d="M8 6.8 V17.2" {...s} />
-          <Path d="M16 6.8 V17.2" {...s} />
-          <Path d="M19 8.5 V15.5" {...s} />
-          <Path d="M8 12 H16" {...s} />
-          <Path d="M3 10 V14" {...s} />
-          <Path d="M21 10 V14" {...s} />
-        </>
-      ) : name === 'balance' ? (
-        <>
-          <Path d="M12 4 V19" {...s} />
-          <Path d="M7 7 H17" {...s} />
-          <Path d="M5 19 H19" {...s} />
-          <Path d="M7 7 L4.5 13.5 H9.5 L7 7 Z" {...s} />
-          <Path d="M17 7 L14.5 13.5 H19.5 L17 7 Z" {...s} />
-          <Path d="M4.8 13.5 C5.4 15.1 8.6 15.1 9.2 13.5" {...s} />
-          <Path d="M14.8 13.5 C15.4 15.1 18.6 15.1 19.2 13.5" {...s} />
-        </>
-      ) : name === 'mobility' ? (
-        <>
-          <Circle cx={12} cy={5.4} r={1.6} {...s} />
-          <Path d="M12 8.6 V13.2" {...s} />
-          <Path d="M12 10.2 L7.8 12.6" {...s} />
-          <Path d="M12 10.2 L16.4 13" {...s} />
-          <Path d="M12 13.2 L8.7 19.2" {...s} />
-          <Path d="M12 13.2 L16.4 19.2" {...s} />
-        </>
-      ) : (
-        <>
-          <Rect x={5.2} y={5.8} width={13.6} height={13.2} rx={2.2} {...s} />
-          <Path d="M5.2 9.8 H18.8" {...s} />
-          <Path d="M8.5 4.2 V7.1" {...s} />
-          <Path d="M15.5 4.2 V7.1" {...s} />
-          <Path d="M8.8 13.3 H10.2" {...s} />
-          <Path d="M12.9 13.3 H15.1" {...s} />
-          <Path d="M8.8 16.2 H10.2" {...s} />
-        </>
-      )}
+      <Rect x={5.2} y={5.8} width={13.6} height={13.2} rx={2.2} {...s} />
+      <Path d="M5.2 9.8 H18.8" {...s} />
+      <Path d="M8.5 4.2 V7.1" {...s} />
+      <Path d="M15.5 4.2 V7.1" {...s} />
+      <Path d="M8.8 13.3 H10.2" {...s} />
+      <Path d="M12.9 13.3 H15.1" {...s} />
+      <Path d="M8.8 16.2 H10.2" {...s} />
     </Svg>
   );
 }
@@ -566,106 +676,177 @@ function iconStroke(color: string) {
 
 const styles = StyleSheet.create({
   screenContent: {
-    gap: spacing.md,
+    gap: spacing.xxl,
   },
   header: {
-    gap: spacing.xs,
-  },
-  titleRow: {
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  titleGroup: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+  title: {
+    color: colors.textPrimary,
+    flexShrink: 1,
+    fontFamily: fonts.serifRegular,
+    fontSize: 40,
+    letterSpacing: -0.8,
+    lineHeight: 46,
   },
-  title: { ...type.pageTitle, flexShrink: 1 },
+  compactTitle: { fontSize: 36, lineHeight: 42 },
   headerIconButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgElevated,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
   },
   progressCard: {
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   profileCard: {
-    overflow: 'hidden',
-    borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    backgroundColor: 'transparent',
+    gap: spacing.xxl,
   },
-  profileBanner: {
-    minHeight: 132,
+  domainTabs: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  domainTab: {
+    flex: 1,
+    minHeight: 50,
+    alignItems: 'center',
     justifyContent: 'flex-end',
+    gap: spacing.sm,
+  },
+  domainTabText: {
+    ...type.cardCaption,
+    color: colors.textTertiary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  domainTabTextActive: {
+    color: colors.accentDeep,
+  },
+  domainTabTrack: {
+    width: '100%',
+    height: 4,
+    borderRadius: radius.pill,
     backgroundColor: colors.bgElevated,
   },
-  profileBannerImage: {
-    // Image bleeds to the card edges; the card's own overflow:hidden clips it.
+  domainTabTrackActive: {
+    backgroundColor: colors.accentDeep,
   },
-  profileBannerScrim: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: colors.imageScrim,
+  progressHero: {
+    gap: spacing.sm,
   },
-  profileBannerContent: {
-    paddingHorizontal: 18,
-    paddingTop: 22,
-    paddingBottom: 18,
-    gap: 4,
+  eyebrow: {
+    ...type.cardCaption,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  profileBannerEyebrow: {
+  progressHeroTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.serifRegular,
+    fontSize: 34,
+    letterSpacing: -0.4,
+    lineHeight: 40,
+  },
+  progressDelta: {
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 21,
+    maxWidth: 350,
+  },
+  chartSection: {
+    gap: spacing.md,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  chartTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  chartUnit: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  chart: {
+    aspectRatio: 360 / 214,
+    width: '100%',
+  },
+  metricSummary: {
+    gap: spacing.xs,
+  },
+  summaryMetric: {
+    minHeight: 52,
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  summaryMetricRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  summaryMetricLabel: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+    flex: 1,
+    minWidth: 0,
+  },
+  summaryMetricSupportingText: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
-    letterSpacing: 0,
-    opacity: 0.9,
   },
-  profileBannerTitle: {
+  summaryMetricValue: {
     color: colors.textPrimary,
-    fontFamily: fonts.serifMedium,
-    fontSize: 29,
-    lineHeight: 34,
-    letterSpacing: 0,
+    flexShrink: 0,
+    fontFamily: fonts.sansMedium,
+    fontSize: 20,
+    lineHeight: 26,
+    textAlign: 'right',
   },
-  profileBody: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 18,
+  summaryMetricValueAccent: {
+    color: colors.accentDeep,
   },
-  profileMeta: {
-    ...type.cardCaption,
+  summaryMetricUnit: {
     color: colors.textSecondary,
-  },
-  profileFocusBody: {
-    ...type.cardBody,
-    marginTop: spacing.xs,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
   },
   emptyProgressCard: {
     minHeight: 196,
-    paddingHorizontal: 18,
-    paddingVertical: 22,
+    paddingHorizontal: 0,
+    paddingVertical: spacing.sm,
+    borderRadius: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.lg,
@@ -719,53 +900,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.md,
   },
-  profileRows: {
-    marginTop: 14,
-  },
-  profileRow: {
-    minHeight: 76,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  profileRowText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  profileStatusPill: {
-    minWidth: 86,
-    maxWidth: 134,
-    minHeight: 34,
-    flexShrink: 0,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-    borderRadius: 17,
-    backgroundColor: colors.bgElevated,
-  },
-  profileStatusText: {
-    color: colors.sageDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-    textAlign: 'center',
-  },
-  profileRowTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  profileRowMetric: {
-    marginTop: 3,
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
   latestResultsAction: {
     minHeight: 66,
     flexDirection: 'row',
@@ -805,83 +939,53 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: 0,
   },
-  iconBadge: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  changeRows: {
-    marginTop: 14,
-  },
-  changeRowBlock: {
-    paddingVertical: spacing.md,
-  },
-  changeRow: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
   changeSupport: {
-    ...type.caption,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 19,
     color: colors.textSecondary,
-    paddingTop: spacing.xs,
+    paddingTop: spacing.md,
   },
-  changeRowText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  changeRowTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  changeRowMetric: {
-    ...type.cardCaption,
-    marginTop: 3,
-  },
-  changePill: {
-    minHeight: 34,
-    maxWidth: 148,
-    flexShrink: 0,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: 17,
-    borderWidth: StyleSheet.hairlineWidth,
-    backgroundColor: colors.bgElevated,
-  },
-  changePillUp: { borderColor: colors.positive },
-  changePillDown: { borderColor: colors.caution },
-  changePillSteady: { borderColor: colors.divider },
-  changePillText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-    textAlign: 'center',
-  },
-  changePillTextUp: { color: colors.positive },
-  changePillTextDown: { color: colors.caution },
-  changePillTextSteady: { color: colors.textSecondary },
   rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
   },
   historyDisclosureCard: {
-    paddingHorizontal: 18,
-    paddingVertical: 0,
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderHairline,
+    borderRadius: radius.panel,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   historyDisclosure: {
-    minHeight: 78,
+    minHeight: 68,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  historyDisclosureLabel: {
+    ...type.cardBody,
+    color: colors.textPrimary,
+    flex: 1,
+    fontFamily: fonts.sansMedium,
+  },
+  historyDisclosureValueGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  historyDisclosureValue: {
+    ...type.cardBody,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+  },
   historyDisclosureChevron: {
-    ...type.h2,
-    color: colors.textSecondary,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 24,
+    lineHeight: 28,
     transform: [{ rotate: '0deg' }],
   },
   historyDisclosureChevronOpen: {
@@ -890,6 +994,7 @@ const styles = StyleSheet.create({
   historyList: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
+    paddingHorizontal: spacing.lg,
   },
   historyRow: {
     minHeight: 76,
@@ -912,6 +1017,9 @@ const styles = StyleSheet.create({
   },
   historyRowMeta: {
     ...type.cardCaption,
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
     marginTop: 3,
   },
   chevron: { ...type.h2, color: colors.textSecondary },

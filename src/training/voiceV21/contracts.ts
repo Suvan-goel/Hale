@@ -936,8 +936,8 @@ function sourceFilesFor(def: ExerciseDefinition): string[] {
     'src/exercises/index.ts',
     'src/exercises/ladders.ts',
     SOURCE_FILE_BY_FAMILY[def.family] ?? 'src/exercises/registry.ts',
-    'docs/specs/HALE_VOICE_SCRIPT_MANIFEST_V2_1.csv',
-    'docs/specs/HALE_VOICE_EXPERIENCE_SPEC_V2_1.md',
+    'docs/specs/PEARL_VOICE_SCRIPT_MANIFEST_V2_1.csv',
+    'docs/specs/PEARL_VOICE_EXPERIENCE_SPEC_V2_1.md',
   ];
 }
 

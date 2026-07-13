@@ -1,7 +1,7 @@
 /**
  * Pure, persisted input to one four-week programme phase.
  *
- * The canonical Movement Profile assessment owns the focus decision. This
+ * The canonical check-up assessment owns the focus decision. This
  * module only maps that decision onto the physical training vocabulary the
  * programme can actually deliver. It deliberately has no dependency on raw
  * check-up appendices or session-generation code.

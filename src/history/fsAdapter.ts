@@ -12,6 +12,8 @@ import { HistoryFs } from './store';
 
 export interface ExpoHistoryFsOptions {
   userId?: string | null;
+  /** Destructive/account flows must surface I/O failures instead of degrading. */
+  strictErrors?: boolean;
 }
 
 function checkupsDir(options: ExpoHistoryFsOptions = {}): Directory {
@@ -28,7 +30,8 @@ export function createExpoHistoryFs(options: ExpoHistoryFsOptions = {}): History
           .list()
           .filter((entry): entry is File => entry instanceof File)
           .map((file) => file.name);
-      } catch {
+      } catch (error) {
+        if (options.strictErrors) throw error;
         return [];
       }
     },
@@ -36,7 +39,8 @@ export function createExpoHistoryFs(options: ExpoHistoryFsOptions = {}): History
       try {
         const file = new File(checkupsDir(options), name);
         return file.exists ? await file.text() : null;
-      } catch {
+      } catch (error) {
+        if (options.strictErrors) throw error;
         return null;
       }
     },
@@ -48,14 +52,17 @@ export function createExpoHistoryFs(options: ExpoHistoryFsOptions = {}): History
       try {
         const file = new File(checkupsDir(options), name);
         if (file.exists) file.delete();
-      } catch {
-        // Local deletion should be idempotent; callers aggregate failures when needed.
+        if (options.strictErrors && file.exists) {
+          throw new Error(`File still exists after deletion: ${name}`);
+        }
+      } catch (error) {
+        if (options.strictErrors) throw error;
+        // Ordinary store cleanup stays idempotent. Account deletion constructs
+        // this adapter with strictErrors so it can report and verify failures.
       }
     },
   };
 }
-
-export const expoHistoryFs: HistoryFs = createExpoHistoryFs();
 
 /**
  * Moves device-local guest files (the unscoped directory) into a signed-in
@@ -66,5 +73,8 @@ export const expoHistoryFs: HistoryFs = createExpoHistoryFs();
  * a second account on the same device cannot adopt another person's data.
  */
 export async function adoptGuestLocalFiles(userId: string): Promise<{ moved: number }> {
-  return moveLocalFiles(createExpoHistoryFs(), createExpoHistoryFs({ userId }));
+  return moveLocalFiles(
+    createExpoHistoryFs({ strictErrors: true }),
+    createExpoHistoryFs({ userId, strictErrors: true })
+  );
 }

@@ -1,5 +1,3 @@
-export const VALID_TIME_TIMERS_ENABLED = true;
-
 export type ValidTimeState =
   | 'waiting_for_position'
   | 'counting'

@@ -5,23 +5,23 @@ import { spawnSync } from 'node:child_process';
 
 const ROOT = process.cwd();
 const VOICES = ['clara', 'marcus'];
-const ENTRY_HASH = '/tmp/hale_voice_v21_generation_audio_entry.sha256';
-const EXIT_HASH = '/tmp/hale_voice_v21_generation_audio_exit.sha256';
+const ENTRY_HASH = '/tmp/pearl_voice_v21_generation_audio_entry.sha256';
+const EXIT_HASH = '/tmp/pearl_voice_v21_generation_audio_exit.sha256';
 
 const ARTIFACTS = {
-  implementation: 'docs/audits/HALE_VOICE_V2_1_ASSET_GENERATION_IMPLEMENTATION.md',
-  auditMd: 'docs/audits/HALE_VOICE_V2_1_ASSET_GENERATION_AUDIT.md',
-  auditJson: 'docs/audits/HALE_VOICE_V2_1_ASSET_GENERATION_AUDIT.json',
-  plan: 'docs/audits/HALE_VOICE_V2_1_GENERATION_PLAN.csv',
-  ledger: 'docs/audits/HALE_VOICE_V2_1_GENERATION_RESULT_LEDGER.csv',
-  inventory: 'docs/audits/HALE_VOICE_V2_1_GENERATED_ASSET_INVENTORY.csv',
-  manifestChanges: 'docs/audits/HALE_VOICE_V2_1_POST_GENERATION_MANIFEST_CHANGES.csv',
-  timelines: 'docs/audits/HALE_VOICE_V2_1_POST_GENERATION_TIMELINES.csv',
-  readiness: 'docs/audits/HALE_VOICE_V2_1_POST_GENERATION_READINESS.csv',
-  listeningQueue: 'docs/audits/HALE_VOICE_V2_1_LISTENING_REVIEW_QUEUE.csv',
-  listeningGuide: 'docs/audits/HALE_VOICE_V2_1_LISTENING_REVIEW_GUIDE.md',
-  listeningHtml: 'docs/audits/HALE_VOICE_V2_1_LISTENING_REVIEW.html',
-  handoff: 'docs/audits/HALE_VOICE_PROJECT_POST_ASSET_GENERATION_HANDOFF.md',
+  implementation: 'docs/audits/PEARL_VOICE_V2_1_ASSET_GENERATION_IMPLEMENTATION.md',
+  auditMd: 'docs/audits/PEARL_VOICE_V2_1_ASSET_GENERATION_AUDIT.md',
+  auditJson: 'docs/audits/PEARL_VOICE_V2_1_ASSET_GENERATION_AUDIT.json',
+  plan: 'docs/audits/PEARL_VOICE_V2_1_GENERATION_PLAN.csv',
+  ledger: 'docs/audits/PEARL_VOICE_V2_1_GENERATION_RESULT_LEDGER.csv',
+  inventory: 'docs/audits/PEARL_VOICE_V2_1_GENERATED_ASSET_INVENTORY.csv',
+  manifestChanges: 'docs/audits/PEARL_VOICE_V2_1_POST_GENERATION_MANIFEST_CHANGES.csv',
+  timelines: 'docs/audits/PEARL_VOICE_V2_1_POST_GENERATION_TIMELINES.csv',
+  readiness: 'docs/audits/PEARL_VOICE_V2_1_POST_GENERATION_READINESS.csv',
+  listeningQueue: 'docs/audits/PEARL_VOICE_V2_1_LISTENING_REVIEW_QUEUE.csv',
+  listeningGuide: 'docs/audits/PEARL_VOICE_V2_1_LISTENING_REVIEW_GUIDE.md',
+  listeningHtml: 'docs/audits/PEARL_VOICE_V2_1_LISTENING_REVIEW.html',
+  handoff: 'docs/audits/PEARL_VOICE_PROJECT_POST_ASSET_GENERATION_HANDOFF.md',
 };
 
 const planRows = readCsvIfExists(ARTIFACTS.plan);
@@ -32,7 +32,7 @@ const timelineRows = buildTimelineRows();
 const readinessRows = buildReadinessRows();
 const listeningRows = buildListeningRows(ledgerRows);
 const verifyAudio = runCommand('npm', ['run', 'verify:audio']);
-const finalSchema = readJsonIfExists('docs/audits/HALE_VOICE_V2_1_FINAL_CUE_SCHEMA_AUDIT.json');
+const finalSchema = readJsonIfExists('docs/audits/PEARL_VOICE_V2_1_FINAL_CUE_SCHEMA_AUDIT.json');
 const audioDiff = diffAudioHashes(planRows);
 const metrics = computeMetrics({
   planRows,
@@ -370,7 +370,7 @@ function buildManifestChangeRows(plan) {
 }
 
 function buildTimelineRows() {
-  const sourceRows = readCsvIfExists('docs/audits/HALE_VOICE_V2_1_SCHEMA_TIMELINES.csv');
+  const sourceRows = readCsvIfExists('docs/audits/PEARL_VOICE_V2_1_SCHEMA_TIMELINES.csv');
   return sourceRows.map((row) => ({
     ...row,
     notes: row.estimatedDurationMs === '0' ? 'All cues measured from disk after generation.' : row.notes,
@@ -378,7 +378,7 @@ function buildTimelineRows() {
 }
 
 function buildReadinessRows() {
-  const finalSchema = readJsonIfExists('docs/audits/HALE_VOICE_V2_1_FINAL_CUE_SCHEMA_AUDIT.json');
+  const finalSchema = readJsonIfExists('docs/audits/PEARL_VOICE_V2_1_FINAL_CUE_SCHEMA_AUDIT.json');
   const metrics = finalSchema?.metrics ?? {};
   const verifyStatus = fs.existsSync(path.join(ROOT, ARTIFACTS.plan)) ? 'covered' : 'not_run';
   const rows = [
@@ -707,7 +707,7 @@ function escapeRegExp(value) {
 
 function auditMarkdown(audit) {
   const m = audit.metrics;
-  return `# Hale Voice V2.1 Asset Generation Audit
+  return `# Pearl Voice V2.1 Asset Generation Audit
 
 ## Verdict
 
@@ -748,7 +748,7 @@ Human listening is not completed. Audio approval is not granted. Physical-device
 
 function implementationMarkdown(audit) {
   const m = audit.metrics;
-  return `# Hale Voice V2.1 Asset Generation Implementation
+  return `# Pearl Voice V2.1 Asset Generation Implementation
 
 ## 1. Result
 
@@ -825,7 +825,7 @@ No commit, push, reset, stash, checkout, clean, rebase, or discard operation was
 }
 
 function listeningGuideMarkdown(audit) {
-  return `# Hale Voice V2.1 Listening Review Guide
+  return `# Pearl Voice V2.1 Listening Review Guide
 
 This is prepared for founder listening review.
 It is not completed by this task.
@@ -855,7 +855,7 @@ function listeningHtml(rows) {
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Hale Voice V2.1 Listening Review</title>
+  <title>Pearl Voice V2.1 Listening Review</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 32px; color: #111412; background: #f4ede6; }
     section { padding: 16px 0; border-bottom: 1px solid #d8d3c8; }
@@ -864,7 +864,7 @@ function listeningHtml(rows) {
   </style>
 </head>
 <body>
-  <h1>Hale Voice V2.1 Listening Review</h1>
+  <h1>Pearl Voice V2.1 Listening Review</h1>
   <p>This is prepared for founder listening review. It is not completed by this task.</p>
   ${body}
 </body>
@@ -874,7 +874,7 @@ function listeningHtml(rows) {
 
 function handoffMarkdown(audit) {
   const m = audit.metrics;
-  return `# Hale Voice Project Post Asset Generation Handoff
+  return `# Pearl Voice Project Post Asset Generation Handoff
 
 Verdict: \`${audit.verdict}\`
 

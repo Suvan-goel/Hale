@@ -3,7 +3,6 @@ import type {
   MeasurementContext,
   MeasurementProtocolRef,
   MeasurementReasonCode,
-  MeasurementSideContext,
 } from './measurementContext';
 
 export interface MeasurementComparableInput {

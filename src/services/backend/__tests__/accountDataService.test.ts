@@ -18,12 +18,20 @@ function memoryArea(files: Set<string>): LocalFileArea {
   };
 }
 
+function noSessionFunnels(): LocalFileArea[] {
+  return [memoryArea(new Set())];
+}
+
 describe('local Pearl account data service', () => {
   it('handles missing files idempotently', async () => {
     const fsArea = createMemoryFs();
     const recordings = memoryArea(new Set());
 
-    const result = await clearLocalPearlData({ fs: fsArea, recordings });
+    const result = await clearLocalPearlData({
+      fs: fsArea,
+      recordings,
+      sessionFunnels: noSessionFunnels(),
+    });
 
     expect(result.failures).toEqual([]);
     expect(result.deletedFiles).toEqual([]);
@@ -35,6 +43,7 @@ describe('local Pearl account data service', () => {
         trainingState: false,
         microChecks: 0,
         adherenceState: false,
+        sessionFunnels: 0,
         recordings: 0,
       })
     );
@@ -53,15 +62,19 @@ describe('local Pearl account data service', () => {
       ['checkup-2026-06-18T10-00-00-000Z.json', '{}'],
       ['programme.json', '{}'],
       ['training-state.json', '{}'],
+      ['training-session-in-progress.json', '{"exercise":"private workout snapshot"}'],
       ['microcheck-2026-06-25T10-00-00-000Z.json', '{}'],
       ['adherence-state.json', '{}'],
+      ['online-profile-sync.json', '{"lastSyncedFingerprint":"private-hash"}'],
       ['notes.json', '{}'],
     ]);
     const recordings = new Set(['rec-2026-06-18.jsonl', 'debug.txt']);
+    const funnels = new Set(['funnel-2026-06-18.json']);
 
     const result = await clearLocalPearlData({
       fs: createMemoryFs(files),
       recordings: memoryArea(recordings),
+      sessionFunnels: [memoryArea(funnels)],
     });
 
     expect(result.failures).toEqual([]);
@@ -71,14 +84,20 @@ describe('local Pearl account data service', () => {
         'local Pearl files/checkup-2026-06-18T10-00-00-000Z.json',
         'local Pearl files/programme.json',
         'local Pearl files/training-state.json',
+        'local Pearl files/training-session-in-progress.json',
         'local Pearl files/microcheck-2026-06-25T10-00-00-000Z.json',
         'local Pearl files/adherence-state.json',
+        'local Pearl files/online-profile-sync.json',
         'recordings/rec-2026-06-18.jsonl',
+        'session telemetry/funnel-2026-06-18.json',
       ])
     );
     expect(Array.from(files.keys())).toEqual(['notes.json']);
-    expect(Array.from(files.values()).join('\n')).not.toMatch(/legacy pain note|legacy injury note/);
+    expect(Array.from(files.values()).join('\n')).not.toMatch(
+      /legacy pain note|legacy injury note|private workout snapshot/
+    );
     expect(Array.from(recordings)).toEqual([]);
+    expect(Array.from(funnels)).toEqual([]);
   });
 
   it('summarizes local Pearl data before deletion', async () => {
@@ -95,6 +114,7 @@ describe('local Pearl account data service', () => {
     const summary = await getLocalDataSummary({
       fs: createMemoryFs(files),
       recordings: memoryArea(new Set(['rec-a.jsonl'])),
+      sessionFunnels: [memoryArea(new Set(['funnel-a.json']))],
     });
 
     expect(summary).toEqual({
@@ -104,6 +124,7 @@ describe('local Pearl account data service', () => {
       trainingState: true,
       microChecks: 1,
       adherenceState: true,
+      sessionFunnels: 1,
       recordings: 1,
     });
   });
@@ -120,6 +141,7 @@ describe('local Pearl account data service', () => {
     const result = await clearLocalPearlData({
       fs: failingFs,
       recordings: memoryArea(new Set()),
+      sessionFunnels: noSessionFunnels(),
     });
 
     expect(result.programmeState).toBe(true);
@@ -128,6 +150,94 @@ describe('local Pearl account data service', () => {
       expect.objectContaining({ area: 'local Pearl files', name: 'programme.json' }),
     ]);
     expect(Array.from(files.keys())).toEqual(['programme.json']);
+  });
+
+  it('reports a destructive list failure even when a later verification read succeeds', async () => {
+    const baseFs = createMemoryFs();
+    let listCalls = 0;
+    const transientlyFailingFs = {
+      ...baseFs,
+      list: () => {
+        listCalls += 1;
+        if (listCalls === 1) throw new Error('list failed');
+        return [];
+      },
+    };
+
+    const result = await clearLocalPearlData({
+      fs: transientlyFailingFs,
+      recordings: memoryArea(new Set()),
+      sessionFunnels: noSessionFunnels(),
+    });
+
+    expect(result.deletedFiles).toEqual([]);
+    expect(result.failures).toEqual([
+      expect.objectContaining({ area: 'local Pearl files', name: '*' }),
+    ]);
+  });
+
+  it('detects a no-op delete and removes the file from the deleted-files claim', async () => {
+    const files = new Map([['programme.json', '{}']]);
+    const noOpFs = {
+      ...createMemoryFs(files),
+      delete: () => {},
+    };
+
+    const result = await clearLocalPearlData({
+      fs: noOpFs,
+      recordings: memoryArea(new Set()),
+      sessionFunnels: noSessionFunnels(),
+    });
+
+    expect(result.deletedFiles).not.toContain('local Pearl files/programme.json');
+    expect(result.failures).toEqual([
+      expect.objectContaining({ area: 'local Pearl files', name: 'programme.json' }),
+    ]);
+    expect(files.has('programme.json')).toBe(true);
+  });
+
+  it('does not claim deletion when the post-delete verification list fails', async () => {
+    const files = new Map([['programme.json', '{}']]);
+    let listCalls = 0;
+    const unverifiableFs = {
+      ...createMemoryFs(files),
+      list: () => {
+        listCalls += 1;
+        if (listCalls > 1) throw new Error('verification failed');
+        return Array.from(files.keys());
+      },
+      delete: () => {},
+    };
+
+    const result = await clearLocalPearlData({
+      fs: unverifiableFs,
+      recordings: memoryArea(new Set()),
+      sessionFunnels: noSessionFunnels(),
+    });
+
+    expect(result.deletedFiles).toEqual([]);
+    expect(result.failures).toEqual([
+      expect.objectContaining({ area: 'local Pearl files', name: '*' }),
+    ]);
+    expect(files.has('programme.json')).toBe(true);
+  });
+
+  it('reports recording-directory list failures instead of treating them as empty', async () => {
+    const result = await clearLocalPearlData({
+      fs: createMemoryFs(),
+      recordings: {
+        list: () => {
+          throw new Error('recordings unavailable');
+        },
+        delete: () => {},
+      },
+      sessionFunnels: noSessionFunnels(),
+    });
+
+    expect(result.deletedFiles).toEqual([]);
+    expect(result.failures).toEqual([
+      expect.objectContaining({ area: 'recordings', name: '*' }),
+    ]);
   });
 
   it('does not reference service-role key names in app source', () => {

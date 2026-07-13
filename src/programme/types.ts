@@ -18,8 +18,7 @@
  *     point. Reported values never enter measurement surfaces (N5).
  *
  * Everything in this module is pure data + pure functions — no UI, no native
- * imports. PROMOTED 2026-07-08 (C4 parallel build complete; the flag was
- * retired and this is the app's programming engine).
+ * imports. This is the app's active programming contract.
  */
 
 import type { ActivityLevel } from '../adherence';
@@ -197,6 +196,12 @@ export interface ProgrammeProfile {
   jointFlags: readonly JointFlag[];
   /** B5 falls/balance worry (or T1 < 10 s): support sub-variants default on. */
   balanceSupportDefault: boolean;
+  /**
+   * True only when the latest accepted camera check-up requires supported
+   * balance variations. Settings may change a voluntary support preference,
+   * but never override this measured protection.
+   */
+  balanceSupportRequired: boolean;
   /** C1 stairs question; null = unanswered → treated as no stairs (conservative). */
   hasStairs: boolean | null;
   /** Asked in-context at the Pull L4 unlock, never at onboarding. */

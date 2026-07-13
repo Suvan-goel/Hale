@@ -295,6 +295,7 @@ describe('assessment completion (Check-up #0)', () => {
     expect(state.ladders.squat.currentLevel).toBe(3);
     expect(state.profile.assessmentStatus).toBe('done');
     expect(state.profile.balanceSupportDefault).toBe(false);
+    expect(state.profile.balanceSupportRequired).toBe(false);
   });
 
   it('the deferred path re-places upward only (spec §6)', () => {
@@ -308,13 +309,14 @@ describe('assessment completion (Check-up #0)', () => {
     expect(state.ladders.squat.currentLevel).toBe(3);
   });
 
-  it('T1 under 10 s forces balance support on, and never turns it off', () => {
+  it('T1 under 10 s marks balance support as required without erasing a prior preference', () => {
     const forced = applyAssessmentPlacement(
       onboarded(),
       { t1: { worseSideSeconds: 8 } },
       { deferred: false }
     );
     expect(forced.profile.balanceSupportDefault).toBe(true);
+    expect(forced.profile.balanceSupportRequired).toBe(true);
 
     const alreadyOn = onboarded();
     alreadyOn.profile = { ...alreadyOn.profile, balanceSupportDefault: true };
@@ -324,6 +326,7 @@ describe('assessment completion (Check-up #0)', () => {
       { deferred: false }
     );
     expect(kept.profile.balanceSupportDefault).toBe(true);
+    expect(kept.profile.balanceSupportRequired).toBe(false);
   });
 });
 

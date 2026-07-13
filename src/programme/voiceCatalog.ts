@@ -3,13 +3,11 @@
  *
  * The voice-guided session player consumes ExerciseDefinitions and safety-cue
  * profiles per exercise id. The programme catalogue deliberately does NOT
- * register into the shared exercise registry: every registry sweep carries
- * old-engine per-exercise governance (instruction profiles pinned by count,
- * voiceV21 contracts reconciled against the old ladders, release policy) that
- * the parallel build must not couple into (C4). Instead this module BUILDS
+ * register into the compatibility exercise registry, whose camera-era
+ * governance is not part of daily training. Instead this module builds
  * voice-only definitions on demand and the player receives them through its
  * injectable resolveExercise / resolveSafetyProfile seams (2026-07-07
- * amendment to the bridge recon conclusion — recorded in decisions.md).
+ * amendment recorded in decisions.md).
  *
  * Voice-only by construction: cameraView 'not_required', createGrader throws
  * (unreachable — voice mode never creates a set runtime), and safety profiles

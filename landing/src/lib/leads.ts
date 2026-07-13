@@ -20,14 +20,14 @@ export async function submitLead(payload: LeadPayload): Promise<void> {
     if (!import.meta.env.PROD) {
       // Local dev convenience: the form can still be tested before a real
       // endpoint exists. Production fails rather than pretending to save leads.
-      console.info("[elegant] lead captured (no endpoint configured):", payload);
+      console.info("[pearl] lead captured (no endpoint configured):", payload);
       return;
     }
     throw new Error("Lead endpoint is not configured.");
   }
   if (LEAD_ENDPOINT.includes("example.com")) {
     if (!import.meta.env.PROD) {
-      console.info("[elegant] lead captured (placeholder endpoint):", payload);
+      console.info("[pearl] lead captured (placeholder endpoint):", payload);
       return;
     }
     throw new Error("Lead endpoint is still the placeholder.");

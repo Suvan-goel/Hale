@@ -24,14 +24,22 @@ export async function moveLocalFiles(
   let moved = 0;
   for (const name of sourceFs.list()) {
     const content = await sourceFs.read(name);
-    if (content !== null) {
-      const existing = await targetFs.read(name);
-      if (existing === null) {
-        targetFs.write(name, content);
-        moved++;
+    if (content === null) {
+      throw new Error(`Could not read guest file during adoption: ${name}`);
+    }
+    const existing = await targetFs.read(name);
+    if (existing === null) {
+      targetFs.write(name, content);
+      const verified = await targetFs.read(name);
+      if (verified !== content) {
+        throw new Error(`Could not verify adopted guest file: ${name}`);
       }
+      moved++;
     }
     sourceFs.delete?.(name);
+    if (sourceFs.list().includes(name)) {
+      throw new Error(`Guest file still exists after adoption: ${name}`);
+    }
   }
   return { moved };
 }

@@ -16,6 +16,7 @@
 import * as React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
+import { BRAND } from '../brand';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { OptionCard } from '../components/OptionCard';
 import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
@@ -43,6 +44,7 @@ export function ProgrammeOnboardingScreen({
   onAcknowledge,
   onComplete,
   onBack,
+  onSignIn,
 }: {
   flowState: ProgrammeOnboardingFlowState;
   /** Single-select answer tap (value from the content layer's options). */
@@ -58,6 +60,8 @@ export function ProgrammeOnboardingScreen({
   }) => void;
   /** Screen-wise back (flow-machine undo). Hidden on Welcome. */
   onBack?: () => void;
+  /** Optional returning-user path; guest-first Continue remains primary. */
+  onSignIn?: () => void;
 }) {
   const responsive = useResponsiveLayout();
   const step = currentOnboardingStep(flowState);
@@ -125,6 +129,12 @@ export function ProgrammeOnboardingScreen({
             title={message.continueLabel}
             onPress={() => onAcknowledge(messageStep)}
           />
+          {isWelcome && onSignIn ? (
+            <GhostButton
+              title={`Already have a ${BRAND.appName} profile? Sign in`}
+              onPress={onSignIn}
+            />
+          ) : null}
         </View>
       </Screen>
     );
@@ -538,9 +548,5 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.md,
-  },
-  pressed: {
-    opacity: 0.86,
-    transform: [{ scale: 0.99 }],
   },
 });

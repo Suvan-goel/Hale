@@ -28,12 +28,10 @@ import {
   AUDIO_VOICE_SETTINGS,
   ELEVENLABS_MODEL,
   safetyAudioCueIds,
-  safetyAudioExpectedPath,
   safetyAudioMetadataFor,
 } from '../src/audio/safetyAudio';
 import {
   movementProfileV2AudioCueIds,
-  movementProfileV2AudioExpectedPath,
   movementProfileV2AudioMetadataFor,
 } from '../src/audio/movementProfileV2Audio';
 import { MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA } from '../src/audio/movementProfileV2AudioManifest';
@@ -766,7 +764,7 @@ function loadVoiceV21Backlog(backlogPath: string): BacklogRow[] {
 
 function loadVoiceV21RefreshRows(): BacklogRow[] {
   const registryRows = parseCsv(
-    fs.readFileSync(path.join(ROOT, 'docs/audits/HALE_VOICE_V2_1_FINAL_CUE_REGISTRY.csv'), 'utf8')
+    fs.readFileSync(path.join(ROOT, 'docs/audits/PEARL_VOICE_V2_1_FINAL_CUE_REGISTRY.csv'), 'utf8')
   ) as unknown as FinalCueRegistryRow[];
   const registryByKey = new Map(registryRows.map((row) => [row.logicalCueKey, row]));
   const metadataKeys = voiceV21MetadataLineKeys().sort();
@@ -806,7 +804,7 @@ function validateVoiceV21Backlog(rows: readonly BacklogRow[]): void {
   if (rows.length === 0) throw new Error('generation backlog is empty or malformed');
   const byLogical = new Map<string, BacklogRow>();
   const registryByKey = new Map(
-    parseCsv(fs.readFileSync(path.join(ROOT, 'docs/audits/HALE_VOICE_V2_1_FINAL_CUE_REGISTRY.csv'), 'utf8'))
+    parseCsv(fs.readFileSync(path.join(ROOT, 'docs/audits/PEARL_VOICE_V2_1_FINAL_CUE_REGISTRY.csv'), 'utf8'))
       .map((row) => [row.logicalCueKey, row])
   );
   const allowedReuseDecisions = new Set(['new_pair_required', 'existing_pair_script_mismatch']);
@@ -980,7 +978,7 @@ function printVoiceV21Plan(jobs: readonly VoiceV21GenerationJob[], dryRun: boole
 }
 
 function writeVoiceV21GenerationPlan(jobs: readonly VoiceV21GenerationJob[]): void {
-  writeCsvFile('docs/audits/HALE_VOICE_V2_1_GENERATION_PLAN.csv', [
+  writeCsvFile('docs/audits/PEARL_VOICE_V2_1_GENERATION_PLAN.csv', [
     'jobId',
     'logicalCueKey',
     'physicalCueKey',
@@ -1035,7 +1033,7 @@ async function generateVoiceV21BacklogAssets(jobs: readonly VoiceV21GenerationJo
   generatedAt: string;
 }> {
   const generatedAt = new Date().toISOString();
-  const stagingDir = path.join('/tmp', 'hale_voice_v21_generation_staging', generatedAt.replace(/[:.]/g, '-'));
+  const stagingDir = path.join('/tmp', 'pearl_voice_v21_generation_staging', generatedAt.replace(/[:.]/g, '-'));
   fs.mkdirSync(stagingDir, { recursive: true });
   const results: VoiceV21JobResult[] = [];
   for (const job of jobs) {
@@ -1173,7 +1171,7 @@ function writeVoiceV21Metadata(results: readonly VoiceV21JobResult[], generatedA
 }
 
 function writeVoiceV21ResultLedger(results: readonly VoiceV21JobResult[], generatedAt: string): void {
-  writeCsvFile('docs/audits/HALE_VOICE_V2_1_GENERATION_RESULT_LEDGER.csv', [
+  writeCsvFile('docs/audits/PEARL_VOICE_V2_1_GENERATION_RESULT_LEDGER.csv', [
     'jobId',
     'logicalCueKey',
     'physicalCueKey',
@@ -1221,7 +1219,7 @@ function writeVoiceV21ResultLedger(results: readonly VoiceV21JobResult[], genera
 }
 
 function writeVoiceV21GeneratedInventory(results: readonly VoiceV21JobResult[]): void {
-  writeCsvFile('docs/audits/HALE_VOICE_V2_1_GENERATED_ASSET_INVENTORY.csv', [
+  writeCsvFile('docs/audits/PEARL_VOICE_V2_1_GENERATED_ASSET_INVENTORY.csv', [
     'physicalCueKey',
     'logicalCueKey',
     'voiceId',
@@ -1284,7 +1282,7 @@ function writeVoiceV21ManifestChanges(results: readonly VoiceV21JobResult[]): vo
       notes: result.job.notes,
     });
   }
-  writeCsvFile('docs/audits/HALE_VOICE_V2_1_POST_GENERATION_MANIFEST_CHANGES.csv', [
+  writeCsvFile('docs/audits/PEARL_VOICE_V2_1_POST_GENERATION_MANIFEST_CHANGES.csv', [
     'changeId',
     'changeType',
     'filePath',

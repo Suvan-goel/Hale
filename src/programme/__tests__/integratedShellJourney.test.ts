@@ -265,7 +265,6 @@ describe('the break-and-return journey', () => {
     const back = dayIso(4 + 20);
     const vm = programmeTodayViewModel(state, back);
     expect(vm.state).toBe('returning_after_break');
-    expect(vm.easedAfterBreak).toBe(true);
     // Level rows preview the post-easing levels — one down from stored.
     const easedRows = programmeLevelRows(applyInactivityRegressionIfDue(state, back).state);
     for (const row of easedRows) {

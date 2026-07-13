@@ -6,16 +6,16 @@ const VERDICT = 'TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_SOFTWARE_COMPLET
 const NEXT_TASK = 'Micro-Check Voice V2.1 implementation';
 
 const ARTIFACTS = {
-  implementation: 'docs/audits/HALE_TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_IMPLEMENTATION.md',
-  auditMd: 'docs/audits/HALE_TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_AUDIT.md',
-  auditJson: 'docs/audits/HALE_TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_AUDIT.json',
-  controlMatrix: 'docs/audits/HALE_TRAINING_VOICE_V2_1_CONTROL_CONTRACT_MATRIX.csv',
-  progressMatrix: 'docs/audits/HALE_TRAINING_VOICE_V2_1_PROGRESS_SCHEDULE_MATRIX.csv',
-  reactiveMigration: 'docs/audits/HALE_TRAINING_VOICE_V2_1_REACTIVE_SAFETY_MIGRATION.csv',
-  runtimeScenarios: 'docs/audits/HALE_TRAINING_VOICE_V2_1_RUNTIME_SCENARIOS.csv',
-  timelines: 'docs/audits/HALE_TRAINING_VOICE_V2_1_CONTROL_TIMELINES.csv',
-  assetRequirements: 'docs/audits/HALE_TRAINING_VOICE_V2_1_CONTROL_ASSET_REQUIREMENTS.csv',
-  handoff: 'docs/audits/HALE_VOICE_PROJECT_POST_TRAINING_RUNTIME_HANDOFF.md',
+  implementation: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_IMPLEMENTATION.md',
+  auditMd: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_AUDIT.md',
+  auditJson: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_AUDIT.json',
+  controlMatrix: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_CONTROL_CONTRACT_MATRIX.csv',
+  progressMatrix: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_PROGRESS_SCHEDULE_MATRIX.csv',
+  reactiveMigration: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_REACTIVE_SAFETY_MIGRATION.csv',
+  runtimeScenarios: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_RUNTIME_SCENARIOS.csv',
+  timelines: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_CONTROL_TIMELINES.csv',
+  assetRequirements: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_CONTROL_ASSET_REQUIREMENTS.csv',
+  handoff: 'docs/audits/PEARL_VOICE_PROJECT_POST_TRAINING_RUNTIME_HANDOFF.md',
 };
 
 const snapshot = loadSnapshot();
@@ -523,7 +523,7 @@ function controlAssetRequirementsCsv(rows) {
 
 function auditMd(audit) {
   const m = audit.metrics;
-  return `# Hale Training Voice V2.1 Controls, Progress, and Recovery Audit
+  return `# Pearl Training Voice V2.1 Controls, Progress, and Recovery Audit
 
 ## Verdict
 
@@ -567,7 +567,7 @@ Exact next task: ${NEXT_TASK}.
 }
 
 function implementationMd(audit) {
-  return `# Hale Training Voice V2.1 Controls, Progress, and Recovery Implementation
+  return `# Pearl Training Voice V2.1 Controls, Progress, and Recovery Implementation
 
 ## 1. Result
 
@@ -688,7 +688,7 @@ ${NEXT_TASK}
 }
 
 function handoffMd(audit) {
-  return `# Hale Voice Project Post Training Runtime Handoff
+  return `# Pearl Voice Project Post Training Runtime Handoff
 
 ## Status
 

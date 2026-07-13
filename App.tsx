@@ -20,7 +20,7 @@ import { BRAND } from './src/brand';
 import { AppBackground } from './src/components/AppBackground';
 import { HeaderLogo } from './src/components/HeaderLogo';
 import { SystemInsetsProvider } from './src/components/SystemInsetsProvider';
-import { AuthProvider, useAuth } from './src/services/backend';
+import { AuthProvider, authenticatedUserId, useAuth } from './src/services/backend';
 import { initObservability, wrapWithObservability } from './src/services/observability/sentry';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ProgrammeV2Root } from './src/screens/ProgrammeV2Root';
@@ -52,11 +52,10 @@ function AppGate() {
     Inter_500Medium,
   });
   const auth = useAuth();
-  const authUserId =
-    typeof auth.user?.id === 'string' && auth.user.id.length > 0 ? auth.user.id : null;
+  const authUserId = authenticatedUserId(auth);
   // Guest-first: the app runs without an account on device-local data. The
-  // auth screen appears only for password recovery; signing in (to back up
-  // results) lives in Settings → Account.
+  // root auth screen appears for password recovery; optional profile sign-in
+  // is reachable from Welcome and Settings → Online profile.
   const ready = fontsLoaded && !auth.loading && !auth.isPasswordRecovery;
 
   React.useEffect(() => {
@@ -82,11 +81,11 @@ function StatusBarBackdrop({ children }: { children: React.ReactNode }) {
     <View style={styles.appChrome}>
       <AppBackground />
       <NativeStatusBar
-        barStyle="light-content"
+        barStyle="dark-content"
         backgroundColor="transparent"
         translucent
       />
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={styles.appChromeContent}>{children}</View>
     </View>
   );
@@ -96,7 +95,7 @@ function AuthLoadingScreen() {
   return (
     <View style={[styles.container, styles.splash]}>
       <AppBackground />
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={styles.splashBrandRow}>
         <HeaderLogo size={28} />
         <Text style={styles.splashBrand}>{BRAND.appName}</Text>

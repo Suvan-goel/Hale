@@ -7,15 +7,15 @@ const VERDICT = 'TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_SOFTWARE_COMPLETE';
 const NEXT_TASK = 'Training Voice V2.1 controls, progress, and recovery runtime integration';
 
 const ARTIFACTS = {
-  implementation: 'docs/audits/HALE_TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_IMPLEMENTATION.md',
-  auditMd: 'docs/audits/HALE_TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_AUDIT.md',
-  auditJson: 'docs/audits/HALE_TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_AUDIT.json',
-  safetyContractsCsv: 'docs/audits/HALE_TRAINING_VOICE_V2_1_LIVE_SAFETY_CONTRACTS.csv',
-  migrationCsv: 'docs/audits/HALE_TRAINING_VOICE_V2_1_SAFETY_MIGRATION.csv',
-  contractsCsv: 'docs/audits/HALE_TRAINING_VOICE_V2_1_EXERCISE_CONTRACTS.csv',
-  assetsCsv: 'docs/audits/HALE_TRAINING_VOICE_V2_1_ASSET_REQUIREMENTS.csv',
-  readinessCsv: 'docs/audits/HALE_TRAINING_VOICE_V2_1_RUNTIME_READINESS.csv',
-  handoff: 'docs/audits/HALE_VOICE_PROJECT_POST_TRAINING_LIVE_SAFETY_HANDOFF.md',
+  implementation: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_IMPLEMENTATION.md',
+  auditMd: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_AUDIT.md',
+  auditJson: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_AUDIT.json',
+  safetyContractsCsv: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_LIVE_SAFETY_CONTRACTS.csv',
+  migrationCsv: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_SAFETY_MIGRATION.csv',
+  contractsCsv: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_EXERCISE_CONTRACTS.csv',
+  assetsCsv: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_ASSET_REQUIREMENTS.csv',
+  readinessCsv: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_RUNTIME_READINESS.csv',
+  handoff: 'docs/audits/PEARL_VOICE_PROJECT_POST_TRAINING_LIVE_SAFETY_HANDOFF.md',
 };
 
 const snapshot = loadSnapshot();
@@ -367,7 +367,7 @@ function migrationCsv(rows) {
 }
 
 function implementationMd(metrics, git) {
-  return `# Hale Training Voice V2.1 Live Safety Integration Implementation
+  return `# Pearl Training Voice V2.1 Live Safety Integration Implementation
 
 ## Result
 
@@ -400,7 +400,7 @@ Verdict: \`${VERDICT}\`.
 }
 
 function auditMd(metrics, git) {
-  return `# Hale Training Voice V2.1 Live Safety Integration Audit
+  return `# Pearl Training Voice V2.1 Live Safety Integration Audit
 
 ## Verdict
 
@@ -439,7 +439,7 @@ function auditMd(metrics, git) {
 }
 
 function handoffMd(metrics) {
-  return `# Hale Voice Project Post Training Live Safety Handoff
+  return `# Pearl Voice Project Post Training Live Safety Handoff
 
 ## Status
 

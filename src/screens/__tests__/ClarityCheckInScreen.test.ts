@@ -43,7 +43,7 @@ describe('Everyday Clarity self-report screen', () => {
   });
 
   it('uses one concise trend explanation instead of repeated context cards', () => {
-    expect(screen).toContain('Five quick questions for your personal monthly trend');
+    expect(screen).toContain('Five quick questions for your personal programme trend');
     expect(screen).not.toContain('A note about your trend');
     expect(screen).not.toContain('Clarity can fluctuate with sleep, symptoms, stress');
     expect(screen).not.toContain('Your own pattern across monthly check-ups is the useful view.');

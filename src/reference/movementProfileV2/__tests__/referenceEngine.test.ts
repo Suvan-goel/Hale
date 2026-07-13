@@ -28,7 +28,6 @@ import {
   interpretMovementProfileV2,
   movementProfileV2SourceSetFingerprint,
   REFERENCE_SOURCES,
-  REFERENCE_TRANSFORMATIONS,
   SPRINGER_2007_BALANCE_BENCHMARKS,
   WARDEN_CHAIR_TRANSFORMATION_ID,
   validateBalanceBenchmarkTable,

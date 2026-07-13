@@ -41,9 +41,7 @@ import type {
   ProgrammeLevel,
   ProgrammePattern,
   ProgrammeState,
-  PromotionDecision,
   PromotionEvaluation,
-  RepScheme,
 } from './types';
 
 export interface PromotionConfig {
@@ -397,14 +395,6 @@ export function applyCheckupPlacement(
 
 export function clampLevel(pattern: ProgrammePattern, level: number): number {
   return Math.min(Math.max(1, Math.round(level)), maxProgrammeLevel(pattern));
-}
-
-export function schemeTop(scheme: RepScheme): number {
-  return scheme.max;
-}
-
-export function schemeBottom(scheme: RepScheme): number {
-  return scheme.min;
 }
 
 function lastOf<T>(values: readonly T[]): T | undefined {

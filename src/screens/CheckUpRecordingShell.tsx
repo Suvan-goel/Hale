@@ -26,7 +26,6 @@ import {
   type CameraAvailability,
 } from '../components/SafePoseDetectionView';
 import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
-import type { PoseAvatarRendererHandle } from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
@@ -76,7 +75,6 @@ export interface CheckUpRecordingShellProps {
   onLandmarks: (event: { nativeEvent: LandmarksEventPayload }) => void;
   onPoseError: (event: { nativeEvent: PoseErrorEventPayload }) => void;
   onAvailabilityChange?: (availability: CameraAvailability) => void;
-  skeletonRef: React.Ref<PoseAvatarRendererHandle>;
   sessionNotice: CheckUpShellNotice | null;
   modalMode: CheckUpShellModalMode;
   setupIssue: boolean;
@@ -126,7 +124,6 @@ export function CheckUpRecordingShell({
   onLandmarks,
   onPoseError,
   onAvailabilityChange,
-  skeletonRef,
   sessionNotice,
   modalMode,
   setupIssue,
@@ -200,8 +197,8 @@ export function CheckUpRecordingShell({
           </Text>
         </View>
 
-        <View style={styles.avatarSlot}>
-          <View style={[styles.avatarViewport, cameraViewport]}>
+        <View style={styles.recordingSlot}>
+          <View style={[styles.recordingViewport, cameraViewport]}>
             <View pointerEvents="box-none" style={styles.recordingChrome}>
               <HeaderLogo size={34} style={styles.recordingLogo} />
               <RecordingSetupNotice
@@ -639,13 +636,13 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.textPrimary,
   },
-  avatarSlot: {
+  recordingSlot: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarViewport: {
+  recordingViewport: {
     position: 'relative',
     overflow: 'hidden',
     borderRadius: radius.card,

@@ -230,7 +230,6 @@ function simulateSessions(
  * advanced programme state. Pure — persistence is the caller's job.
  */
 export function generateMockJourney(input: GenerateMockJourneyInput): MockJourney {
-  const now = input.now ?? new Date();
   const checkUps = buildCheckUps(input);
   const sessionCount = Math.max(0, input.sessionCount ?? 18);
 

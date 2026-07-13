@@ -95,7 +95,7 @@ export function createMovementProfileV2BlockReport(input: {
       headline: 'Four weeks done — your next phase starts here',
       body: 'You completed the plan and finished your next Movement Check-Up.',
       nextPlanTitle: 'Your next 4-week plan is ready',
-      nextPlanBody: `${BRAND.appName} prepared it from your latest Movement Profile.`,
+      nextPlanBody: `${BRAND.appName} prepared it from your latest check-up results.`,
       nextPlanCta: 'View my next 4-week plan',
     },
     ...(nextFocus.kind === 'domain' ? { recommendedNextFocusDomain: nextFocus.domain } : {}),

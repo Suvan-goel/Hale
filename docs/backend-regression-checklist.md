@@ -1,88 +1,64 @@
-# Backend Regression Checklist
+# Online Profile Backend Regression Checklist
 
-Use this checklist before beta builds and after backend, auth, sync, restore, privacy, or observability changes.
+Use this checklist before enabling `EXPO_PUBLIC_ENABLE_ONLINE_PROFILES=1` in
+any tester or release environment. Pearl remains guest-first; only the exact
+non-health profile allowlist may leave the device.
 
-## Auth
+## Guest-first and authentication
 
-- [ ] Email sign-up creates a Supabase Auth user and profile row.
-- [ ] Email sign-in enters the existing Hale app flow.
-- [ ] Sign-out returns to the required auth screen.
-- [ ] Google sign-in succeeds on the current development/release build.
-- [ ] Password reset email sends successfully.
-- [ ] Password reset deep link opens Hale and allows setting a new password.
-- [ ] Apple sign-in is hidden unless `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=1`.
-- [ ] Required auth gate blocks signed-out app usage.
-- [ ] Auth loading state does not hang if Supabase is slow or unavailable.
+- [ ] A signed-out user can onboard, train, complete check-ups, and review progress offline.
+- [ ] Email sign-up creates an Auth user and owner profile row; unconfirmed sign-up never owns local files.
+- [ ] Email confirmation and password recovery exchange PKCE codes through `pearl://auth/callback`.
+- [ ] Raw access/refresh-token app links are ignored and cannot replace the current session.
+- [ ] Google sign-in succeeds in development and release builds.
+- [ ] Apple sign-in remains release-disabled until nonce/state replay protection is approved and tested.
+- [ ] A slow/failed profile read never loses a valid persisted session or selects the guest file scope.
+- [ ] A late initial session/profile response cannot overwrite a newer sign-out or different account.
 
-## Sync
+## Exact online profile boundary
 
-- [ ] Profile/onboarding/safety/preferences sync after local updates.
-- [ ] Movement Check-Up sync creates or updates one remote row per local check-up.
-- [ ] Movement Block / 4-week plan sync preserves the generated plan remotely.
-- [ ] Workout session completion sync creates or updates one remote row per local completion.
-- [ ] Post-session feedback update sync updates the existing remote session row.
-- [ ] Weekly micro-check sync creates or updates one remote row per local micro-check.
-- [ ] Movement Block Report sync creates or updates one remote row per local report.
-- [ ] `training_state` snapshot sync updates one remote row per user.
-- [ ] Offline or failed sync does not block local UI progress.
-- [ ] Retrying the same sync does not create duplicate rows.
+- [ ] The remote projection contains only name, date of birth, reference sex, predefined life-goal category, trainer voice, and comparison preference.
+- [ ] Free-text goal, local ids/timestamps, health/safety/menopause/symptom context, programme/onboarding routing, workouts, check-ups, Everyday Clarity, camera data, landmarks, device setup, and voice-onboarding flags are absent.
+- [ ] Explicit local clears send `null` for nullable online values.
+- [ ] A local-only health/programme edit does not alter the online projection fingerprint.
+- [ ] Online hydration preserves every device-only field.
+- [ ] The six retired cloud programme/check-up tables are absent after migrations.
 
-## Restore
+## Reconciliation and account scope
 
-- [ ] Fresh install + sign-in restores profile, check-ups, blocks, sessions, micro-checks, reports, and training state.
-- [ ] Non-empty local state is not overwritten by remote restore.
-- [ ] Restore failure or timeout on a fresh/default install does not upload empty/default `training_state`.
-- [ ] Partial restore failure leaves local app usage intact.
-- [ ] Sign-out/sign-in does not trigger an unexpected second restore over non-empty local data.
+- [ ] First-device upload and new-device hydration both work without blocking local use.
+- [ ] A single local or remote edit reconciles automatically.
+- [ ] Divergent local and remote edits show a device/online choice.
+- [ ] Conditional `updated_at` writes surface a concurrent-device update instead of overwriting it.
+- [ ] Superseded reconciliation and failed local writes cannot advance sync metadata.
+- [ ] Sign-out, account switch, and destructive actions cancel queued local sync commits.
+- [ ] Interrupted guest adoption resumes only for its claimed account; a second account cannot adopt leftovers.
+- [ ] Telemetry/funnel files, including pain events, use the same guest/account scope and adoption boundary.
 
-## Privacy And Data Controls
+## Privacy and deletion
 
-- [ ] Export my data creates/share a readable JSON export.
-- [ ] Export includes profile, movement check-ups, movement blocks, training state, session completions, micro-checks, and block reports.
-- [ ] Export excludes auth tokens, provider tokens, service keys, raw video, frames, images, pose landmarks, base64 blobs, and local file paths/URIs.
-- [ ] Delete local data only clears local Hale files and signs the user out when expected.
-- [ ] Delete local data handles missing files without crashing.
-- [ ] Delete account flow clearly explains cloud deletion is deferred until the secure Edge Function exists.
-- [ ] Delete account placeholder does not pretend cloud deletion succeeded.
-- [ ] Synced payloads do not include raw video, camera frames, images, pose landmarks, base64 blobs, or local file paths/URIs.
+- [ ] Clear device data uses strict list/delete verification for profile, programme, check-ups, drafts, session funnels, and recordings.
+- [ ] A list error, delete error, no-op delete, or failed verification is reported and never claimed as success.
+- [ ] Device clearing while signed in signs out only after verified local erasure; the online profile remains.
+- [ ] The delete-account function derives the caller from a verified JWT and accepts no user id.
+- [ ] Client deletion binds the captured user id and exact access token; an A→B transition cannot delete/clear/sign out B.
+- [ ] A durable pre/post-deletion cleanup marker recovers interrupted local erasure after relaunch.
+- [ ] Auth-user deletion cascades to `profiles`; no retained cloud health/programme/check-up data exists.
+- [ ] The published privacy and `/delete-account` pages have completed legal/controller review.
 
-## Supabase Verification
+## Supabase and release configuration
 
-- [ ] RLS is enabled on all exposed Hale tables.
-- [ ] Policies restrict rows to the authenticated owning user.
-- [ ] Cross-user reads, inserts, updates, and deletes are denied.
-- [ ] `profiles` trigger creates a profile row for new auth users.
-- [ ] Required unique constraints/indexes exist:
-  - [ ] `movement_checkups(user_id, local_checkup_id)`
-  - [ ] `movement_blocks(user_id, local_block_id)`
-  - [ ] `training_session_completions(user_id, local_session_id)`
-  - [ ] `micro_checks(user_id, local_micro_check_id)`
-  - [ ] `training_state(user_id)`
-  - [ ] `movement_block_reports(user_id, local_report_id)` where `local_report_id is not null`
-- [ ] `movement_block_reports.local_report_id` generated column exists and reads `report_json ->> 'localReportId'`.
-- [ ] Tables used by the app are exposed to the Supabase Data API for authenticated clients.
-- [ ] No service-role key or private provider secret is present in the mobile app or public env vars.
+- [ ] Both migrations apply cleanly and idempotently to fresh and representative legacy schemas.
+- [ ] `profiles.id` references `auth.users(id) ON DELETE CASCADE`.
+- [ ] RLS is enabled; authenticated SELECT/INSERT/UPDATE are owner-only; anon has no policy/grant; authenticated DELETE is unavailable.
+- [ ] JSON and compatibility-column constraints reject widened profile payloads.
+- [ ] Signup/backfill and `updated_at` triggers work.
+- [ ] The Edge Function is deployed with JWT gateway verification and server-only credentials.
+- [ ] Every tester/release build has the public Supabase URL/key; profile-enabled builds also have a reviewed HTTPS privacy URL.
+- [ ] Production SMTP, redirect allowlists, Google provider setup, account deletion, offline retry, and two-device conflict paths pass on real devices.
 
 ## Observability
 
-- [ ] Sentry is disabled by default with `EXPO_PUBLIC_ENABLE_SENTRY=0`.
-- [ ] Sentry initializes only when `EXPO_PUBLIC_ENABLE_SENTRY=1` and `EXPO_PUBLIC_SENTRY_DSN` is set.
-- [ ] A test event appears in Sentry on a Sentry-enabled build.
-- [ ] Wrong-password/email auth error is captured with useful tags/context.
-- [ ] Expected offline/background sync failures do not spam Sentry issues.
-- [ ] Event context and breadcrumbs do not include tokens, passwords, Supabase secrets, raw video, frames, images, landmarks, base64 blobs, or local file paths/URIs.
+- [ ] Sentry remains disabled by default and contains no tokens, passwords, secrets, raw media, landmarks, local paths, profile values, or health text.
+- [ ] Expected offline/profile retry failures do not spam issues.
 - [ ] User context contains only the Supabase user id.
-
-## Manual Beta Smoke Path
-
-- [ ] Fresh install the app.
-- [ ] Sign in.
-- [ ] Complete onboarding.
-- [ ] Complete baseline Movement Check-Up.
-- [ ] Confirm Movement Block / 4-week plan is created and visible immediately.
-- [ ] Complete one training session.
-- [ ] Submit post-session feedback.
-- [ ] Complete one weekly micro-check.
-- [ ] Export my data from Settings -> Account.
-- [ ] Delete local data only.
-- [ ] Sign in again and confirm remote restore brings back the expected Hale progress.

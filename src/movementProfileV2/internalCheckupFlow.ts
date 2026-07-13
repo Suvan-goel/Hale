@@ -10,7 +10,7 @@ import { MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, createCheckUpProtocolPolicy } f
 import {
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+  PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
 } from '../checkup/measurementProtocolRegistry';
 import {
   type BodySide,
@@ -43,7 +43,6 @@ import {
 } from '../movements/oneLegBalanceV2';
 import type { StoredCheckUp } from '../history';
 import {
-  latestOfficialMovementProfileV2Assessment,
   validOfficialMovementProfileV2Assessments,
 } from '../pearlFlow/checkupHistory';
 
@@ -268,12 +267,12 @@ export function movementProfileV2RawCheckUpFromFlow(
   return {
     startedAt: state.startedAt,
     protocolPolicy: createCheckUpProtocolPolicy(MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, state.startedAt),
-    ...(isPearlMonthlyStrengthBalanceSequence(state.batterySequence)
+    ...(isPearlProgrammeStrengthBalanceSequence(state.batterySequence)
       ? {
           measurementProtocol: {
             protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
             protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-            protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+            protocolVariant: PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
           },
         }
       : {}),
@@ -282,7 +281,7 @@ export function movementProfileV2RawCheckUpFromFlow(
   };
 }
 
-function isPearlMonthlyStrengthBalanceSequence(
+function isPearlProgrammeStrengthBalanceSequence(
   sequence: readonly MovementProfileV2BatteryMovement[] | null | undefined
 ): boolean {
   return sequence?.length === 2 && sequence[0] === 'balance' && sequence[1] === 'chair';
@@ -299,12 +298,6 @@ function movementMatchesItem(movement: MovementProfileV2BatteryMovement, movemen
     case 'hinge':
       return movementId === HINGE_REACH_ID;
   }
-}
-
-export function latestMaterializedMovementProfileV2Result(
-  history: readonly StoredCheckUp[] | null | undefined
-) {
-  return latestOfficialMovementProfileV2Assessment(history);
 }
 
 export function createCapturedChairRiseV2Result(input: {

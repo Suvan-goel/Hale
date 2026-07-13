@@ -137,9 +137,13 @@ describe('beta/release flag audit', () => {
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.movementProfileV2Diagnostics}=0`);
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.poseLatencyDiagnostics}=0`);
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.allowDiagnosticsInRelease}=0`);
+    expect(envExample).toContain('EXPO_PUBLIC_ENABLE_ONLINE_PROFILES=0');
     expect(packageJson.scripts?.['verify:safe-beta-flags']).toContain('EAS_BUILD_PROFILE=beta');
     expect(packageJson.scripts?.['verify:safe-beta-flags']).toContain(
       `${RELEASE_FLAG_ENV_NAMES.poseLatencyDiagnostics}=0`
+    );
+    expect(packageJson.scripts?.['verify:safe-beta-flags']).toContain(
+      'EXPO_PUBLIC_ENABLE_ONLINE_PROFILES=0'
     );
     expect(packageJson.scripts?.['verify:play-internal-flags']).toContain(
       'EAS_BUILD_PROFILE=playInternal'
@@ -171,6 +175,8 @@ describe('beta/release flag audit', () => {
         EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_DIAGNOSTICS: '0',
         EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '0',
         EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE: '0',
+        EXPO_PUBLIC_SUPABASE_URL: 'https:\/\/project.supabase.co',
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_example',
       })
     ).toMatchObject({
       enablePoseLatencyDiagnostics: false,
@@ -188,12 +194,62 @@ describe('beta/release flag audit', () => {
       allowDiagnosticsInRelease: true,
     });
   });
+
+  it('requires release configuration before online profiles can be exposed', () => {
+    expect(() =>
+      resolveAppConfigExtra({
+        EAS_BUILD_PROFILE: 'beta',
+        EXPO_PUBLIC_ENABLE_ONLINE_PROFILES: '0',
+      })
+    ).toThrow(/pearl-online-profile-audit/);
+
+    expect(() =>
+      resolveAppConfigExtra({
+        EAS_BUILD_PROFILE: 'beta',
+        EXPO_PUBLIC_ENABLE_ONLINE_PROFILES: '1',
+      })
+    ).toThrow(/pearl-online-profile-audit/);
+
+    expect(() =>
+      resolveAppConfigExtra({
+        EAS_BUILD_PROFILE: 'production',
+        EXPO_PUBLIC_ENABLE_ONLINE_PROFILES: '1',
+        EXPO_PUBLIC_SUPABASE_URL: 'https:\/\/project.supabase.co',
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_example',
+        EXPO_PUBLIC_PRIVACY_POLICY_URL: 'http:\/\/example.com/privacy',
+      })
+    ).toThrow(/PRIVACY_POLICY_URL_HTTPS/);
+
+    expect(() =>
+      resolveAppConfigExtra({
+        EAS_BUILD_PROFILE: 'production',
+        EXPO_PUBLIC_ENABLE_ONLINE_PROFILES: '1',
+        EXPO_PUBLIC_SUPABASE_URL: 'https:\/\/project.supabase.co',
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_example',
+        EXPO_PUBLIC_PRIVACY_POLICY_URL: 'https:\/\/example.com/privacy',
+      })
+    ).not.toThrow();
+  });
+
+  it('keeps Apple sign-in disabled in release until nonce/state replay protection is approved', () => {
+    expect(() =>
+      resolveAppConfigExtra({
+        EAS_BUILD_PROFILE: 'production',
+        EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN: '1',
+      })
+    ).toThrow(/apple_sign_in_nonce_state_not_approved/);
+  });
 });
 
 function resolveAppConfigExtra(env: Record<string, string | undefined>) {
   const names = [
     'EAS_BUILD_PROFILE',
     ...Object.values(RELEASE_FLAG_ENV_NAMES),
+    'EXPO_PUBLIC_ENABLE_ONLINE_PROFILES',
+    'EXPO_PUBLIC_SUPABASE_URL',
+    'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+    'EXPO_PUBLIC_PRIVACY_POLICY_URL',
+    'EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN',
   ];
   const original = new Map(names.map((name) => [name, process.env[name]]));
   try {

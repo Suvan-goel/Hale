@@ -1,10 +1,9 @@
-import * as React from 'react';
 import { StyleSheet } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 
 import { colors } from '../theme';
 
-/** Spotify-like true-black everyday canvas; active sessions keep their separate focus canvas. */
+/** Warm-light everyday canvas; active sessions keep their separately controlled focus canvas. */
 export function AppBackground() {
   return (
     <Svg

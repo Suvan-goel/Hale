@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { BackArrowButton } from '../components/BackArrowButton';
-import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
+import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
@@ -21,31 +21,18 @@ const SETUP_STEPS = [
 export function CameraSetupScreen({
   permissionGranted,
   onRequestPermission,
-  onBegin,
-  showBeginAction = true,
-  progress,
-  onDoLater,
-  onDevCompleteCheckup,
   onCancel,
 }: {
   permissionGranted: boolean;
   onRequestPermission: () => void;
-  onBegin: () => void;
-  showBeginAction?: boolean;
-  progress?: { step: number; total: number };
-  onDoLater?: () => void;
-  onDevCompleteCheckup?: () => void;
   onCancel: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const showPrimaryAction = !permissionGranted || showBeginAction;
-  const showActions = showPrimaryAction || !!onDevCompleteCheckup || !!onDoLater;
 
   return (
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
-        progress={progress}
         eyebrow="Camera and audio"
         title="Set up your phone"
         subtitle={`Place your phone so ${BRAND.appName} can see your full body. You will not see a live video of yourself — just a simple outline.`}
@@ -84,19 +71,9 @@ export function CameraSetupScreen({
         </View>
       </View>
 
-      {showActions ? (
+      {!permissionGranted ? (
         <View style={styles.actions}>
-          {showPrimaryAction ? (
-            permissionGranted ? (
-              <PrimaryButton title="Start check-up" onPress={onBegin} />
-            ) : (
-              <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
-            )
-          ) : null}
-          {onDevCompleteCheckup ? (
-            <SecondaryButton title="Dev: use sample check-up" onPress={onDevCompleteCheckup} />
-          ) : null}
-          {onDoLater ? <SecondaryButton title="Do this later" onPress={onDoLater} /> : null}
+          <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
         </View>
       ) : null}
     </Screen>

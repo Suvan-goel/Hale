@@ -272,7 +272,7 @@ export function buildFitFramePoseTracePaths(
 
   const mapX = (lm: LM): number => frameRect.x + mapNormalizedX(frame.xs[lm], transform);
   const mapY = (lm: LM): number => frameRect.y + mapNormalizedY(frame.ys[lm], transform);
-  const notePoint = (lm: LM, x: number, y: number, confidence: number) => {
+  const notePoint = (x: number, y: number, confidence: number) => {
     confidenceSum += confidence;
     confidenceSamples++;
     minX = Math.min(minX, x);
@@ -325,7 +325,7 @@ export function buildFitFramePoseTracePaths(
     if (confidence < minConfidence) continue;
     const x = mapX(lm);
     const y = mapY(lm);
-    notePoint(lm, x, y, confidence);
+    notePoint(x, y, confidence);
 
     if (confidence < FAINT_CONFIDENCE) {
       out.ghostPointPath += circlePath(x, y, faintRadius);

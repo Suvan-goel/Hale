@@ -10,7 +10,7 @@ import type { HistoryFs } from '../../history/store';
 import { BALANCE_FEET_TOGETHER_ID, STS_STANDARD_ID } from '../../exercises';
 import { deserializeSessionFunnel } from '../../telemetry/sessionFunnelRecord';
 import { SessionFunnelStore } from '../../telemetry/sessionFunnelStore';
-import type { TrainingItemResult, TrainingSessionResult } from '../../training/sessionPlayer';
+import type { TrainingItemResult, TrainingSessionResult } from '../../training/voiceSessionPlayer';
 import { VoiceSessionController } from '../voiceSessionController';
 
 function memoryFs(): { fs: HistoryFs; files: Map<string, string> } {

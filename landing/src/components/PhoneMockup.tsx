@@ -2,8 +2,8 @@ import { ScoreDial } from "./ScoreDial";
 
 /**
  * Code-built phone mockup of the app's results screen — the hero visual.
- * Example data; the story it tells: strength is the plan engine, while
- * Clarity is tracked beside movement.
+ * Example data; Strength and Balance guide the plan, while optional Everyday
+ * Clarity is presented separately rather than folded into a composite score.
  */
 
 function CategoryBar({ name, value, focus }: { name: string; value: number; focus?: boolean }) {
@@ -57,11 +57,11 @@ export function PhoneMockup() {
         <div className="absolute left-1/2 top-2.5 h-[17px] w-[84px] -translate-x-1/2 rounded-full bg-[#0d1310]" />
         <div className="px-5 pb-5 pt-11">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink/45">
-            Strength + Clarity
+            Strength + Balance
           </p>
           <div className="mt-0.5 flex items-baseline justify-between">
-            <h3 className="text-[17px] font-semibold text-ink">June check-up</h3>
-            <span className="text-[11px] font-medium text-ink/45">Test 3</span>
+            <h3 className="text-[17px] font-semibold text-ink">Week 8 check-up</h3>
+            <span className="text-[11px] font-medium text-ink/45">3 of 4</span>
           </div>
           <div className="mt-3 -mb-4 flex justify-center">
             <ScoreDial value={68} label="Strength focus" size={164} delta="+7 since May" />
@@ -69,8 +69,13 @@ export function PhoneMockup() {
           <div className="mt-4 space-y-3.5 border-t border-line pt-4">
             <CategoryBar name="Strength" value={68} focus />
             <CategoryBar name="Balance" value={74} />
-            <CategoryBar name="Mobility" value={69} />
-            <CategoryBar name="Clarity" value={71} />
+          </div>
+          <div className="mt-4 rounded-2xl border border-line bg-bone px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-medium text-ink/60">Everyday Clarity</span>
+              <span className="text-[11px] font-semibold text-ink">Check-in saved</span>
+            </div>
+            <p className="mt-1 text-[9px] leading-relaxed text-ink/45">Tracked separately from your plan</p>
           </div>
           <div className="mt-4 flex items-center justify-between rounded-2xl bg-bone px-4 py-3">
             <span className="text-[11px] font-medium text-ink/60">Next check-up</span>

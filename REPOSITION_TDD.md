@@ -96,7 +96,7 @@ termination ("Your 4-week re-test is close. It will add another data point." is 
 "4-week plan" section titles get "current phase" framing). No structural change. Needs
 sign-off that the report ritual survives the reframe.
 
-**F6 — Brand token vs static `app.json`.** `app.json` carries `"name": "Hale"` and is
+**F6 — Brand token vs static `app.json`.** `app.json` carries `"name": "Pearl"` and is
 plain JSON — it cannot consume a token. Resolution honoring the CommonJS-config rule:
 `brand/brand.js` (CommonJS data), consumed by `app.config.js` (which already spreads
 `appJson.expo` and can override `name`) and re-exported typed for `src/`. The **slug,
@@ -213,7 +213,7 @@ are explicitly out of scope and untouched.
 
 ### 3.1 Token design (PLANNED)
 ```
-brand/brand.js          — CommonJS: { appName: 'Hale', appDisplayNamePossessive: "Hale's" }
+brand/brand.js          — CommonJS: { appName: 'Pearl', appDisplayNamePossessive: "Pearl's" }
 src/brand/index.ts      — typed re-export for app code
 app.config.js           — name: brand.appName (overrides app.json)
 ```
@@ -222,22 +222,22 @@ the app, the string builders take the token too, so screen text and any future g
 audio can never disagree.
 
 ### 3.2 Hardcoded-name audit (measured from the working tree)
-- **~150 occurrences of the word "Hale" in non-test source across ~60 files** — the
+- **~150 occurrences of the word "Pearl" in non-test source across ~60 files** — the
   string-literal subset (≈120; remainder are comments/identifiers) is the sweep list.
   Heaviest: `exercises/ladders.ts` (15 — user-visible measurement-honesty notes),
   `AccountAuthCard.tsx` (13), `SettingsScreen.tsx` (9), `SessionPreviewScreen.tsx` (9),
   `SessionPlanningRecoveryScreen.tsx` (8), `workoutGeneration.ts` (6 — plan guidance
-  strings), plus haleFlow view-model copy throughout.
+  strings), plus pearlFlow view-model copy throughout.
 - **Config:** `app.json` `name` (tokenized via F6). NOT tokenized, rename-commit
-  checklist items instead: slug `hale`, scheme `hale`, bundle ids, EAS/Supabase project
-  identity, `hale-release-flag-audit` error tag, storage filenames.
-- **Identifiers that are code, not copy** (stay, allowlisted): `HaleLifecycleState`,
-  `haleFlow/` module path, `HaleDataExport` type names.
-- **Export/share text:** `dataExportService` writes `app: 'Hale'` — that field is a
+  checklist items instead: slug `pearl`, scheme `pearl`, bundle ids, EAS/Supabase project
+  identity, `pearl-release-flag-audit` error tag, storage filenames.
+- **Identifiers that are code, not copy** (stay, allowlisted): `PearlLifecycleState`,
+  `pearlFlow/` module path, `PearlDataExport` type names.
+- **Export/share text:** `dataExportService` writes `app: 'Pearl'` — that field is a
   restore-validated format id; recommendation: keep it as the stable machine id forever
   and add `appDisplayName: BRAND.appName` for humans. Restore accepts the machine id
   regardless of rename (no stranded backups).
-- **Art:** `assets/hale-logo-mark.png` (HeaderLogo), iOS/Android icons, splash
+- **Art:** `assets/pearl-logo-mark.png` (HeaderLogo), iOS/Android icons, splash
   background. Regeneration is founder art work at rename time.
 - **Marketing site `website/`**: 13 files carry the brand; joins the rename commit, not
   this build. **`landing/` is quarantined** — live founder experiment, untouched, and no
@@ -246,7 +246,7 @@ audio can never disagree.
 ### 3.3 Voice audio that speaks the name (regeneration work list)
 Audited every generated-line source (`safetyAudio`, `movementProfileV2Audio`,
 `voiceV21Audio`, `voiceCues`, `voiceSessionLineScripts`, `safetyCueDefinitions`):
-**exactly 2 bundled lines speak "Hale"** — safety cues `global_pause_if_tracking_lost`
+**exactly 2 bundled lines speak "Pearl"** — safety cues `global_pause_if_tracking_lost`
 and `tracking_keep_full_body_in_view`. Rename cost: 2 lines × 2 voices = **4 audio
 assets**, generated via the existing pipeline + `verify:audio`, scripts through the
 hot-phrase lint. Plus the `generate-audio.ts` fallback label. Nothing else in 364
@@ -254,7 +254,7 @@ assets/voice names the brand. Recommendation: at rename time, reword both lines 
 name the app at all ("…wait for tracking to reset") so this class of coupling ends.
 
 ### 3.4 Enforcement (PLANNED)
-`brandToken.test.ts`: scans production source for `\bHale\b` inside string literals
+`brandToken.test.ts`: scans production source for `\bPearl\b` inside string literals
 outside `brand/` + the identifier allowlist; fails on new hardcoding. The rename then
 is: edit `brand.js`, regenerate 4 assets, swap art, run the site sweep — one commit.
 

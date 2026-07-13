@@ -37,7 +37,7 @@ export function ThankYou({ email }: { email: string }) {
             Early access opens in waves.
           </h2>
           <p className="mt-2 leading-relaxed text-ink/65">
-            We will use your email only for Elegant early-access and launch updates. No spam, no
+            We will use your email only for Pearl early-access and launch updates. No spam, no
             public profile, and no account has been created.
           </p>
           <p className="mt-4 text-sm leading-relaxed text-ink/55">

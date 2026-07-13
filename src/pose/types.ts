@@ -83,17 +83,6 @@ export function createPoseFrame(): PoseFrame {
   };
 }
 
-export function copyPoseFrame(src: PoseFrame, dst: PoseFrame): void {
-  dst.timestampMs = src.timestampMs;
-  dst.hasPose = src.hasPose;
-  dst.aspect = src.aspect;
-  dst.xs.set(src.xs);
-  dst.ys.set(src.ys);
-  dst.zs.set(src.zs);
-  dst.visibility.set(src.visibility);
-  dst.presence.set(src.presence);
-}
-
 /** Shape of the native onLandmarks payload (and of recorded JSONL frames). */
 export interface RawLandmarkEvent {
   timestampMs: number;
@@ -130,12 +119,6 @@ export function parseLandmarkEvent(event: RawLandmarkEvent, out: PoseFrame): voi
     out.visibility[i] = lm[base + 3];
     out.presence[i] = lm[base + 4];
   }
-}
-
-export function dist(frame: PoseFrame, a: LM, b: LM): number {
-  const dx = frame.xs[a] - frame.xs[b];
-  const dy = frame.ys[a] - frame.ys[b];
-  return Math.sqrt(dx * dx + dy * dy);
 }
 
 export function midpointX(frame: PoseFrame, a: LM, b: LM): number {

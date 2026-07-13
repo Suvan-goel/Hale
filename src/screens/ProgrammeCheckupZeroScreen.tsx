@@ -127,7 +127,7 @@ export function ProgrammeCheckupZeroScreen({
     return (
       <CheckupZeroMessage
         title="Easy does it"
-        subtitle="March gently on the spot, roll your shoulders, then add a few easy arm reaches. The same warm-up each month helps make your results more comparable."
+        subtitle="March gently on the spot, roll your shoulders, then add a few easy arm reaches. The same warm-up at every check-up helps make your results more comparable."
         countdownSeconds={warmupRemaining}
       >
         <GhostButton title="Stop for now" onPress={onCancel} />
@@ -194,7 +194,7 @@ function CheckupZeroMessage({
   const responsive = useResponsiveLayout();
   return (
     <Screen tone="focus" contentStyle={checkupStyles.screen}>
-      <ScreenHeader eyebrow="Movement check" title={title} subtitle={subtitle} />
+      <ScreenHeader eyebrow={`${BRAND.appName} check-up`} title={title} subtitle={subtitle} />
       {countdownSeconds !== undefined ? (
         <View style={[checkupStyles.panel, checkupStyles.countdownPanel]}>
           <Text

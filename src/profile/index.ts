@@ -99,5 +99,11 @@ export {
 } from './symptomPicture';
 export type { SymptomPictureToggle } from './symptomPicture';
 export { ProfileStore } from './store';
+export {
+  ONLINE_PROFILE_SYNC_FILE,
+  ONLINE_PROFILE_SYNC_SCHEMA_VERSION,
+  OnlineProfileSyncStore,
+} from './onlineProfileSyncStore';
+export type { OnlineProfileSyncMetadata } from './onlineProfileSyncStore';
 export { DEFAULT_VOICE_ID, VOICE_OPTIONS, getVoice } from './voices';
 export type { VoiceOption } from './voices';

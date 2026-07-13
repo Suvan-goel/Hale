@@ -1,5 +1,5 @@
 /**
- * Local-only preferences store (profile + settings), reusing the injectable
+ * Device-local preferences store (profile + settings), reusing the injectable
  * HistoryFs seam so it's unit-testable with an in-memory map — the same pattern
  * (and the same expo-file-system adapter) as the check-up and training stores.
  * One file, overwritten in place.

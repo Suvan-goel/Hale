@@ -134,8 +134,6 @@ export interface ProgrammeTodayViewModel {
   /** e.g. "Today: squat, push and core — about 15 minutes." */
   sessionDetail: string;
   checkupOffer: ProgrammeCheckupOffer | null;
-  /** True when the 14-day easing (§12) will apply at the next session start. */
-  easedAfterBreak: boolean;
 }
 
 export function programmeTodayViewModel(
@@ -175,7 +173,7 @@ export function programmeTodayViewModel(
       : routineCheckupDue
         ? {
             type: 'start_baseline_checkup',
-            title: 'Your monthly check-up is ready',
+            title: 'Your next 12-week check-up is ready',
             subtitle:
               'Repeat the same private Strength and Balance check, then optional Everyday Clarity, to see what changed and set your next focus.',
             ctaLabel: 'Start check-up',
@@ -218,12 +216,11 @@ export function programmeTodayViewModel(
       ? 'About eight minutes · Strength, Balance, then optional Everyday Clarity.'
       : `Today: ${patternList} — about ${minutes} minutes.`,
     checkupOffer,
-    easedAfterBreak: regression.applied,
   };
 }
 
 /**
- * Home check-up affordance, dev-shell semantics preserved exactly: the
+ * Home check-up affordance: the
  * routine 28-day card while due (persistent, not once-only), otherwise the
  * permanent standing entry whenever placement is not 'done' and the re-offer
  * policy has anything to say (B1-bypassed users correctly get nothing until
@@ -237,7 +234,7 @@ export function checkupOfferFor(
   if (isProgrammeJourneyRetestDue(state.journey, nowIso)) {
     return {
       kind: 'routine_due',
-      title: 'Your next monthly Movement Check-Up is ready',
+      title: 'Your next Movement Check-Up is ready',
       ctaLabel: 'Start check-up',
     };
   }
@@ -246,7 +243,7 @@ export function checkupOfferFor(
   if (state.journey.status === 'awaiting_baseline' && routineCheckupDue(state, nowIso)) {
     return {
       kind: 'routine_due',
-      title: 'Your next monthly Movement Check-Up is ready',
+      title: 'Your next Movement Check-Up is ready',
       ctaLabel: 'Start check-up',
     };
   }

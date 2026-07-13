@@ -50,6 +50,9 @@ describe('Movement Profile V2 view model', () => {
     // never renders without the opt-in.
     expect(text).not.toMatch(/percentile|for your age group/i);
     expect(text).toContain('Adds to your own strength trend');
+    // A published benchmark being present must not force every valid hold to
+    // the same "On track" label; the actual task band remains authoritative.
+    expect(model.domainCards.find((card) => card.domain === 'balance')?.status).toBe('Building');
   });
 
   it('renders population comparison copy only behind the opt-in, still claim-gated', () => {
@@ -69,10 +72,9 @@ describe('Movement Profile V2 view model', () => {
       comparisonOptIn: false,
     });
     expect(JSON.stringify(optedOut)).not.toMatch(/percentile/i);
-    // Reversible in place: same artifacts, same tiers, only comparison copy moves.
-    expect(optedOut.domainCards.map((c) => c.status)).toEqual(
-      optedIn.domainCards.map((c) => c.status)
-    );
+    // Population-derived strength tiers stay hidden until comparison is enabled.
+    expect(optedOut.domainCards.map((c) => c.status)).toEqual(['Saved result', 'Building']);
+    expect(optedIn.domainCards.map((c) => c.status)).toEqual(['Building', 'Building']);
   });
 
   // Diagnosis-shaped first assessment (REPOSITION_TDD §2.3): strongest asset +

@@ -8,7 +8,7 @@ import {
   validateGillShoulderTable,
 } from './shoulder';
 import { WARDEN_2022_30S_STS_DATA_FINGERPRINT } from './wardenChairTransform';
-import type { ReferenceEngineDiagnostic, ReferenceSourceDefinition, ReferenceSourceId } from './types';
+import type { ReferenceEngineDiagnostic, ReferenceSourceDefinition } from './types';
 
 function sourceFingerprint(definition: Omit<ReferenceSourceDefinition, 'sourceFingerprint'>): string {
   return deterministicFingerprint('reference-source-v1', definition);
@@ -62,12 +62,6 @@ export const REFERENCE_SOURCES: readonly ReferenceSourceDefinition[] = [
     sourceDataFingerprint: GILL_2020_SHOULDER_DATA_FINGERPRINT,
   }),
 ] as const;
-
-export function referenceSource(sourceId: ReferenceSourceId, sources: readonly ReferenceSourceDefinition[] = REFERENCE_SOURCES): ReferenceSourceDefinition {
-  const source = sources.find((candidate) => candidate.sourceId === sourceId);
-  if (!source) throw new Error(`Missing V2 reference source: ${sourceId}`);
-  return source;
-}
 
 export function validateReferenceSources(
   sources: readonly ReferenceSourceDefinition[] = REFERENCE_SOURCES

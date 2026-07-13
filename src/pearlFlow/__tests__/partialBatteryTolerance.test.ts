@@ -98,9 +98,8 @@ describe('Check-up #0 partial-battery records in shared history', () => {
     );
     const withoutPartial = await storedRecords({ checkUp: baseline, type: 'baseline' });
 
-    const base = { blocks: [], reports: [], today: '2026-07-07' };
-    const vmWith = buildMovementProfileV2ProgressViewModel({ ...base, history: withPartial });
-    const vmWithout = buildMovementProfileV2ProgressViewModel({ ...base, history: withoutPartial });
+    const vmWith = buildMovementProfileV2ProgressViewModel({ history: withPartial });
+    const vmWithout = buildMovementProfileV2ProgressViewModel({ history: withoutPartial });
     expect(vmWith).toEqual(vmWithout);
   });
 

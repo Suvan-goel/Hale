@@ -1,6 +1,6 @@
 # Android Beta EAS Build
 
-Hale's Android beta build uses an EAS internal distribution APK. It is a release-style build:
+Pearl's Android beta build uses an EAS internal distribution APK. It is a release-style build:
 no dev client, no diagnostic/internal surfaces, and directly installable from the EAS build URL.
 
 ## One-Time Setup
@@ -54,7 +54,7 @@ This uses `eas.json` profile `beta`, which:
 When the EAS build finishes, open the build page and share the install URL with Android testers.
 They will need to allow installing apps from the browser or file manager they use to download it.
 
-If a tester already has Hale installed, ask them to uninstall the old build before installing a
+If a tester already has Pearl installed, ask them to uninstall the old build before installing a
 new beta APK when testing native changes such as icons, permissions, or bundled audio.
 
 ## Later: Google Play Internal Testing

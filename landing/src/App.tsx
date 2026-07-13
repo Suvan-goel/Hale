@@ -9,14 +9,15 @@ import { submitLead } from "./lib/leads";
 import { loadPixel, trackLead } from "./lib/pixel";
 import { CONTACT_EMAIL } from "./config";
 
-type Route = "home" | "privacy" | "terms";
+type Route = "home" | "privacy" | "terms" | "delete-account";
 type Consent = "pending" | "accepted" | "declined";
 
-const CONSENT_KEY = "elegant:consent";
+const CONSENT_KEY = "pearl:consent";
 
 function routeFromPath(path: string): Route {
   if (path.startsWith("/privacy")) return "privacy";
   if (path.startsWith("/terms")) return "terms";
+  if (path.startsWith("/delete-account")) return "delete-account";
   return "home";
 }
 
@@ -35,7 +36,7 @@ function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
       <div className="mx-auto max-w-6xl px-5 py-12 md:px-8">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <span className="font-display text-xl font-medium tracking-tight">
-            Elegant<span className="text-brass">.</span>
+            Pearl<span className="text-brass">.</span>
           </span>
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-bone/70">
             <button onClick={() => onNavigate("privacy")} className="hover:text-bone">
@@ -43,6 +44,9 @@ function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
             </button>
             <button onClick={() => onNavigate("terms")} className="hover:text-bone">
               Terms
+            </button>
+            <button onClick={() => onNavigate("delete-account")} className="hover:text-bone">
+              Delete account
             </button>
             {CONTACT_EMAIL ? (
               <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-bone">
@@ -52,11 +56,11 @@ function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
           </nav>
         </div>
         <p className="mt-8 max-w-2xl text-xs leading-relaxed text-bone/45">
-          Elegant tracks functional strength, balance, mobility and personal Clarity signals. It is
-          not medical advice and does not diagnose, treat or prevent any condition. Consult a
-          qualified professional before starting a new exercise programme.
+          Pearl measures functional strength and balance and can track optional Everyday Clarity
+          check-ins. It is not medical advice and does not diagnose, treat or prevent any condition.
+          Consult a qualified professional before starting a new exercise programme.
         </p>
-        <p className="mt-3 text-xs text-bone/45">© 2026 Elegant</p>
+        <p className="mt-3 text-xs text-bone/45">© 2026 Pearl</p>
       </div>
     </footer>
   );

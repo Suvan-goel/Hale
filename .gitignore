@@ -40,7 +40,7 @@ tmp/
 .codex/screen-captures/
 
 # local Codex prompt files; keep audit reports explicit
-docs/audits/Hale_*_Prompt.md
+docs/audits/Pearl_*_Prompt.md
 docs/audits/*_Prompt.md
 docs/audits/*Prompt*.md
 docs/audits/*PROMPT*.md
@@ -50,6 +50,7 @@ docs/audits/*.prompt.md
 .env
 .env.local
 .env.*.local
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo

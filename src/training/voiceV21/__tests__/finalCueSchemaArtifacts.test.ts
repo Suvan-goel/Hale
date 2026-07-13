@@ -54,7 +54,7 @@ describe('Voice V2.1 final cue schema artifacts', () => {
     const audit = readJson<{
       verdict: string;
       metrics: Record<string, number | string | boolean>;
-    }>('docs/audits/HALE_VOICE_V2_1_FINAL_CUE_SCHEMA_AUDIT.json');
+    }>('docs/audits/PEARL_VOICE_V2_1_FINAL_CUE_SCHEMA_AUDIT.json');
 
     expect(audit.verdict).toBe('VOICE_V2_1_FINAL_SCHEMA_COMPLETE_AUDIO_READY');
     expect(audit.metrics.p0).toBe(0);
@@ -82,8 +82,8 @@ describe('Voice V2.1 final cue schema artifacts', () => {
   });
 
   it('keeps retired and conditional cues out while generated V2.1 cues are exact', () => {
-    const registry = readCsv('docs/audits/HALE_VOICE_V2_1_FINAL_CUE_REGISTRY.csv');
-    const backlog = readCsv('docs/audits/HALE_VOICE_V2_1_GENERATION_BACKLOG.csv');
+    const registry = readCsv('docs/audits/PEARL_VOICE_V2_1_FINAL_CUE_REGISTRY.csv');
+    const backlog = readCsv('docs/audits/PEARL_VOICE_V2_1_GENERATION_BACKLOG.csv');
 
     expect(registry.find((row) => row.logicalCueKey === 'microcheck-intro')).toBeUndefined();
     expect(registry.find((row) => row.logicalCueKey === 'micro-relax-v21')).toMatchObject({
@@ -107,7 +107,7 @@ describe('Voice V2.1 final cue schema artifacts', () => {
     const floorAudit = readJson<{
       verdict: string;
       metrics: Record<string, number | string | boolean>;
-    }>('docs/audits/HALE_TRAINING_FLOOR_READINESS_POST_SAFETY_REBASE.json');
+    }>('docs/audits/PEARL_TRAINING_FLOOR_READINESS_POST_SAFETY_REBASE.json');
 
     expect(floorAudit.verdict).toBe('TRAINING_FLOOR_READINESS_POST_SAFETY_BASELINE_COMPLETE');
     expect(floorAudit.metrics.irVoiceFloorGateRemainingCount).toBe(0);

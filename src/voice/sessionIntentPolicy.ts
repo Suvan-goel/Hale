@@ -14,7 +14,7 @@
  *    "say done when you're finished" without firing themselves.
  */
 
-import type { TrainingPhase } from '../training/sessionPlayer';
+import type { TrainingPhase } from '../training/voiceSessionPlayer';
 import { HOT_INTENTS, VoiceIntent } from './intents';
 
 const NO_COMMANDS: readonly VoiceIntent[] = [];

@@ -25,7 +25,7 @@ import {
 import { MicroCheckResult, MicroCheckType } from './microCheck';
 import { defaultPainHistory, type PainHistoryState } from './painHistory';
 import { ProgressionState, initialProgressionState } from './progression';
-import { normalizeMicroCheckMeasurementMetadata } from '../checkup';
+import { normalizeMicroCheckMeasurementMetadata } from '../checkup/measurementMetadata';
 import type {
   DailyReadiness,
   GeneratedExerciseDose,

@@ -1,10 +1,3 @@
-import type {
-  MovementBlock,
-  MovementBlockFocus,
-  MovementBlockReport,
-  MovementDomain,
-  MovementProfileV2BlockReport,
-} from '../adherence';
 import type { StoredCheckUp, StoredCheckUpType } from '../history';
 import {
   buildMovementProfileV2ResultsViewModel,
@@ -16,44 +9,27 @@ import {
   officialMovementProfileV2AssessmentSelection,
   type OfficialMovementProfileV2AssessmentRecord,
 } from './checkupHistory';
-import {
-  isMovementProfileV2BlockReport,
-  parseMovementProfileV2BlockReport,
-} from './movementProfileV2BlockReport';
 
 import { BRAND } from '../brand';
 export type MovementProfileV2ProgressStatus =
   | 'ready'
   | 'no_profile'
-  | 'pending_artifact_materialisation'
   | 'needs_retake'
-  | 'artifact_recovery'
-  | 'active_block_conflict';
+  | 'artifact_recovery';
 
 export interface MovementProfileV2ProgressAction {
-  id:
-    | 'start_movement_checkup'
-    | 'view_movement_profile'
-    | 'view_block_report';
+  id: 'start_movement_checkup';
   label: string;
-  targetId?: string;
 }
 
 export interface MovementProfileV2ProgressDomainSummary {
   domain: MovementProfileV2Domain;
   title: string;
   metric: string;
-  interpretation: string;
-  body: string;
 }
 
 export interface MovementProfileV2ProgressHero {
-  profileId: string;
   dateLabel: string;
-  title: string;
-  focusKind: 'domain' | 'balanced';
-  focusTitle: string;
-  focusBody: string;
   domains: readonly MovementProfileV2ProgressDomainSummary[];
 }
 
@@ -65,6 +41,16 @@ export interface MovementProfileV2ProgressChangeDomain {
   direction: MovementProfileV2ProgressChangeDirection;
   value: string;
   caption: string;
+  /**
+   * The exact-protocol personal series behind this change. Keeping these
+   * points in the view model lets Progress draw a truthful chart without
+   * reparsing display copy or mixing measurements from different methods.
+   */
+  series: readonly {
+    atIso: string;
+    dateLabel: string;
+    value: number;
+  }[];
   /**
    * Worse-never-bare (REPOSITION_TDD §2.4, approved 2026-07-06): every `down`
    * row carries the trainable path — a lower reading is never presented bare.
@@ -79,77 +65,40 @@ export interface MovementProfileV2ProgressChange {
   domains: readonly MovementProfileV2ProgressChangeDomain[];
 }
 
+export type MovementProfileV2ProgressChangeReadiness =
+  | { status: 'ready' }
+  | {
+      status: 'building_baseline' | 'new_method_baseline' | 'not_comparable';
+      title: string;
+      body: string;
+    };
+
 export interface MovementProfileV2HistoryEntry {
   id: string;
-  sourceType: Extract<StoredCheckUpType, 'baseline' | 'baseline_retake' | 'official_retest'>;
   sourceLabel: string;
   dateLabel: string;
   focusTitle: string;
-  metrics: readonly string[];
-  hasReport: boolean;
-  action: MovementProfileV2ProgressAction;
-}
-
-export interface MovementProfileV2ReportHistoryEntry {
-  id: string;
-  blockId: string;
-  completedAtLabel: string;
-  priorFocusTitle: string;
-  currentFocusTitle: string;
-  sessionsLabel: string;
-  action: MovementProfileV2ProgressAction;
-}
-
-export interface MovementProfileV2ProgressDiagnostic {
-  code:
-    | 'progress_v2_latest_profile_selected'
-    | 'progress_v2_history_conflict'
-    | 'progress_v2_report_invalid'
-    | 'progress_v2_malformed_artifact';
-  checkUpId?: string;
-  snapshotId?: string;
-  assessmentId?: string;
-  reportId?: string;
-  blockId?: string;
-  reason?: string;
-}
-
-export interface MovementProfileV2ProgressAuthorityFacts {
-  acceptedProfileIds: readonly string[];
-  v2BlockIds: readonly string[];
-  acceptedReportIds: readonly string[];
-  hasMalformedState: boolean;
 }
 
 export type MovementProfileV2ProgressViewModel =
   | {
       status: 'ready';
-      authorityFacts: MovementProfileV2ProgressAuthorityFacts;
       hero: MovementProfileV2ProgressHero;
       change: MovementProfileV2ProgressChange | null;
+      changeReadiness: MovementProfileV2ProgressChangeReadiness;
       officialHistory: readonly MovementProfileV2HistoryEntry[];
-      reports: readonly MovementProfileV2ReportHistoryEntry[];
-      actions: readonly MovementProfileV2ProgressAction[];
-      diagnostics: readonly MovementProfileV2ProgressDiagnostic[];
     }
   | {
       status: Exclude<MovementProfileV2ProgressStatus, 'ready'>;
-      authorityFacts: MovementProfileV2ProgressAuthorityFacts;
       recovery: {
         title: string;
         body: string;
       };
       actions: readonly MovementProfileV2ProgressAction[];
-      diagnostics: readonly MovementProfileV2ProgressDiagnostic[];
-      officialHistory: readonly MovementProfileV2HistoryEntry[];
-      reports: readonly MovementProfileV2ReportHistoryEntry[];
     };
 
 export interface MovementProfileV2ProgressInput {
   history: readonly StoredCheckUp[] | null | undefined;
-  blocks: readonly MovementBlock[] | null | undefined;
-  reports: readonly MovementBlockReport[] | null | undefined;
-  today: string;
 }
 
 type AcceptedProfile = OfficialMovementProfileV2AssessmentRecord;
@@ -158,71 +107,32 @@ export function buildMovementProfileV2ProgressViewModel(
   input: MovementProfileV2ProgressInput
 ): MovementProfileV2ProgressViewModel {
   const history = input.history ?? [];
-  const blocks = input.blocks ?? [];
-  const reports = input.reports ?? [];
   const selection = officialMovementProfileV2AssessmentSelection(history);
   const acceptedProfiles = sortProfiles(selection.records);
-  const acceptedReports = selectMovementProfileV2ReportHistory({
-    reports,
-    profiles: acceptedProfiles,
-  });
-  const malformed = collectMalformedDiagnostics({
+  const hasMalformedState = hasMalformedArtifacts({
     history,
-    reports,
     selectionConflictCount: selection.conflicts.length,
   });
-  const diagnostics: MovementProfileV2ProgressDiagnostic[] = [
-    ...selection.conflicts.map((conflict) => ({
-      code: 'progress_v2_history_conflict' as const,
-      checkUpId: conflict.rejected.record.checkUp.startedAt,
-      snapshotId: conflict.rejected.snapshot.snapshotId,
-      assessmentId: conflict.assessmentId,
-      reason: conflict.diagnostic.code,
-    })),
-    ...malformed,
-    ...acceptedReports.diagnostics,
-  ];
-  const authorityFacts: MovementProfileV2ProgressAuthorityFacts = {
-    acceptedProfileIds: acceptedProfiles.map((profile) => profile.assessment.sourceCheckUpId),
-    v2BlockIds: blocks
-      .filter((block) => block.origin?.kind === 'movement_profile_v2_assessment')
-      .map((block) => block.id),
-    acceptedReportIds: acceptedReports.acceptedReports.map((report) => report.id),
-    hasMalformedState: malformed.length > 0 || selection.conflicts.length > 0,
-  };
-  const officialHistory = buildOfficialHistory(acceptedProfiles, acceptedReports.entries);
 
   const latest = acceptedProfiles[acceptedProfiles.length - 1] ?? null;
   if (!latest) {
-    const hasV2State =
-      authorityFacts.v2BlockIds.length > 0 ||
-      authorityFacts.acceptedReportIds.length > 0 ||
-      authorityFacts.hasMalformedState;
-    if (hasV2State) {
+    if (hasMalformedState) {
       return {
-        status: authorityFacts.v2BlockIds.length > 0 ? 'active_block_conflict' : 'artifact_recovery',
-        authorityFacts,
+        status: 'artifact_recovery',
         recovery: {
-          title: 'Movement Profile needs attention',
-          body: `Your saved Movement Profile data is still on this phone, but ${BRAND.appName} cannot safely show it here yet.`,
+          title: 'Check-up results need attention',
+          body: `Your saved check-up data is still on this phone, but ${BRAND.appName} cannot safely show it here yet.`,
         },
         actions: [],
-        diagnostics,
-        officialHistory,
-        reports: acceptedReports.entries,
       };
     }
     return {
       status: 'no_profile',
-      authorityFacts,
       recovery: {
         title: 'Complete your Movement Check-Up',
-        body: 'Your Movement Profile will appear here after your Check-Up.',
+        body: 'Your Strength and Balance results will appear here after your Check-Up.',
       },
       actions: [{ id: 'start_movement_checkup', label: 'Start Movement Check-Up' }],
-      diagnostics,
-      officialHistory,
-      reports: acceptedReports.entries,
     };
   }
 
@@ -233,54 +143,30 @@ export function buildMovementProfileV2ProgressViewModel(
   if (profileViewModel.focus.kind === 'needs_retake') {
     return {
       status: 'needs_retake',
-      authorityFacts,
       recovery: {
         title: 'Retake your Movement Check-Up',
-        body: `Your latest Check-Up is saved, but ${BRAND.appName} needs a retake before showing a Movement Profile.`,
+        body: `Your latest Check-Up is saved, but ${BRAND.appName} needs a retake before showing the results.`,
       },
       actions: [{ id: 'start_movement_checkup', label: 'Start Movement Check-Up' }],
-      diagnostics,
-      officialHistory,
-      reports: acceptedReports.entries,
     };
   }
 
   const hero: MovementProfileV2ProgressHero = {
-    profileId: latest.assessment.sourceCheckUpId,
     dateLabel: profileViewModel.dateLabel,
-    title: 'Movement Profile',
-    focusKind: profileViewModel.focus.kind,
-    focusTitle: profileViewModel.focus.title,
-    focusBody: profileViewModel.focus.body,
     domains: profileViewModel.domainCards.map((card) => ({
       domain: card.domain,
       title: card.title,
       metric: card.metric,
-      interpretation: card.status,
-      body: card.body,
     })),
   };
 
-  const actions: MovementProfileV2ProgressAction[] = [
-    { id: 'view_movement_profile', label: 'View Movement Profile', targetId: latest.assessment.sourceCheckUpId },
-  ];
-
-  diagnostics.push({
-    code: 'progress_v2_latest_profile_selected',
-    checkUpId: latest.assessment.sourceCheckUpId,
-    snapshotId: latest.snapshot.snapshotId,
-    assessmentId: latest.assessment.assessmentId,
-  });
-
+  const changeState = buildMovementProfileV2ProgressChangeState(acceptedProfiles);
   return {
     status: 'ready',
-    authorityFacts,
     hero,
-    change: buildMovementProfileV2ProgressChange(acceptedProfiles),
-    officialHistory,
-    reports: acceptedReports.entries,
-    actions,
-    diagnostics,
+    change: changeState.change,
+    changeReadiness: changeState.readiness,
+    officialHistory: buildOfficialHistory(acceptedProfiles),
   };
 }
 
@@ -303,17 +189,22 @@ interface DomainReading {
   unit: 'reps' | 'seconds' | 'degrees';
 }
 
-/**
- * Builds the "am I improving?" comparison from the earliest saved Check-Up in
- * the latest exact protocol series. A domain only appears when both endpoints
- * measured it the same way (same metricId) — a changed balance ladder, for
- * example, is not a comparable series and is silently dropped rather than
- * shown as a false change.
- */
-export function buildMovementProfileV2ProgressChange(
+function buildMovementProfileV2ProgressChangeState(
   profiles: readonly AcceptedProfile[]
-): MovementProfileV2ProgressChange | null {
-  if (profiles.length < 2) return null;
+): {
+  change: MovementProfileV2ProgressChange | null;
+  readiness: MovementProfileV2ProgressChangeReadiness;
+} {
+  if (profiles.length < 2) {
+    return {
+      change: null,
+      readiness: {
+        status: 'building_baseline',
+        title: 'Your baseline is saved',
+        body: 'After your next comparable programme check-up, you’ll see how Strength and Balance changed.',
+      },
+    };
+  }
   const latestProfile = profiles[profiles.length - 1];
   // A protocol change establishes a new personal series. Find the earliest
   // accepted profile that is genuinely comparable with the latest rather than
@@ -322,21 +213,52 @@ export function buildMovementProfileV2ProgressChange(
   const baselineProfile = profiles.find((profile) =>
     profilesShareMeasurementProtocol(profile, latestProfile)
   );
-  if (!baselineProfile || baselineProfile === latestProfile) return null;
+  if (!baselineProfile || baselineProfile === latestProfile) {
+    return {
+      change: null,
+      readiness: {
+        status: 'new_method_baseline',
+        title: 'A new comparison baseline has started',
+        body: 'This check-up used a different measurement method. One more comparable check-up will show change without mixing unlike results.',
+      },
+    };
+  }
   const domains: MovementProfileV2ProgressChangeDomain[] = [];
   for (const domain of CHANGE_DOMAIN_ORDER) {
     const baseline = domainReading(domain, baselineProfile.snapshot);
     const latest = domainReading(domain, latestProfile.snapshot);
     if (!baseline || !latest || baseline.metricId !== latest.metricId) continue;
-    domains.push(changeDomain(domain, baseline, latest));
+    const series = profiles.flatMap((profile) => {
+      if (!profilesShareMeasurementProtocol(profile, latestProfile)) return [];
+      const reading = domainReading(domain, profile.snapshot);
+      if (!reading || reading.metricId !== latest.metricId) return [];
+      return [{
+        atIso: profile.assessment.sourceCheckUpId,
+        dateLabel: formatDate(profile.assessment.sourceCheckUpId),
+        value: reading.value,
+      }];
+    });
+    domains.push(changeDomain(domain, baseline, latest, series));
   }
-  if (domains.length === 0) return null;
+  if (domains.length === 0) {
+    return {
+      change: null,
+      readiness: {
+        status: 'not_comparable',
+        title: 'Change is not available yet',
+        body: `The saved check-ups do not contain matching Strength or Balance measurements, so ${BRAND.appName} will not show a misleading comparison.`,
+      },
+    };
+  }
   const beganAfterEarlierHistory = baselineProfile !== profiles[0];
   return {
-    headline: `${
-      beganAfterEarlierHistory ? 'Since this check-up method began' : 'Since your first check-up'
-    } · ${formatDate(baselineProfile.snapshot.sourceCheckUpId)}`,
-    domains,
+    change: {
+      headline: `${
+        beganAfterEarlierHistory ? 'Since this check-up method began' : 'Since your first check-up'
+      } · ${formatDate(baselineProfile.snapshot.sourceCheckUpId)}`,
+      domains,
+    },
+    readiness: { status: 'ready' },
   };
 }
 
@@ -376,7 +298,8 @@ function domainReading(
 function changeDomain(
   domain: MovementProfileV2Domain,
   baseline: DomainReading,
-  latest: DomainReading
+  latest: DomainReading,
+  series: MovementProfileV2ProgressChangeDomain['series']
 ): MovementProfileV2ProgressChangeDomain {
   const delta = latest.value - baseline.value;
   const magnitude = Math.abs(delta);
@@ -393,6 +316,7 @@ function changeDomain(
     direction,
     value,
     caption,
+    series,
     ...(direction === 'down' ? { supportCopy: downSupportCopy(domain) } : {}),
   };
 }
@@ -409,7 +333,7 @@ function downSupportCopy(domain: MovementProfileV2Domain): string {
 
 function changeDomainTitle(domain: MovementProfileV2Domain): string {
   if (domain === 'balance') return 'Balance';
-  return 'Strength / Power';
+  return 'Strength';
 }
 
 function unitSuffix(unit: DomainReading['unit'], value: number): string {
@@ -422,13 +346,6 @@ function formatReadingNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-export function latestMovementProfileV2ProgressProfile(
-  history: readonly StoredCheckUp[] | null | undefined
-): AcceptedProfile | null {
-  const records = sortProfiles(officialMovementProfileV2AssessmentSelection(history).records);
-  return records[records.length - 1] ?? null;
-}
-
 export function movementProfileV2ProgressProfileBySourceCheckUpId(
   history: readonly StoredCheckUp[] | null | undefined,
   sourceCheckUpId: string
@@ -438,21 +355,7 @@ export function movementProfileV2ProgressProfileBySourceCheckUpId(
   ) ?? null;
 }
 
-export function movementProfileV2ProgressReportById(
-  reports: readonly MovementBlockReport[] | null | undefined,
-  history: readonly StoredCheckUp[] | null | undefined,
-  reportId: string
-): MovementProfileV2BlockReport | null {
-  const profiles = sortProfiles(officialMovementProfileV2AssessmentSelection(history).records);
-  const selection = selectMovementProfileV2ReportHistory({ reports: reports ?? [], profiles });
-  return selection.acceptedReports.find((report) => report.id === reportId) ?? null;
-}
-
-function buildOfficialHistory(
-  profiles: readonly AcceptedProfile[],
-  reports: readonly MovementProfileV2ReportHistoryEntry[]
-): MovementProfileV2HistoryEntry[] {
-  const reportCurrentIds = new Set(reports.map((report) => report.id));
+function buildOfficialHistory(profiles: readonly AcceptedProfile[]): MovementProfileV2HistoryEntry[] {
   return profiles
     .slice()
     .sort((a, b) => compareProfiles(b, a))
@@ -463,127 +366,33 @@ function buildOfficialHistory(
       });
       return {
         id: profile.assessment.sourceCheckUpId,
-        sourceType: profile.type,
         sourceLabel: sourceLabel(profile.type),
         dateLabel: viewModel.dateLabel,
         focusTitle: viewModel.focus.title,
-        metrics: viewModel.domainCards.map((card) => `${card.title}: ${card.metric}`),
-        hasReport: reportCurrentIds.has(profile.assessment.sourceCheckUpId),
-        action: {
-          id: 'view_movement_profile',
-          label: 'View Movement Profile',
-          targetId: profile.assessment.sourceCheckUpId,
-        },
       };
     });
 }
 
-function selectMovementProfileV2ReportHistory({
-  reports,
-  profiles,
-}: {
-  reports: readonly MovementBlockReport[];
-  profiles: readonly AcceptedProfile[];
-}): {
-  entries: MovementProfileV2ReportHistoryEntry[];
-  acceptedReports: MovementProfileV2BlockReport[];
-  diagnostics: MovementProfileV2ProgressDiagnostic[];
-} {
-  const diagnostics: MovementProfileV2ProgressDiagnostic[] = [];
-  const acceptedReports: MovementProfileV2BlockReport[] = [];
-  const seen = new Set<string>();
-
-  for (const report of reports) {
-    if (!isMovementProfileV2BlockReport(report)) continue;
-    const parsed = parseMovementProfileV2BlockReport(report);
-    if (!parsed.ok) {
-      diagnostics.push({ code: 'progress_v2_report_invalid', reportId: report.id, reason: parsed.reason });
-      continue;
-    }
-    if (seen.has(parsed.report.id)) continue;
-    seen.add(parsed.report.id);
-    const prior = profiles.find((profile) => reportEndpointMatchesProfile(parsed.report.prior, profile));
-    const current = profiles.find((profile) => reportEndpointMatchesProfile(parsed.report.current, profile));
-    if (!prior || !current) {
-      diagnostics.push({ code: 'progress_v2_report_invalid', reportId: parsed.report.id, reason: 'source_mismatch' });
-      continue;
-    }
-    acceptedReports.push(parsed.report);
-  }
-
-  acceptedReports.sort((a, b) => (b.current.completedAt || b.createdAt).localeCompare(a.current.completedAt || a.createdAt));
-  const entries = acceptedReports.map((report) => ({
-    id: report.current.checkUpId,
-    blockId: report.blockId,
-    completedAtLabel: formatDate(report.current.completedAt || report.createdAt),
-    priorFocusTitle: focusTitle(report.priorSuggestedFocus),
-    currentFocusTitle: focusTitle(report.currentSuggestedFocus),
-    sessionsLabel: `${report.sessionsCompleted} plan sessions completed`,
-    action: {
-      id: 'view_block_report' as const,
-      label: 'View phase report',
-      targetId: report.id,
-    },
-  }));
-  return { entries, acceptedReports, diagnostics };
-}
-
-function collectMalformedDiagnostics({
+function hasMalformedArtifacts({
   history,
-  reports,
   selectionConflictCount,
 }: {
   history: readonly StoredCheckUp[];
-  reports: readonly MovementBlockReport[];
   selectionConflictCount: number;
-}): MovementProfileV2ProgressDiagnostic[] {
-  const diagnostics: MovementProfileV2ProgressDiagnostic[] = [];
-  for (const record of history) {
+}): boolean {
+  if (selectionConflictCount > 0) return true;
+  return history.some((record) => {
     const snapshotCompatibility = record.movementProfileV2SnapshotCompatibility;
     const assessmentCompatibility = record.movementProfileV2AssessmentCompatibility;
-    if (snapshotCompatibility && snapshotCompatibility !== 'current' && snapshotCompatibility !== 'missing') {
-      diagnostics.push({
-        code: 'progress_v2_malformed_artifact',
-        checkUpId: record.checkUp.startedAt,
-        reason: `snapshot_${snapshotCompatibility}`,
-      });
-    }
-    if (assessmentCompatibility && assessmentCompatibility !== 'current' && assessmentCompatibility !== 'missing') {
-      diagnostics.push({
-        code: 'progress_v2_malformed_artifact',
-        checkUpId: record.checkUp.startedAt,
-        reason: `assessment_${assessmentCompatibility}`,
-      });
-    }
-  }
-  for (const report of reports) {
-    if (report.kind === 'movement_profile_v2_block_report' && !parseMovementProfileV2BlockReport(report).ok) {
-      diagnostics.push({ code: 'progress_v2_report_invalid', reportId: report.id, reason: 'parse_failed' });
-    }
-  }
-  if (selectionConflictCount > 0 && diagnostics.length === 0) {
-    diagnostics.push({ code: 'progress_v2_malformed_artifact', reason: 'assessment_conflict' });
-  }
-  return diagnostics;
-}
-
-function reportEndpointMatchesProfile(
-  endpoint: {
-    checkUpId: string;
-    snapshotId: string;
-    snapshotFingerprint: string;
-    assessmentId: string;
-    assessmentFingerprint: string;
-  },
-  profile: AcceptedProfile
-): boolean {
-  return (
-    endpoint.checkUpId === profile.assessment.sourceCheckUpId &&
-    endpoint.snapshotId === profile.snapshot.snapshotId &&
-    endpoint.snapshotFingerprint === profile.snapshot.snapshotFingerprint &&
-    endpoint.assessmentId === profile.assessment.assessmentId &&
-    endpoint.assessmentFingerprint === profile.assessment.assessmentFingerprint
-  );
+    return (
+      (snapshotCompatibility !== undefined &&
+        snapshotCompatibility !== 'current' &&
+        snapshotCompatibility !== 'missing') ||
+      (assessmentCompatibility !== undefined &&
+        assessmentCompatibility !== 'current' &&
+        assessmentCompatibility !== 'missing')
+    );
+  });
 }
 
 function sortProfiles(records: readonly AcceptedProfile[]): AcceptedProfile[] {
@@ -612,18 +421,6 @@ function sourceLabel(type: Extract<StoredCheckUpType, 'baseline' | 'baseline_ret
   if (type === 'official_retest') return 'Follow-up Movement Check-Up';
   if (type === 'baseline_retake') return 'Movement Check-Up retake';
   return 'First Movement Check-Up';
-}
-
-function focusTitle(focus: MovementBlockFocus | null | undefined): string {
-  if (!focus) return 'Saved plan';
-  if (focus.kind === 'balanced') return 'Balanced';
-  return domainTitle(focus.domain);
-}
-
-function domainTitle(domain: MovementDomain): string {
-  if (domain === 'balance') return 'Balance';
-  if (domain === 'mobility') return 'Mobility';
-  return 'Strength / Power';
 }
 
 function formatDate(iso: string): string {

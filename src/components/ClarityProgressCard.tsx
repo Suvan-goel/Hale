@@ -1,27 +1,26 @@
-import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type {
   ClaritySeries,
-  ClarityTrendEntry,
   ClarityTrendViewModel,
 } from '../pearlFlow/clarityTrend';
-import { colors, radius, spacing } from '../theme';
-import { Card, PearlText } from './ui';
+import { colors, fonts, spacing } from '../theme';
+import { PearlText } from './ui';
 
 interface ClarityProgressSeriesPresentation {
   id: ClaritySeries['id'];
   label: string;
   relationText: string;
-  entries: readonly ClarityTrendEntry[];
+  comparisonText?: string;
+  basisText?: string;
+  latestCheckInDate?: string;
+  checkInCount: number;
   supportCopy?: string;
 }
 
 export interface ClarityProgressCardPresentation {
   series: readonly ClarityProgressSeriesPresentation[];
   covariateContext?: string;
-  fluctuationNote: string;
-  activityNote: string;
 }
 
 /**
@@ -36,14 +35,24 @@ export function buildClarityProgressCardPresentation(
 
   const series = viewModel.series.flatMap((item): ClarityProgressSeriesPresentation[] => {
     if (item.trend.status === 'no_data') return [];
+    const latestEntry = item.trend.entries[item.trend.entries.length - 1];
 
     return [
       {
         id: item.id,
         label: item.label,
-        relationText:
-          item.trend.status === 'building' ? item.trend.body : item.trend.headline,
-        entries: item.trend.entries,
+        relationText: clarityRelationText(item),
+        ...(item.id === 'subjective' && item.trend.status === 'ready'
+          ? { comparisonText: 'Compared with your previous programme check-ins.' }
+          : {}),
+        ...(item.id === 'subjective'
+          ? {
+              basisText:
+                'Based on five questions about word-finding, concentration, mental fatigue, and everyday lapses.',
+            }
+          : {}),
+        ...(latestEntry ? { latestCheckInDate: formatCheckInDate(latestEntry.atIso) } : {}),
+        checkInCount: item.trend.checkInCount,
         ...(item.trend.status === 'ready' && item.trend.supportCopy
           ? { supportCopy: item.trend.supportCopy }
           : {}),
@@ -58,8 +67,6 @@ export function buildClarityProgressCardPresentation(
     ...(viewModel.covariateContext
       ? { covariateContext: viewModel.covariateContext }
       : {}),
-    fluctuationNote: viewModel.fluctuationNote,
-    activityNote: viewModel.activityNote,
   };
 }
 
@@ -72,44 +79,43 @@ export function ClarityProgressCard({
   if (!presentation) return null;
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.header}>
-        <PearlText variant="cardTitle">Clarity over time</PearlText>
-        <PearlText variant="cardBody">
-          Personal signals from your monthly check-ups. Each is shown separately, never as one
-          combined score.
-        </PearlText>
-      </View>
+    <View style={styles.card}>
+      <PearlText variant="cardCaption" style={styles.eyebrow}>EVERYDAY CLARITY</PearlText>
 
       <View style={styles.seriesList}>
         {presentation.series.map((series, index) => (
-          <ClaritySeriesBlock key={series.id} series={series} showDivider={index > 0} />
+          <ClaritySeriesBlock
+            key={series.id}
+            series={series}
+            showDivider={index > 0}
+            showLabel={presentation.series.length > 1 || series.label !== 'Everyday Clarity'}
+          />
         ))}
       </View>
 
       {presentation.covariateContext ? (
-        <ContextNote label="This month" body={presentation.covariateContext} />
+        <ContextNote label="Latest check-up" body={presentation.covariateContext} />
       ) : null}
-
-      <View style={styles.notes}>
-        <ContextNote label="Keep in mind" body={presentation.fluctuationNote} />
-        <ContextNote label="Activity and clarity" body={presentation.activityNote} />
-      </View>
-    </Card>
+    </View>
   );
 }
 
 function ClaritySeriesBlock({
   series,
   showDivider,
+  showLabel,
 }: {
   series: ClarityProgressSeriesPresentation;
   showDivider: boolean;
+  showLabel: boolean;
 }) {
   const accessibilityLabel = [
     series.label,
     series.relationText,
-    ...series.entries.flatMap((entry) => [entry.dateLabel, entry.relationLabel]),
+    series.comparisonText,
+    series.basisText,
+    series.latestCheckInDate ? `Latest check-in ${series.latestCheckInDate}` : undefined,
+    `${series.checkInCount} ${series.checkInCount === 1 ? 'check-in' : 'check-ins'}`,
     series.supportCopy,
   ]
     .filter((part): part is string => Boolean(part))
@@ -121,22 +127,32 @@ function ClaritySeriesBlock({
       accessible
       accessibilityLabel={accessibilityLabel}
     >
-      <PearlText variant="cardRowTitle">{series.label}</PearlText>
+      {showLabel ? <PearlText variant="cardRowTitle">{series.label}</PearlText> : null}
       <PearlText variant="cardBody" style={styles.relationText}>
-        {series.relationText}
+        {displayRelation(series.relationText)}
       </PearlText>
 
-      <View style={styles.entryList}>
-        {series.entries.map((entry) => (
-          <View key={`${entry.atIso}-${entry.relationLabel}`} style={styles.entryRow}>
-            <PearlText variant="cardCaption" style={styles.entryDate}>
-              {entry.dateLabel}
-            </PearlText>
-            <PearlText variant="cardCaption" style={styles.entryRelation}>
-              {entry.relationLabel}
-            </PearlText>
-          </View>
-        ))}
+      {series.comparisonText ? (
+        <PearlText variant="cardCaption" style={styles.explanationText}>
+          {series.comparisonText}
+        </PearlText>
+      ) : null}
+
+      {series.basisText ? (
+        <PearlText variant="cardCaption" style={styles.explanationText}>
+          {series.basisText}
+        </PearlText>
+      ) : null}
+
+      <View style={styles.metaRow}>
+        {series.latestCheckInDate ? (
+          <PearlText variant="cardCaption" style={styles.metaText}>
+            Latest check-in · {series.latestCheckInDate}
+          </PearlText>
+        ) : null}
+        <PearlText variant="cardCaption" style={styles.metaText}>
+          {series.checkInCount} {series.checkInCount === 1 ? 'check-in' : 'check-ins'} recorded
+        </PearlText>
       </View>
 
       {series.supportCopy ? (
@@ -146,6 +162,25 @@ function ClaritySeriesBlock({
       ) : null}
     </View>
   );
+}
+
+function displayRelation(relation: string): string {
+  return relation.replace(/\s+at this check-up\.?$/i, '').replace(/\.$/, '');
+}
+
+function clarityRelationText(series: ClaritySeries): string {
+  if (series.trend.status === 'no_data') return '';
+  if (series.trend.status === 'building') return series.trend.body;
+  if (series.id !== 'subjective') return series.trend.headline;
+  if (series.trend.latestRelation === 'above') return 'You reported clearer thinking than usual';
+  if (series.trend.latestRelation === 'below') return 'You reported cloudier thinking than usual';
+  return 'You reported your usual level of clarity';
+}
+
+function formatCheckInDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'Saved';
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(date);
 }
 
 function ContextNote({ label, body }: { label: string; body: string }) {
@@ -163,17 +198,25 @@ function ContextNote({ label, body }: { label: string; body: string }) {
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.lg,
+    gap: spacing.md,
+    borderTopColor: colors.divider,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.md,
   },
-  header: {
-    gap: spacing.xs,
+  eyebrow: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1.5,
   },
   seriesList: {
     gap: 0,
   },
   series: {
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
+    gap: spacing.md,
+    paddingTop: spacing.sm,
   },
   seriesDivider: {
     borderTopColor: colors.divider,
@@ -183,39 +226,37 @@ const styles = StyleSheet.create({
   },
   relationText: {
     color: colors.textPrimary,
+    fontFamily: fonts.serifRegular,
+    fontSize: 22,
+    letterSpacing: -0.25,
+    lineHeight: 28,
   },
-  entryList: {
-    backgroundColor: colors.bgElevated,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-  },
-  entryRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 36,
-    gap: spacing.md,
-  },
-  entryDate: {
-    color: colors.textMuted,
-  },
-  entryRelation: {
+  explanationText: {
     color: colors.textSecondary,
-    flex: 1,
-    textAlign: 'right',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: spacing.lg,
+    rowGap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  metaText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
   },
   supportCopy: {
     color: colors.textSecondary,
   },
-  notes: {
-    gap: spacing.sm,
-  },
   contextNote: {
-    backgroundColor: colors.accentSoft,
-    borderRadius: radius.sm,
+    borderTopColor: colors.divider,
+    borderTopWidth: StyleSheet.hairlineWidth,
     gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.lg,
   },
   noteLabel: {
     color: colors.accentDark,

@@ -21,7 +21,7 @@ import {
 import { movementProfileV2ResultsViewModelForRecord } from '../../movementProfileV2/viewModel';
 import type { CheckUp } from '../../checkup/types';
 import type { BodySide } from '../../checkup/protocolSetup';
-import { PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT } from '../../checkup';
+import { PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT } from '../../checkup';
 import { HistoryStore, createMemoryFs } from '../../history/store';
 import type { StoredCheckUp, StoredCheckUpType } from '../../history';
 import {
@@ -106,7 +106,7 @@ describe('official Check-up #0 persistence pipeline', () => {
     expect(checkUp.measurementProtocol).toMatchObject({
       protocolId: 'movement_profile_v2_battery',
       protocolVersion: 1,
-      protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+      protocolVariant: PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
     });
 
     const type = saveOfficialCheckUp(store, [], checkUp);
@@ -114,7 +114,7 @@ describe('official Check-up #0 persistence pipeline', () => {
 
     const stored = await store.loadAll();
     expect(stored[0].checkUp.measurementProtocol?.protocolVariant).toBe(
-      PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT
+      PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT
     );
     // Gate 1 (official type) + gate 2 (materialized artifacts): the record is
     // an accepted official assessment.

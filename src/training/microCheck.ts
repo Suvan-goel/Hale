@@ -15,7 +15,8 @@
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { VoiceRequest } from '../assessment/sessionController';
-import { normalizeMicroCheckMeasurementMetadata, type BodySide, type MeasurementContext } from '../checkup';
+import { normalizeMicroCheckMeasurementMetadata } from '../checkup/measurementMetadata';
+import type { BodySide, MeasurementContext } from '../checkup/measurementContext';
 import { ExerciseSetGrader, SetResult } from '../exercises';
 import { HoldSetGrader, RepsSetGrader } from '../exercises/setGraders';
 import { AUTOREG_VOICE } from '../exercises/common';
@@ -29,7 +30,7 @@ import {
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
-import type { MovementDomain, TrainingMicroCheckTargetSource } from '../adherence';
+import type { MovementDomain, TrainingMicroCheckTargetSource } from '../adherence/types';
 import { MICRO_CHECK_DEFAULT_MAX_ACTIVE_MS } from './microCheckConfig';
 import { planMicroCheckVoiceSequenceV21 } from './microCheckVoiceV21/sequencePlanner';
 

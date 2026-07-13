@@ -13,7 +13,7 @@ import { LOCAL_USER_ID } from './types';
 
 import { BRAND } from '../brand';
 export function generateMilestones({
-  user,
+  user: _user,
   block,
   lifeGoal,
   latestAssessment,

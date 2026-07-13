@@ -1,53 +1,88 @@
-# PROJECT CONTEXT — Hale (V1)
+# PROJECT CONTEXT — Pearl MVP
 
 > This file is the project's source of truth for product rules, pose-detection knowledge, and
 > architecture. Future sessions depend on it. Do not delete content; update carefully.
 > Significant decisions are logged in `docs/decisions.md`.
 
-## What we are building
+### Authority order
 
-A consumer mobile app for adults ~45–65 that measures how their body is aging — strength,
-balance, mobility — using only the phone camera, then delivers voice-guided home training
-targeting their weakest domain. Core loop: monthly camera-graded "Movement Check-Up"
-(validated clinical tests: 30-second chair stand with per-rep rise velocity, balance holds,
-Timed Up and Go, shoulder flexion peak, hinge reach) → per-domain "ages" vs published norms →
-4-week training block → re-test. The camera is a **measuring instrument, never a form judge**.
-Strategic frame: CV is the sensor; adherence is the product. The founder team previously built
-a gym form-feedback app (Forma) on MediaPipe + React Native; this context distills a year of
-its hard-won pose-detection and architecture knowledge. You have none of that code — these
-notes are the transfer.
+For audience, positioning, MVP scope, claims, and product decisions, use this file first, then
+`README.md` and `Idea.md`. Dated files under `docs/audits/`, old QA protocols, migration plans,
+and implementation handoffs are historical engineering evidence. They may accurately describe
+code or decisions that have since been retired, but they are never authority for Pearl's current
+audience or product promise. When historical material conflicts with this file, this file wins.
+
+## Product identity — read this before making any product decision
+
+**Pearl is not a broad general-longevity app.** That was an earlier concept and is not the
+product being built. Do not use it as the audience, positioning, information
+architecture, copy frame, exercise rationale, acquisition thesis, or default basis for a new
+feature.
+
+Pearl is a private, structured **12-week strength programme for women roughly 45–60 who are in
+perimenopause or early postmenopause**, understand that strength matters, are not training
+consistently, and want to begin safely at home. Pearl answers three questions:
+
+1. Where am I starting in Strength and Balance?
+2. What should I work on now?
+3. Is the work changing my own results?
+
+The journey is Foundations (weeks 1–4), Build (weeks 5–8), and Progress (weeks 9–12). Three
+voice-paced sessions are planned each week; two is explicitly a successful week. Comparable
+Movement Check-Ups happen at baseline, week 4, week 8, and week 12. Each accepted check-up
+chooses a Strength, Balance, or Balanced physical emphasis for the next phase. The camera is a
+**measuring instrument, never a form judge**. Daily training is voice-paced and does not use
+the camera.
+
+Pearl also tracks **Everyday Clarity**, because brain fog, word-finding difficulty,
+concentration, mental fatigue, and everyday lapses are important to this audience. The live
+MVP currently offers an optional five-item self-report at each official check-up. A matched
+solo/dual balance instrument (“Steadiness while thinking”) is implemented and headless-tested
+but must remain unmounted until its real-device camera/microphone and target-user validity
+gates pass. Clarity is observational: it never changes exercise selection, dose, progression,
+pace, or guidance; it is never combined with Strength or Balance; and Pearl never claims to
+diagnose, treat, or objectively score “brain fog.” Product language should use the hierarchy
+**measure Strength and Balance; track Everyday Clarity**.
+
+Strategic frame: the camera is the sensor; adherence and proof over twelve weeks are the
+product. The founder team previously built a gym form-feedback app (Forma) on MediaPipe +
+React Native; the technical notes below transfer its hard-won pose-detection knowledge, not
+its form-coaching product model.
 
 ## Product laws (non-negotiable design rules, validated in user interviews)
 
-1. **Never show self-view camera video.** Render a clean skeleton; users this age want presence
-   without a mirror. *(2026-06-15: the privacy core — never show video — is unchanged. The
-   backdrop is the design-system `bg-base` canvas with a contrasting filled figure; the native
-   `PoseDetectionView` background is held in sync on both platforms. The app's visual identity
-   was redesigned 2026-06-16 to a warm premium longevity system inspired by consumer wellness
-   dashboards; on 2026-06-19 the colour system was strengthened to a mature premium
-   warm-stone + inky-green palette — `bgBase #F4EDE6`, borderless soft-ivory cards/surfaces `#FBF5EF`
-   surfaces, green buttons and accent surfaces unified to `#414C34`,
-   transparent soft fills with stone outlines, text `#111412/#68706A/#8A908A`, stone borders
-   `#E4E0D6/#D8D3C8`, restrained `#A98243` milestone accents, and an inky green figure gradient.
-   On 2026-07-10, a product-owner-supplied dark editorial app reference superseded that
-   everyday warm-stone appearance. On 2026-07-11, a Spotify UI reference refined the system
-   again: everyday screens now use a true-black canvas, `#181818` graphite cards, white as
-   the primary action/text accent, and dusty-orchid `#B77BC3` as Pearl's secondary brand
-   accent. Active camera/session focus surfaces remain separately
-   controlled, and the no-self-view rule is unchanged. All tokens live in `src/theme`; no
-   screen hardcodes colour. See docs/decisions.md.)*
-2. **Audio-first.** Voice guides everything; after propping the phone, the user never touches
-   the screen until the session ends. Auto-start when framed, auto-advance between items, rest
-   timers spoken.
+1. **Never show self-view camera video.** Render a clean figure; Pearl's users want presence
+   without a mirror. Everyday screens use the approved warm editorial system: `#FAF8F7`
+   warm-ivory canvas, `#FFFDFC` cards, near-black `#171714` text, burgundy `#7C405D`
+   primary actions, and restrained burgundy/champagne accents. Active camera/session focus
+   surfaces remain separately controlled. All reusable tokens live in `src/theme`.
+2. **Voice-paced training.** Daily sessions use bundled voice guidance and a tiny on-device
+   command vocabulary with complete tap parity. Pearl waits for the user before work begins.
+   The camera is reserved for official measurement, not daily workouts.
 3. **Silence by default.** The camera speaks only on high-confidence findings. No rep-by-rep
    form critique, ever — one false positive kills trust permanently. High precision, low
    recall, or nothing.
-4. **No medical claims.** Wellness-side language only. "Movement age," never "fall-risk
-   diagnosis." Domain ages lead; any composite score is secondary garnish.
-5. **No gamification** (streak-shaming, badges, social feeds). This demographic responds to
-   evidence and routine.
+4. **No medical or causal claims.** Wellness-side language only. Do not claim Pearl measures
+   hormones, bone density, fracture risk, cognition, or what menopause caused. Do not claim
+   the programme caused a Clarity change. Strength and Balance results lead; population
+   comparison is subordinate and opt-in where eligibility permits; no composite age score.
+5. **No gamification** (streak-shaming, badges, social feeds). Pearl motivates through a
+   finite programme, evidence, routine, and compassionate consistency.
 6. **Zero-equipment start.** Chair, wall, floor, bottom stair, cushion. Every exercise must
    have a zero-equipment regression so a missing item substitutes, never blocks.
+7. **Comparable means identical protocol.** Baseline and retests use the same frozen core
+   battery. A partial or different check-up must never be presented as comparable progress.
+8. **Clarity stays separate.** Everyday Clarity and any future objective Clarity instrument
+   render as separate personal series, never a combined score and never a training input.
+9. **Protect the audience definition.** Optimise onboarding, safety, programme language,
+   examples, research, and marketing for women 45–60 in perimenopause or early postmenopause.
+   General-adult capability may remain for compatibility, but it is not product direction.
+10. **Online profiles stay narrow.** Optional Supabase accounts may sync only the explicit
+    non-health profile allowlist: identity/reference details, predefined movement-goal category,
+    trainer voice, and
+    comparison preference. Menopause/symptom/safety context, programme state, workouts, check-ups,
+    Everyday Clarity, camera data, and landmarks remain on-device. A wider sync is a separate
+    product, consent, security, and privacy decision.
 
 ## Hard-won pose-detection knowledge (MediaPipe, mobile, real homes)
 
@@ -132,9 +167,10 @@ notes are the transfer.
   voice line at a time; if busy, drop lower-priority lines rather than queueing stale ones.
   iOS audio mode: MixWithOthers-equivalent interruption mode, recording disabled — **audio
   configuration must never interrupt the camera session** (this caused real production pain).
-- **Data:** local-only for V1 (no accounts, no backend). SQLite or JSON store for
-  results/history with a schema version field from day one. Landmark recordings behind a dev
-  toggle.
+- **Data:** local-first for V1. Results/history, programme state, health context, Everyday Clarity,
+  and landmark recordings remain local and schema-versioned (recordings behind a dev toggle).
+  Optional Supabase authentication and owner-only online profiles may store only Product Law 10's
+  non-health allowlist; RLS and self-service account deletion are required.
 
 ## Platform learnings (React Native / Expo — apply with judgment to current versions)
 
@@ -156,49 +192,55 @@ not blindly inherit these pins. But know the history:
 - Iterate primarily on an Android device (fastest loop), verify iOS regularly including
   Release mode. Both platforms must work.
 
-## Assessment battery — protocols and scoring (V1)
+## Official Pearl MVP check-up
 
-All voice-guided, phone propped at ~hip height, user 2.5–3.2 m away. Norms: encode published
-reference tables with sources cited in code comments — Rikli & Jones Senior Fitness Test norms
-(30s chair stand, ages 60–94), Bohannon reference values (single-leg stance across adult ages;
-TUG meta-analysis norms). For ages 45–59 where tables thin out, use published reference
-equations where available and **label extrapolated bands as estimates** in both code and UI.
-Output per-domain results (Strength/Power, Balance, Mobility) as "typical of age X" ranges,
-never false precision.
+The repeated physical protocol's frozen serialized identifier is
+`pearl_monthly_strength_balance_v1`; that token is retained only so existing records remain
+comparable and does not define the product cadence. It runs at baseline, week 4, week 8, and
+week 12. The protocol is voice-guided with the phone propped around hip height and consists of:
 
-1. **30-second chair stand** (side view): reps + per-rep rise velocity (body units/s) +
-   session mean. Detect hand-push-off on thighs only as a logged flag, not a user-facing
-   critique.
-2. **Balance ladder** (front view): feet-together → semi-tandem → tandem → single-leg, eyes
-   open then closed (voice-confirmed). Timed to termination (raised-foot touchdown); record
-   sway proxy. Safety script: fingertips near a counter.
-3. **Timed Up and Go** (side-lateral framing so the 3 m walk path crosses the frame): timed
-   from seat-off to re-seated, turn detected via hip-x velocity reversal. If the room can't
-   fit it, offer a short-path variant and flag results as non-standard.
-4. **Shoulder flexion peak** (side view): standing straight-arm forward raise, peak
-   upper-arm-to-trunk angle via MaxRomTracker.
-5. **Hinge reach** (side view): standing forward fold, wrist-to-floor distance in body units
-   at max.
+1. **A fixed one-minute warm-up** — not measured; the same preparation improves comparability.
+2. **One-leg balance** — front view, one anchored standing side, eyes open, timed to valid
+   touchdown or the protocol ceiling; support stays within reach.
+3. **30-second chair stand** — side view, repetitions plus rise-velocity evidence where the
+   live protocol supports it; maximal effort comes last.
 
-## V1 non-goals (do not build)
+Only Strength and Balance determine the next phase's prescription. Historical full-battery
+machinery (Timed Up and Go, shoulder flexion, hinge reach, balance ladders, Mobility evidence)
+may remain as versioned compatibility and research infrastructure, but it is not the official
+MVP journey and must not leak into current product framing.
 
-Accounts/backend/sync, payments, push notifications, ML/learned form feedback, social
-features, PDF reports, passive monitoring, rotation-graded movements (except neck yaw),
-floor-pose grading beyond bridge, any form-quality critique.
+After the physical battery, the live MVP offers the optional complete Everyday Clarity
+self-report with sleep and symptom context. The matched solo/rest/dual task is a release-gated
+instrument, not a shipped promise. Verbal fluency is not an MVP surface.
 
-**2026-06-15 — product-owner-directed exceptions (prototype scope only; the architecture
-above is unchanged — still local-only, no backend, no real push):** a Home/Settings **local
-profile** (name/age/goal; on-device only, not an account), a **Family** tab backed by a
-**local mock** fixture (no real other users/sync — a UI prototype only), a **workout-reminder
-toggle** that stores a preference but schedules **no OS notification**, and a **Learn** tab of
-bundled articles. The trainer-voice picker offers two voices — **Clara** (female) and
-**Marcus** (male) — whose lines are synthesized once at build time via the **ElevenLabs API
-(Multilingual v2 model)** by `scripts/generate-audio.ts` and bundled per voice under
-`assets/audio/voice/<voiceId>/`; nothing in the session path ever calls ElevenLabs at runtime
-(the no-runtime-TTS audio law is unchanged). The `ELEVENLABS_API_KEY` is read from the
-environment at generation time and never committed; each voice's ElevenLabs voice id lives in
-`src/profile/voices.ts`. If/when any of these go real (shared family data, actual reminders),
-revisit this list and the local-only data rule first. See docs/decisions.md.
+Published references must be cited and fingerprinted. Female reference data covering the
+target ages is preferred. Where evidence is unavailable, Pearl shows raw personal evidence or
+suppresses the comparison; it never invents precision or converts results into a “movement
+age.” Personal change is only stated when protocol comparability and measurement evidence
+permit it.
+
+## MVP non-goals (do not build or resurrect)
+
+- A general longevity or “body-age” product for all adults.
+- A male/general-adult acquisition experience; compatibility support is not positioning.
+- Composite movement age, brain age, Clarity score, diagnosis, treatment, or causal claims.
+- Camera-based daily form coaching, rep-by-rep critique, or the retired conductor surface.
+- The historical full movement battery as the default official journey.
+- Verbal fluency, impact/bone programming, pelvic-floor treatment, or GLP-1 modes before their
+  separate evidence and product decisions.
+- Programme, check-up, Clarity, or health-data sync. Optional non-health online profiles may be
+  presented only when sign-up, sign-in, restore/conflict handling, RLS, truthful privacy copy,
+  sign-out, and self-service account deletion work end to end.
+- Payments, push notifications, social features, PDF reports, passive monitoring, or a Learn
+  content library.
+- Rotation-graded movements (except explicitly approved neck-yaw research), floor-pose form
+  grading, or any learned form-quality model.
+
+The trainer-voice picker offers **Clara** and **Marcus**. Lines are synthesized once at build
+time with ElevenLabs Multilingual v2 by `scripts/generate-audio.ts` and bundled under
+`assets/audio/voice/<voiceId>/`; runtime sessions never call ElevenLabs or any cloud TTS. The
+generation key is environment-only and never committed.
 
 ## Working agreements
 

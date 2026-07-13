@@ -10,13 +10,13 @@ import type {
   ChairPercentileRange,
   MovementProfileV2Assessment,
   MovementProfileV2DomainEvidence,
-  ShoulderInterpretation,
   StoredMovementProfileV2Snapshot,
 } from '../reference/movementProfileV2';
 
 import { BRAND } from '../brand';
 
 export type MovementProfileV2Domain = MovementDomain;
+export type MovementProfileV2ReportableDomain = Extract<MovementProfileV2Domain, 'strength_power' | 'balance'>;
 
 /**
  * The one plain status vocabulary shown everywhere a domain result appears
@@ -35,7 +35,7 @@ export type MovementProfileV2StatusTier =
   | 'Not measured';
 
 export interface MovementProfileV2DomainCardViewModel {
-  domain: MovementProfileV2Domain;
+  domain: MovementProfileV2ReportableDomain;
   title: string;
   metric: string;
   status: MovementProfileV2StatusTier;
@@ -68,16 +68,19 @@ export interface MovementProfileV2ResultsViewModel {
 // full-battery records may still contain Mobility data, but the active product
 // must not render an empty or unprescribed Mobility card. Clarity is presented
 // separately as observational personal signals.
-const DOMAIN_ORDER: readonly MovementProfileV2Domain[] = ['strength_power', 'balance'];
+const DOMAIN_ORDER: readonly MovementProfileV2ReportableDomain[] = ['strength_power', 'balance'];
+
+function isReportableDomain(domain: MovementProfileV2Domain): domain is MovementProfileV2ReportableDomain {
+  return domain === 'strength_power' || domain === 'balance';
+}
 
 export interface MovementProfileV2ResultsViewModelOptions {
   /**
    * Population-comparison opt-in (REPOSITION_TDD slice 5, founder conditions
    * 2026-07-06): baseline-relative is the default everywhere — explicit
    * "for your age group" comparison copy renders ONLY when she opted in, and
-   * only where the claim-eligibility machinery already supports it (raw-only
-   * results show nothing new in either mode). Status tiers stay in both modes:
-   * they are the app-wide band vocabulary, not comparison claims.
+   * only where the claim-eligibility machinery already supports it. The
+   * percentile-derived Strength tier is also suppressed unless she opts in.
    */
   comparisonOptIn?: boolean;
 }
@@ -121,22 +124,21 @@ export function movementProfileV2ResultsViewModelForRecord(
 }
 
 function domainCard(
-  domain: MovementProfileV2Domain,
+  domain: MovementProfileV2ReportableDomain,
   snapshot: StoredMovementProfileV2Snapshot,
   comparisonOptIn: boolean
 ): MovementProfileV2DomainCardViewModel {
   if (domain === 'strength_power') return chairCard(snapshot.interpretation.chair, comparisonOptIn);
-  if (domain === 'balance') return balanceCard(snapshot.interpretation.balance, comparisonOptIn);
-  return shoulderCard(snapshot.interpretation.shoulder, comparisonOptIn);
+  return balanceCard(snapshot.interpretation.balance, comparisonOptIn);
 }
 
 function chairCard(chair: ChairInterpretation, comparisonOptIn: boolean): MovementProfileV2DomainCardViewModel {
   const reps = chair.rawMetric?.value;
   return {
     domain: 'strength_power',
-    title: 'Strength / Power',
+    title: 'Strength',
     metric: Number.isFinite(reps) ? `${reps} rises in 30 seconds` : 'Not measured',
-    status: chairTier(chair.percentileRange),
+    status: comparisonOptIn ? chairTier(chair.percentileRange) : 'Saved result',
     body: comparisonOptIn
       ? chairEvidence(chair.percentileRange)
       : chair.percentileRange
@@ -188,55 +190,12 @@ function balanceCard(balance: BalanceInterpretation, comparisonOptIn: boolean): 
 }
 
 function balanceTier(balance: BalanceInterpretation): MovementProfileV2StatusTier {
-  if (balance.sourceBenchmark) return 'On track';
   if (balance.taskBand === 'ceiling_complete') return 'Strong';
   if (balance.taskBand === 'building') return 'Building';
-  if (balance.taskBand === 'starting_point' || balance.taskBand === 'starting_point_low') return 'Starting point';
-  return 'Saved result';
-}
-
-function shoulderCard(shoulder: ShoulderInterpretation, comparisonOptIn: boolean): MovementProfileV2DomainCardViewModel {
-  // The two-protocol check-up never runs the reach item: say so honestly
-  // instead of implying a saved starting point (never false precision).
-  if (!shoulder.rawMetric && shoulder.rawInvalidReasons.includes('missing_result')) {
-    return {
-      domain: 'mobility',
-      title: 'Mobility',
-      metric: 'Not measured',
-      status: 'Not measured',
-      body: "This check-up measures strength and balance — the reach check isn't part of it.",
-    };
+  if (balance.taskBand === 'starting_point' || balance.taskBand === 'starting_point_low') {
+    return 'Starting point';
   }
-  const degrees = shoulder.rawMetric?.value;
-  return {
-    domain: 'mobility',
-    title: 'Mobility',
-    metric: Number.isFinite(degrees) ? `${formatNumber(degrees)}° reach` : 'Not measured',
-    status: shoulderTier(shoulder),
-    body: shoulder.painLimited
-      ? `You noted pain during this reach, so ${BRAND.appName} keeps the result cautious.`
-      : comparisonOptIn
-        ? shoulderEvidence(shoulder)
-        : shoulder.iqr
-          ? 'Adds to your own mobility trend with every check-up.'
-          : shoulderEvidence(shoulder),
-  };
-}
-
-function shoulderTier(shoulder: ShoulderInterpretation): MovementProfileV2StatusTier {
-  const category = shoulder.iqr?.category;
-  if (category === 'above_published_middle_range') return 'Strong';
-  if (category === 'within_published_middle_range') return 'On track';
-  if (category === 'below_published_middle_range') return 'Building';
   return 'Saved result';
-}
-
-function shoulderEvidence(shoulder: ShoulderInterpretation): string {
-  const category = shoulder.iqr?.category;
-  if (category === 'above_published_middle_range') return 'Above the typical range for your age group.';
-  if (category === 'within_published_middle_range') return 'Within the typical range for your age group.';
-  if (category === 'below_published_middle_range') return 'Below the typical range for your age group.';
-  return 'Saved as your personal starting point.';
 }
 
 function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV2ResultsViewModel['focus'] {
@@ -277,7 +236,7 @@ function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV
 }
 
 function domainTitle(domain: MovementProfileV2Domain): string {
-  if (domain === 'strength_power') return 'Strength / Power';
+  if (domain === 'strength_power') return 'Strength';
   if (domain === 'balance') return 'Balance';
   return 'Mobility';
 }
@@ -317,7 +276,7 @@ function strongestAssets(
 ): MovementProfileV2Domain[] {
   const evidence = assessment.focusProvenance?.domainEvidence ?? [];
   const candidates = evidence
-    .filter((item) => item.domain !== focusDomain && DOMAIN_ORDER.includes(item.domain))
+    .filter((item) => item.domain !== focusDomain && isReportableDomain(item.domain))
     .map((item) => ({ domain: item.domain, tier: assetTier(item.category) }))
     .filter((item) => item.tier > 0);
   if (candidates.length === 0) return [];

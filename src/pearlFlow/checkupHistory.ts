@@ -2,10 +2,8 @@ import type { MovementAssessment } from '../adherence/types';
 import type { CheckUp } from '../checkup';
 import type { StoredCheckUp, StoredCheckUpType } from '../history';
 import {
-  latestOfficialMovementProfileV2AssessmentBeforeCheckUp as latestOfficialMovementProfileV2AssessmentBeforeCheckUpRecord,
   latestOfficialMovementProfileV2AssessmentRecord,
   movementProfileV2AssessmentRecordForSourceCheckUpId,
-  movementProfileV2AssessmentRecordForSourceSnapshotId,
   priorMovementProfileV2FocusContextForCheckUp as selectPriorMovementProfileV2FocusContextForCheckUp,
   selectOfficialMovementProfileV2AssessmentRecords,
   validMovementProfileV2SnapshotForCheckUp,
@@ -89,16 +87,6 @@ export function findAssessmentForCheckUp(
   return matches.slice().sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
 }
 
-export function findCheckUpForAssessment(
-  history: readonly StoredCheckUp[] | null | undefined,
-  assessment: MovementAssessment | null | undefined
-): CheckUp | null {
-  if (!assessment) return null;
-  const checkUpId = assessmentCheckUpId(assessment);
-  if (!checkUpId) return null;
-  return (history ?? []).find((record) => record.checkUp.startedAt === checkUpId)?.checkUp ?? null;
-}
-
 export function usableOfficialCheckUpRecords(
   history: readonly StoredCheckUp[] | null | undefined,
   assessments: readonly MovementAssessment[] | null | undefined
@@ -174,20 +162,6 @@ export function movementProfileV2AssessmentForSourceCheckUpId(
   return movementProfileV2AssessmentRecordForSourceCheckUpId(history, sourceCheckUpId);
 }
 
-export function movementProfileV2AssessmentForSourceSnapshotId(
-  history: readonly StoredCheckUp[] | null | undefined,
-  sourceSnapshotId: string
-): OfficialMovementProfileV2AssessmentRecord | null {
-  return movementProfileV2AssessmentRecordForSourceSnapshotId(history, sourceSnapshotId);
-}
-
-export function latestOfficialMovementProfileV2AssessmentBeforeCheckUp(
-  history: readonly StoredCheckUp[] | null | undefined,
-  currentCheckUp: CheckUp
-): OfficialMovementProfileV2AssessmentRecord | null {
-  return latestOfficialMovementProfileV2AssessmentBeforeCheckUpRecord(history, currentCheckUp);
-}
-
 export function priorMovementProfileV2FocusContextForCheckUp({
   currentCheckUp,
   currentCheckupType,
@@ -209,14 +183,6 @@ export function latestUsableOfficialCheckUpRecord(
   assessments: readonly MovementAssessment[] | null | undefined
 ): UsableOfficialCheckUpRecord | null {
   const records = usableOfficialCheckUpRecords(history, assessments);
-  return records[records.length - 1] ?? null;
-}
-
-export function latestHistoricalOfficialCheckUpRecord(
-  history: readonly StoredCheckUp[] | null | undefined,
-  assessments: readonly MovementAssessment[] | null | undefined
-): HistoricalOfficialCheckUpRecord | null {
-  const records = historicalOfficialCheckUpRecords(history, assessments);
   return records[records.length - 1] ?? null;
 }
 

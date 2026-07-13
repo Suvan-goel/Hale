@@ -8,13 +8,13 @@ const VERDICT = 'TRAINING_VOICE_V2_1_FOUNDATION_COMPLETE_BEHAVIOR_AND_AUDIO_PEND
 const NEXT_TASK = 'Training both-sides round state and dose-preservation implementation';
 
 const ARTIFACTS = {
-  implementation: 'docs/audits/HALE_TRAINING_VOICE_V2_1_FOUNDATION_IMPLEMENTATION.md',
-  auditMd: 'docs/audits/HALE_TRAINING_VOICE_V2_1_FOUNDATION_AUDIT.md',
-  auditJson: 'docs/audits/HALE_TRAINING_VOICE_V2_1_FOUNDATION_AUDIT.json',
-  contractsCsv: 'docs/audits/HALE_TRAINING_VOICE_V2_1_EXERCISE_CONTRACTS.csv',
-  assetsCsv: 'docs/audits/HALE_TRAINING_VOICE_V2_1_ASSET_REQUIREMENTS.csv',
-  readinessCsv: 'docs/audits/HALE_TRAINING_VOICE_V2_1_RUNTIME_READINESS.csv',
-  handoff: 'docs/audits/HALE_VOICE_PROJECT_POST_TRAINING_FOUNDATION_HANDOFF.md',
+  implementation: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_FOUNDATION_IMPLEMENTATION.md',
+  auditMd: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_FOUNDATION_AUDIT.md',
+  auditJson: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_FOUNDATION_AUDIT.json',
+  contractsCsv: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_EXERCISE_CONTRACTS.csv',
+  assetsCsv: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_ASSET_REQUIREMENTS.csv',
+  readinessCsv: 'docs/audits/PEARL_TRAINING_VOICE_V2_1_RUNTIME_READINESS.csv',
+  handoff: 'docs/audits/PEARL_VOICE_PROJECT_POST_TRAINING_FOUNDATION_HANDOFF.md',
 };
 
 const snapshot = loadSnapshot();
@@ -288,7 +288,7 @@ function readinessCsv(readiness) {
 }
 
 function implementationMd(data, metrics, git) {
-  return `# Hale Training Voice V2.1 Foundation Implementation
+  return `# Pearl Training Voice V2.1 Foundation Implementation
 
 ## 1. Result
 
@@ -388,7 +388,7 @@ The worktree was already dirty before this task. No destructive git operations w
 }
 
 function auditMd(data, metrics, git) {
-  return `# Hale Training Voice V2.1 Foundation Audit
+  return `# Pearl Training Voice V2.1 Foundation Audit
 
 Primary verdict: \`${VERDICT}\`
 
@@ -447,7 +447,7 @@ function handoffMd(data) {
     const dose = programmedDose(contract);
     return `| ${contract.exerciseId} | ${dose} | One round contains work on both sides before rest; first side may alternate by round. | ${contract.implementationRequirements.join(', ')} |`;
   }).join('\n');
-  return `# Hale Voice Project Post Training Foundation Handoff
+  return `# Pearl Voice Project Post Training Foundation Handoff
 
 ## Exact Next Task
 
@@ -527,7 +527,7 @@ function validateOutputs(data, metrics) {
 }
 
 function readBalanceV2Status() {
-  const jsonPath = path.join(ROOT, 'docs/audits/HALE_EYES_OPEN_BALANCE_V2_AUDIT.json');
+  const jsonPath = path.join(ROOT, 'docs/audits/PEARL_EYES_OPEN_BALANCE_V2_AUDIT.json');
   if (!fs.existsSync(jsonPath)) {
     return { present: false, expectedP0P1P2P3: '0/0/0/1', audioReady: false, liveDefault: false };
   }

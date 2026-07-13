@@ -14,7 +14,6 @@ import {
   STANDING_BAND_ROW_ID,
   STEP_UP_ID,
   PUSHUP_STANDARD_ID,
-  SQUAT_SUPPORTED_ID,
   STS_POWER_ID,
   STS_CUSHION_ID,
   STS_SLOW_ECC_ID,
@@ -36,7 +35,6 @@ import {
   updateLadderProgressAfterSession,
   type LadderProgress,
 } from '../workoutGeneration';
-import type { CheckUpScore } from '../../scoring';
 import { createLifeGoal, getLifeGoalWorkoutBias, type MovementSafetyProfile } from '../../adherence';
 import type { CollectionExposure } from '../collectionSelection';
 import { formatDebugWorkoutScenarios, generateDebugWorkoutScenarios } from '../debugWorkoutScenarios';
@@ -1507,21 +1505,6 @@ describe('valid-time measurement targets under daily adjustments', () => {
 
 describe('initial ladder progress from measured capability', () => {
   const NOW = '2026-07-02T08:00:00.000Z';
-
-  function domainResult(overrides: Partial<CheckUpScore['domains'][number]>): CheckUpScore['domains'][number] {
-    return {
-      domain: 'strength',
-      label: 'Strength & Power',
-      measured: true,
-      ageLow: 50,
-      ageHigh: 58,
-      estimated: false,
-      interpretation: 'typical',
-      rows: [],
-      primaryMetricValue: NaN,
-      ...overrides,
-    };
-  }
 
   it('starts a very weak chair-stand result one level easier than the ladder default', () => {
     const next = initialLadderProgressFromMeasuredCapability({

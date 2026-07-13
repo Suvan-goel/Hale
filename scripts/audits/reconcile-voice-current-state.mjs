@@ -13,21 +13,21 @@ const ROOT = path.resolve(__dirname, '../..');
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.caf']);
 const BASELINE_COMMIT = '4b4c57c05ba02b87e5946beda1f44797180a4391';
 const OUT = {
-  md: 'docs/audits/HALE_VOICE_CURRENT_STATE_RECONCILIATION.md',
-  json: 'docs/audits/HALE_VOICE_CURRENT_STATE_RECONCILIATION.json',
-  inventory: 'docs/audits/HALE_VOICE_CURRENT_ASSET_INVENTORY.csv',
-  ledger: 'docs/audits/HALE_VOICE_CHANGE_LEDGER.csv',
-  impact: 'docs/audits/HALE_VOICE_V2_1_IMPACT_REPORT.md',
+  md: 'docs/audits/PEARL_VOICE_CURRENT_STATE_RECONCILIATION.md',
+  json: 'docs/audits/PEARL_VOICE_CURRENT_STATE_RECONCILIATION.json',
+  inventory: 'docs/audits/PEARL_VOICE_CURRENT_ASSET_INVENTORY.csv',
+  ledger: 'docs/audits/PEARL_VOICE_CHANGE_LEDGER.csv',
+  impact: 'docs/audits/PEARL_VOICE_V2_1_IMPACT_REPORT.md',
 };
 
 function main() {
   const generatedAt = new Date().toISOString();
   const snapshot = repositorySnapshot(generatedAt);
   const baseline = establishBaseline();
-  const previousDurationRows = readCsv('docs/audits/HALE_VOICE_ASSET_DURATIONS.csv');
-  const v21Rows = readCsv('docs/specs/HALE_VOICE_SCRIPT_MANIFEST_V2_1.csv');
+  const previousDurationRows = readCsv('docs/audits/PEARL_VOICE_ASSET_DURATIONS.csv');
+  const v21Rows = readCsv('docs/specs/PEARL_VOICE_SCRIPT_MANIFEST_V2_1.csv');
   const v21ByKey = new Map(v21Rows.map((row) => [row.newCueKey, row]));
-  const previewCueKeys = parsePreviewCueKeys('docs/specs/HALE_VOICE_CLARA_PREVIEW_PACK_PLAN_V2_1.md');
+  const previewCueKeys = parsePreviewCueKeys('docs/specs/PEARL_VOICE_CLARA_PREVIEW_PACK_PLAN_V2_1.md');
   const manifests = parseManifests();
   const source = parseSourceDefinitions();
   const sourceFiles = readRelevantSourceFiles();
@@ -864,7 +864,7 @@ function renderMarkdown(audit) {
   const exactV21 = audit.v21Reconciliation.filter((row) => row.currentStatus === 'already_exists_exact_key_exact_script');
   const notPresent = audit.v21Reconciliation.filter((row) => row.currentStatus === 'not_present');
   const conflicts = audit.v21Reconciliation.filter((row) => row.currentStatus.includes('different') || row.currentStatus.includes('unverified'));
-  return `# Hale Voice Current-State Reconciliation
+  return `# Pearl Voice Current-State Reconciliation
 
 ## 1. Executive Verdict
 
@@ -917,7 +917,7 @@ Current added cue keys: ${addedKeys.join(', ')}.
 
 ## 5. Asset Integrity
 
-All current audio paths were enumerated once, SHA-256 hashed, probed with \`ffprobe\`, and decode-tested locally with \`ffmpeg -f null\`. Corrupt asset count is ${s.corruptAssets}. Missing voice pairs: ${s.missingPairs}. Orphan assets by manifest/source coverage: ${s.orphanAssets}. See \`HALE_VOICE_CURRENT_ASSET_INVENTORY.csv\` for per-file hash, duration, codec, decode health, and pairing.
+All current audio paths were enumerated once, SHA-256 hashed, probed with \`ffprobe\`, and decode-tested locally with \`ffmpeg -f null\`. Corrupt asset count is ${s.corruptAssets}. Missing voice pairs: ${s.missingPairs}. Orphan assets by manifest/source coverage: ${s.orphanAssets}. See \`PEARL_VOICE_CURRENT_ASSET_INVENTORY.csv\` for per-file hash, duration, codec, decode health, and pairing.
 
 ## 6. Current Cue and Generation Source
 
@@ -967,7 +967,7 @@ Conflicts or content-unverified overlaps include: ${conflicts.map((row) => `${ro
 
 ## 16. Change Ledger
 
-The ledger is written to \`docs/audits/HALE_VOICE_CHANGE_LEDGER.csv\`. It includes one row per added audio asset plus rows for current source, manifest, spec, and prompt changes relevant to voice reconciliation.
+The ledger is written to \`docs/audits/PEARL_VOICE_CHANGE_LEDGER.csv\`. It includes one row per added audio asset plus rows for current source, manifest, spec, and prompt changes relevant to voice reconciliation.
 
 ## 17. Recommendation Matrix
 
@@ -981,7 +981,7 @@ Primary verdict: ${audit.verdict.primary}. Secondary flags: ${audit.verdict.seco
 
 Exact next task: ${audit.verdict.nextAction}
 
-Files that need updating next: \`docs/specs/HALE_VOICE_SCRIPT_MANIFEST_V2_1.csv\`, \`docs/specs/HALE_VOICE_COMPOSED_TIMELINES_V2_1.csv\`, \`docs/specs/HALE_VOICE_CLARA_PREVIEW_PACK_PLAN_V2_1.md\`, and the runtime timeline audit artifacts after reconciliation.
+Files that need updating next: \`docs/specs/PEARL_VOICE_SCRIPT_MANIFEST_V2_1.csv\`, \`docs/specs/PEARL_VOICE_COMPOSED_TIMELINES_V2_1.csv\`, \`docs/specs/PEARL_VOICE_CLARA_PREVIEW_PACK_PLAN_V2_1.md\`, and the runtime timeline audit artifacts after reconciliation.
 
 Files that should remain untouched until that reconciliation is approved: \`assets/audio/**\`, \`src/audio/manifest.ts\`, \`src/audio/movementProfileV2AudioManifest.ts\`, \`scripts/generate-audio.ts\`, and production session/controller code.
 
@@ -1005,8 +1005,8 @@ Limitations: ${audit.limitations.join(' ')}
 - \`scripts/verify-audio.ts\`: current safety/MPV2 asset verification.
 - \`src/training/sessionPlayer.ts\`, \`src/training/microCheck.ts\`, \`src/assessment/sessionController.ts\`: legacy runtime cue sequencing.
 - \`src/movementProfileV2/voiceCues.ts\`, \`src/movementProfileV2/liveCoordinator.ts\`, \`src/screens/MovementProfileV2CheckUpScreen.tsx\`: new MPV2 voice sequencing path.
-- \`docs/audits/HALE_VOICE_CUE_INVENTORY.*\`, \`docs/audits/HALE_VOICE_RUNTIME_TIMELINE_AUDIT.*\`, \`docs/audits/HALE_VOICE_ASSET_DURATIONS.csv\`: prior baseline artifacts.
-- \`docs/specs/HALE_VOICE_*_V2_1.*\`: proposed V2.1 planning baseline.
+- \`docs/audits/PEARL_VOICE_CUE_INVENTORY.*\`, \`docs/audits/PEARL_VOICE_RUNTIME_TIMELINE_AUDIT.*\`, \`docs/audits/PEARL_VOICE_ASSET_DURATIONS.csv\`: prior baseline artifacts.
+- \`docs/specs/PEARL_VOICE_*_V2_1.*\`: proposed V2.1 planning baseline.
 `;
 }
 
@@ -1017,7 +1017,7 @@ function renderImpactReport(audit) {
     (row) => row.currentStatus === 'already_exists_exact_key_exact_script' && row.currentBinaryVariants
   );
   const previewPresent = audit.v21Reconciliation.filter((row) => row.inPreviewPack && row.currentBinaryVariants);
-  return `# Hale Voice V2.1 Impact Report
+  return `# Pearl Voice V2.1 Impact Report
 
 ## Verdict
 
@@ -1045,9 +1045,9 @@ ${exact.map((row) => `- ${row.cueKey}: exact current source match`).join('\n') |
 
 ## V2.1 Documents That Need Updating
 
-- \`docs/specs/HALE_VOICE_SCRIPT_MANIFEST_V2_1.csv\`
-- \`docs/specs/HALE_VOICE_COMPOSED_TIMELINES_V2_1.csv\`
-- \`docs/specs/HALE_VOICE_CLARA_PREVIEW_PACK_PLAN_V2_1.md\`
+- \`docs/specs/PEARL_VOICE_SCRIPT_MANIFEST_V2_1.csv\`
+- \`docs/specs/PEARL_VOICE_COMPOSED_TIMELINES_V2_1.csv\`
+- \`docs/specs/PEARL_VOICE_CLARA_PREVIEW_PACK_PLAN_V2_1.md\`
 - Runtime timeline audit artifacts after MPV2 reconciliation
 
 ## Runtime Audit Validity
@@ -1073,17 +1073,17 @@ Freeze further generation, reconcile the current MPV2/V2.1 assets and manifests,
 function validationSummary({ assets, manifests, source, v21Rows, previewCueKeys, integrityFindings }) {
   return {
     parsedRelevantJson: [
-      'docs/audits/HALE_VOICE_CUE_INVENTORY.json',
-      'docs/audits/HALE_VOICE_RUNTIME_TIMELINE_AUDIT.json',
-      'docs/specs/HALE_VOICE_EXPERIENCE_SPEC_V2_1.json',
+      'docs/audits/PEARL_VOICE_CUE_INVENTORY.json',
+      'docs/audits/PEARL_VOICE_RUNTIME_TIMELINE_AUDIT.json',
+      'docs/specs/PEARL_VOICE_EXPERIENCE_SPEC_V2_1.json',
     ].every((file) => {
       JSON.parse(readText(file));
       return true;
     }),
     parsedRelevantCsv: [
-      'docs/audits/HALE_VOICE_ASSET_DURATIONS.csv',
-      'docs/specs/HALE_VOICE_SCRIPT_MANIFEST_V2_1.csv',
-      'docs/specs/HALE_VOICE_COMPOSED_TIMELINES_V2_1.csv',
+      'docs/audits/PEARL_VOICE_ASSET_DURATIONS.csv',
+      'docs/specs/PEARL_VOICE_SCRIPT_MANIFEST_V2_1.csv',
+      'docs/specs/PEARL_VOICE_COMPOSED_TIMELINES_V2_1.csv',
     ].every((file) => readCsv(file).length >= 0),
     audioFilesEnumeratedOnce: new Set(assets.map((row) => row.path)).size === assets.length,
     sha256ForEveryAudioFile: assets.every((row) => row.sha256.length === 64),
@@ -1403,14 +1403,14 @@ function sourceChangeRuntimeImpact(filePath) {
 }
 
 function sourceChangeV21Impact(filePath) {
-  if (filePath.includes('docs/specs/HALE_VOICE')) return 'V2.1 planning baseline is untracked current state.';
+  if (filePath.includes('docs/specs/PEARL_VOICE')) return 'V2.1 planning baseline is untracked current state.';
   if (filePath.includes('movementProfileV2') || filePath.includes('MovementProfileV2')) return 'SPEC_REVIEW_UPDATE';
   if (filePath.includes('manifest') || filePath.includes('generate-audio') || filePath.includes('Audio')) return 'MANIFEST_RECONCILIATION';
   return 'NO_IMPACT';
 }
 
 function shouldBlockSourceChange(filePath) {
-  return /src\/audio|scripts\/generate-audio|movementProfileV2|MovementProfileV2|docs\/specs\/HALE_VOICE/.test(filePath);
+  return /src\/audio|scripts\/generate-audio|movementProfileV2|MovementProfileV2|docs\/specs\/PEARL_VOICE/.test(filePath);
 }
 
 function parseLsTree(text) {
@@ -1438,7 +1438,7 @@ function parsePorcelainPath(line) {
 }
 
 function isRelevantPath(filePath) {
-  return /^(assets\/audio|src\/audio|src\/profile\/voices\.ts|scripts\/generate-audio\.ts|scripts\/verify-audio\.ts|src\/training|src\/assessment|src\/checkup|src\/movements|src\/exercises|src\/preflight|src\/screens\/(TrainingSessionScreen|CheckUpScreen|MicroCheckScreen|MovementProfileV2)|App\.tsx|docs\/specs\/HALE_VOICE_|docs\/audits\/HALE_VOICE_|scripts\/audits)/.test(
+  return /^(assets\/audio|src\/audio|src\/profile\/voices\.ts|scripts\/generate-audio\.ts|scripts\/verify-audio\.ts|src\/training|src\/assessment|src\/checkup|src\/movements|src\/exercises|src\/preflight|src\/screens\/(TrainingSessionScreen|CheckUpScreen|MicroCheckScreen|MovementProfileV2)|App\.tsx|docs\/specs\/PEARL_VOICE_|docs\/audits\/PEARL_VOICE_|scripts\/audits)/.test(
     filePath
   );
 }

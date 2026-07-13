@@ -497,9 +497,9 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Low latency:** confidence opacity mapping stays cheap; reacquisition fade defaults off in
   low-latency mode, and recognition pulse is disabled there even if requested.
 
-## 2026-06-16 — Central Hale product flow state
+## 2026-06-16 — Central Pearl product flow state
 
-- **Central next action:** added `src/haleFlow` as the pure product-flow layer for onboarding,
+- **Central next action:** added `src/pearlFlow` as the pure product-flow layer for onboarding,
   baseline Movement Check-Up, block creation, session due, weekly micro-check, lapse recovery,
   official re-test, report, and next-block states. Home now renders its primary CTA from
   `getNextBestAction` instead of rebuilding flow decisions screen by screen.
@@ -516,7 +516,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   describes the current session for future progression/autoregulation without replacing the
   existing voice-guided training player.
 - **Verification:** `npm run typecheck`, `npm test -- --runInBand`, `npx expo config --type public`,
-  and a dev-client Metro startup check on port 8082 pass. A separate Hale Metro instance was already
+  and a dev-client Metro startup check on port 8082 pass. A separate Pearl Metro instance was already
   running on 8081, so the duplicate 8082 server was stopped after verification.
 
 ## 2026-06-16 — Focus-specific mobility micro-check
@@ -561,7 +561,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Today sessions resolve slots through ladders at launch.** The generator selects exercise levels
   from current ladder progress, filters to V1-visible levels, applies equipment gates, substitutes
   safer ladders when setup is missing, and adapts volume/order for readiness states including
-  short-on-time, low-energy, stiffness, and pain-area avoidance. It keeps the product rule that Hale
+  short-on-time, low-energy, stiffness, and pain-area avoidance. It keeps the product rule that Pearl
   measures and guides; it does not diagnose or critique form.
 - **Progression uses feedback, not streaks.** Ladder progress advances after repeated easy,
   pain-free, well-tracked completions; pain, high effort, repeated low completion, or poor setup
@@ -570,8 +570,8 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Extra sessions share the same engine.** Added seven preset templates for mobility reset,
   gentle restart, steady balance, no-equipment strength, band upper-back, stairs confidence, and
   quick full-body practice; they use the same equipment/readiness filters as block sessions.
-- **Compatibility:** `src/haleFlow/sessionPlanning.ts` now adapts generated sessions back into the
-  existing `HaleSessionPlan` shape so Home can surface "Today's Hale Session" without rewriting the
+- **Compatibility:** `src/pearlFlow/sessionPlanning.ts` now adapts generated sessions back into the
+  existing `PearlSessionPlan` shape so Home can surface "Today's Pearl Session" without rewriting the
   current UI/player path.
 - **Verification:** `npm run typecheck`, `npm test -- --runInBand`, and
   `npx expo config --type public` pass.
@@ -592,7 +592,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 
 ## 2026-06-17 — Workout preview product-quality refinements
 
-- **No-equipment language now matches Hale's home context.** The no-equipment quick preset is labeled
+- **No-equipment language now matches Pearl's home context.** The no-equipment quick preset is labeled
   and generated as "No Optional Equipment": no band, mini-band, stair, or load, while still assuming
   ordinary home supports such as a chair and wall/counter. The debug utility has a separate
   travel/true-no-equipment scenario for bodyweight-only days.
@@ -629,7 +629,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 ## 2026-06-17 — Side-view tolerant avatar volume
 
 - **Finding:** Phase 2 body volume was enabled by default, but the torso layer required both
-  shoulders and both hips above confidence. In Hale's side-view movements, the far-side
+  shoulders and both hips above confidence. In Pearl's side-view movements, the far-side
   shoulder/hip often fall below confidence, so the volume layer could disappear and leave only the
   Phase 1 skeleton lines/dots.
 - **Change:** torso volume now uses the full shoulder/hip quadrilateral when all four landmarks are
@@ -645,7 +645,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   progression for `preset`, `manual`, and `retest_prep` sessions. Their generated summaries can
   still be saved locally for continuity. Rejected: letting optional practice advance the primary
   block, because Explore should support the plan rather than quietly reshape it.
-- **Stage 8 QA is documented in `docs/hale-v1-manual-qa.md`.** The checklist covers first-run,
+- **Stage 8 QA is documented in `docs/pearl-v1-manual-qa.md`.** The checklist covers first-run,
   returning-user, Plan A/B/C, Progress/re-test/report, Explore, old state, and accessibility
   passes without adding new product features.
 
@@ -808,7 +808,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Change:** required account access now supports Google on iOS/Android through Supabase OAuth with
   the app scheme redirect, while Apple sign-in uses native iOS credentials exchanged with Supabase via
   `signInWithIdToken`.
-- **Config:** the Expo app registers the `hale` scheme, keeps `expo-web-browser` configured for the
+- **Config:** the Expo app registers the `pearl` scheme, keeps `expo-web-browser` configured for the
   OAuth browser session, and enables the Apple sign-in config plugin/entitlement path. Provider
   client secrets stay in Supabase, Google Cloud, and Apple dashboards, never in the mobile app.
 - **Scope boundary:** email/password auth remains available. Check-ups, movement blocks, training
@@ -1072,7 +1072,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
   auth/backend sync, pose detection, scoring, and training logic are unchanged.
 
-## 2026-06-20 — Hale logo applied to app chrome
+## 2026-06-20 — Pearl logo applied to app chrome
 
 - **Change:** the selected flat green movement-mark icon is now the source for the iOS, Android,
   and generic Expo launcher icons. A transparent mark-only asset is used beside page/header titles
@@ -1299,7 +1299,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 
 ## 2026-06-21 — Isolated beta landing website
 
-- **Change:** a separate `website/` Next.js application was added for the Hale beta landing
+- **Change:** a separate `website/` Next.js application was added for the Pearl beta landing
   page. It reuses the current app logo, approved image assets, Inter/Fraunces font files, and
   active warm-stone + inky-green tokens without importing React Native code.
 - **Signup:** beta interest is handled by a server-side route with a Supabase-first persistence
@@ -1316,7 +1316,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   starting picture. Official re-tests continue to complete the old block, create a report, and
   prepare the next block. Extra/manual check-ups remain display-only and never overwrite the
   active plan.
-- **Recovery:** if local state has an eligible official check-up but no active block, Hale
+- **Recovery:** if local state has an eligible official check-up but no active block, Pearl
   prepares the missing block quietly from the same eligibility rules instead of surfacing a
   manual creation step.
 
@@ -1344,7 +1344,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   partially completed week reflection, but the inactive weekly-summary screen is not mounted
   in the active app flow and the unused screen component was removed.
 
-## 2026-06-22 — Local Hale data is scoped to the signed-in user
+## 2026-06-22 — Local Pearl data is scoped to the signed-in user
 
 - **Change:** the app's local profile, check-up history, training, micro-check, and adherence
   stores now use a per-auth-user filesystem scope under the existing local store root.
@@ -1372,7 +1372,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 
 - **Change:** the weekly micro-check is now a post-target check-in. Today keeps training as the
   primary action while the current week's main-plan session target is still incomplete. Once the
-  target is complete, Hale promotes the 60-second micro-check if it has not already been completed
+  target is complete, Pearl promotes the 60-second micro-check if it has not already been completed
   in that schedule window.
 - **Why:** the micro-check is progress evidence, not the core habit. Surfacing it only after the
   weekly target is complete avoids competing with the main training flow while still keeping the
@@ -1438,7 +1438,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Root cause:** the Android metadata rotation profile passed `ImageProcessingOptions` to
   MediaPipe but forwarded returned landmarks as if MediaPipe had changed the landmark coordinate
   space. MediaPipe uses the rotation option for the graph input/normalized rect; returned x/y
-  landmarks still need to be normalized into Hale's upright, unmirrored output contract.
+  landmarks still need to be normalized into Pearl's upright, unmirrored output contract.
 - **Fix:** metadata mode now keeps passing CameraX's normalized rotation degrees to MediaPipe and
   rotates emitted landmark x/y once in native code before JavaScript sees them. Width/height are
   swapped only in the emitted upright source dimensions for 90/270 degrees. Front-camera mirroring
@@ -1450,7 +1450,7 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 ## 2026-06-24 — Movement Profile V2 auto-prepares local closed-beta plans
 
 - **Change:** when a valid internal Movement Profile V2 Check-Up freezes its snapshot and
-  assessment, Hale now automatically creates or reuses a local 4-week `MovementBlock` before
+  assessment, Pearl now automatically creates or reuses a local 4-week `MovementBlock` before
   showing the Movement Profile. The results CTA is "View my 4-week plan" and only navigates to
   the already-prepared plan; it does not build, create, generate, or personalise a plan.
 - **Contract:** V2 blocks carry `origin.kind = movement_profile_v2_assessment`, the frozen
@@ -1490,7 +1490,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   replaced with `matte-graphite-digital-twin` backed by explicit renderer mode
   `matte_graphite_digital_twin`. The new renderer uses one SVG root, static matte graphite
   gradients, and 8 dynamic filled surface paths: a continuous head-neck-torso-pelvis shell, four
-  continuous limb surfaces, two tonal overlays, and one tiny Hale sternum accent.
+  continuous limb surfaces, two tonal overlays, and one tiny Pearl sternum accent.
 - **Calibration:** raw landmark positions remain unsmoothed. Only slow-changing body proportions
   are calibrated from a short benchmark-run sample window and then locked; renderer remount/reset
   clears both metrics and calibration.
@@ -1583,7 +1583,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   points span the full length of each body region. Its allocation was retuned toward a perceptual
   900-dot body: more torso/neck/forearm/hand continuity, fewer oversized foot clusters, a calmer
   boundary ratio, and a slightly stronger structural/accent allowance. Native Canvas paints now use
-  the app's inky text, secondary stone, and mature Hale green (`#111412`, `#68706A`, `#414C34`)
+  the app's inky text, secondary stone, and mature Pearl green (`#111412`, `#68706A`, `#414C34`)
   with less oversized 600-mode dot radii.
 - **Boundary:** this remains Android benchmark-only and visual-only. Production renderer defaults,
   JS point-cloud baseline, MediaPipe inference, pose pipeline, scoring, check-up, and training
@@ -1669,7 +1669,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   for another fitness product. The structure moves from emotional recognition, to measurement
   explanation, to practical home training, to privacy/trust, to beta access and FAQ.
 - **Rationale:** splitting the product story across several pages adds navigation decisions for
-  less tech-confident users and weakens the guided conversation. A single page lets Hale connect
+  less tech-confident users and weakens the guided conversation. A single page lets Pearl connect
   everyday friction (chairs, stairs, stiffness, steadiness and independence) to the Movement
   Check-Up, then show why the home plan is calmer and more personal than generic exercise videos.
 - **Boundary:** the landing page remains wellness-only and avoids medical claims. Privacy copy
@@ -1997,7 +1997,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   random per-frame particles. The renderer keeps per-preset dot buffers capped to the configured
   budget and fades the previous figure softly when tracking is lost.
 - **Rationale:** the solid Soft Digital Twin direction still reads as a geometric mannequin. The
-  constellation direction better preserves Hale's privacy-first, sensor-like presence while avoiding
+  constellation direction better preserves Pearl's privacy-first, sensor-like presence while avoiding
   a mirror, a cartoon avatar, and the overly technical feel of the full 900-dot baseline.
 - **Boundary:** production defaults remain `point_cloud_body`; the new renderer is explicit
   benchmark/replay-only and is not accepted by public env renderer selection.
@@ -2027,7 +2027,7 @@ PUBLIC RELEASE REMAINS BLOCKED
 
 - **Change:** changed the default build-time ElevenLabs model from `eleven_flash_v2_5` to
   `eleven_multilingual_v2` while keeping the no-runtime-TTS audio law unchanged.
-- **Rationale:** Hale bundles voice lines at build time, so low-latency generation is not valuable
+- **Rationale:** Pearl bundles voice lines at build time, so low-latency generation is not valuable
   in the user session. Multilingual v2 is the better fit for calm, stable, higher-quality trainer
   narration than the Flash model optimized for real-time applications.
 - **Evidence:** `npm run audio` regenerated 364 voice lines for Clara and Marcus plus the
@@ -2095,7 +2095,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   (`YYYY-MM-DD` in local persistence, entered as `MM/DD/YYYY`) and derive the current whole-year
   age from it. `profile.exactAge`, `profile.age`, `profile.ageBand`, and `safetyProfile.age`
   remain compatibility mirrors for existing scoring, planning, and reference-comparison paths.
-- **Rationale:** the product intent is that users provide date of birth once and Hale calculates
+- **Rationale:** the product intent is that users provide date of birth once and Pearl calculates
   age dynamically, instead of asking them to maintain a raw age field after birthdays.
 - **Boundary:** existing legacy profiles that only have exact age still load and can complete
   onboarding; historical result snapshots continue to freeze age-at-test and are not recomputed.
@@ -2263,7 +2263,7 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Change:** configured the Expo Audio plugin for playback-only use: microphone permission,
   Android `RECORD_AUDIO`, background recording, and background playback are disabled at the
   native manifest/config-plugin layer.
-- **Rationale:** Hale uses bundled foreground voice guidance and explicitly disables recording
+- **Rationale:** Pearl uses bundled foreground voice guidance and explicitly disables recording
   in the runtime audio mode, so beta testers should not see microphone/background-audio
   permissions that imply audio capture.
 - **Boundary:** foreground guidance playback remains unchanged. If future sessions need
@@ -2635,8 +2635,8 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Context:** a complexity audit (2026-07-03) found the app carrying unwired features and a
   duplicate "next action" engine. Product owner approved a staged simplification plan; this is
   Stage 1 — code with **no callers and no UI** only. Branch: `app-simplification`.
-- **Removed — second next-action engine:** `haleFlow/nextBestAction.ts` plus its
-  `HaleUserFlowState`/`NextBestAction*` types and `getNextBestActionCopy`. It duplicated the
+- **Removed — second next-action engine:** `pearlFlow/nextBestAction.ts` plus its
+  `PearlUserFlowState`/`NextBestAction*` types and `getNextBestActionCopy`. It duplicated the
   `appLifecycle.ts` state machine that actually drives Home; nothing imported it outside tests.
 - **Removed — support-circle prototype:** `adherence/supportCircleService.ts`,
   `inviteService.ts` (stub: never sent anything), `notificationService.ts` (no-op scheduler),
@@ -2746,8 +2746,8 @@ PUBLIC RELEASE REMAINS BLOCKED
   account before a 60-year-old has seen anything was the single most hostile step in a
   ten-stage onboarding funnel. Product owner approved deferring auth.
 - **Change (AppGate):** the app now renders without an account. The auth screen appears only
-  for password recovery; `HaleApp` is keyed by the user id or `'guest'`. Signing in lives in
-  Settings → Account ("Sign in if you want Hale to keep your check-up history … available
+  for password recovery; `PearlApp` is keyed by the user id or `'guest'`. Signing in lives in
+  Settings → Account ("Sign in if you want Pearl to keep your check-up history … available
   when you return"), which already had a full sign-in/sign-up card.
 - **Change (storage):** guest data uses the existing unscoped local directory; signed-in data
   keeps its per-user scope. New `moveLocalFiles` (src/history/localScope.ts, unit-tested) and
@@ -2800,7 +2800,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   explore view-model keeps `getLearnDetail` (article details); its now-unconsumed library
   and ladder-card builders are Stage 7 cleanup candidates.
 - **Copy:** the safety profile's clinical "Date of birth and reference group" section is now
-  "About you" — "Hale uses your date of birth and sex to compare your results with people
+  "About you" — "Pearl uses your date of birth and sex to compare your results with people
   like you." The check-up chooser needed no change: the retired manual/quick-recheck options
   were already hidden, leaving exactly two user-facing concepts (quick check-in, full
   Movement Check-Up).
@@ -2840,7 +2840,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   preference, App display-overlay) are deleted. `selectProgressDataAuthority` keeps only
   reachable kinds. The former "inert history rows" gap is resolved by deletion: the V2
   presentation's own profile/report navigation is the history surface.
-- **Legacy plumbing (3b.2):** deleted `history/trends.ts`, `haleFlow/reports.ts`,
+- **Legacy plumbing (3b.2):** deleted `history/trends.ts`, `pearlFlow/reports.ts`,
   `checkup/retry.ts`, the legacy progress summary builders (progressViewModel is now just
   ladder cards), and the `microCheckTrendPoints` bridge. Integration tests that construct
   legacy stored data import explicit fixtures under `testing/` — stored legacy records still
@@ -2949,7 +2949,7 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Dead legacy `TrainingState` loop removed.** `buildBlock`, `resolveSession`/`-Slot`, the
   deterministic `decideLevel`/`applySession` progression engine, and `nextSession*`/
   `recordCompletedSession` had no production callers since the live plan path became
-  `MovementBlock` + `haleFlow/sessionPlanning` + the exercise-ladder system. Deleted
+  `MovementBlock` + `pearlFlow/sessionPlanning` + the exercise-ladder system. Deleted
   `src/training/state.ts`; trimmed `block.ts`/`progression.ts` to the persisted-shape TYPES only
   (serialize.ts still reads them for backward-compatible loads — no schema bump); dropped the dead
   barrel re-exports and obsolete tests (~460 lines net).
@@ -3236,7 +3236,7 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **One source for the hero copy:** TodayScreen re-derived title/subtitle/CTA per action type
   on top of `getTodayPrimaryAction`, duplicating some lifecycle strings, contradicting others,
   discarding the micro-check's domain-aware title, and patching strings that no longer exist
-  ("Today's Hale Session", "Start First Session", "Move with intention"). The winning copy was
+  ("Today's Pearl Session", "Start First Session", "Move with intention"). The winning copy was
   promoted into `appLifecycle` (`week_complete` → "Your week is complete",
   `inactive_restart` subtitle → "…keep your plan moving.", `normal_training_day` → "Today's
   session is ready" + simpler subtitle) and the entire screen-side rewrite layer deleted. The
@@ -3343,7 +3343,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   an admission. Question copy is now "Can you get down to the floor and back up on your own?"
   (the "on your own" clause carries FD-007's without-assistance semantics). Everything else in
   FD-007 — gate floor exercises on the answer, substitute standing alternatives, editable in
-  Settings, no medical/frailty/fall-risk language, never imply Hale assists the transfer — is
+  Settings, no medical/frailty/fall-risk language, never imply Pearl assists the transfer — is
   unchanged. The `SafetyProfileScreen.floorTransfer` contract test pins the amended wording.
 - **Unanswered no longer masquerades as answered:** the screen previously pre-rendered "No"/
   "Not sure" as selected while the stored status was `not_confirmed`. All three questions now
@@ -3356,7 +3356,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   with support in reach), the two-clause "Choose Yes only if…" caveats folded into the
   questions, the redundant "Not sure" explainer line and the "Safety" pill (duplicate of the
   "Safety setup" eyebrow) removed, and the section intro now says the reassuring thing
-  directly: "There are no wrong answers — Hale uses standing alternatives for anything that
+  directly: "There are no wrong answers — Pearl uses standing alternatives for anything that
   does not fit today." Section text ~110 → ~55 words. `FloorTransferQuestion` collapsed into
   the shared `YesNoQuestion` (now with explicit yes/no selection so unanswered renders
   unselected).
@@ -3379,7 +3379,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   `'delete-account'`, and the backend `requestCloudAccountDeletion` was a stub that threw
   "deferred". The typed-DELETE confirmation input, `AccountDataAction`,
   `canConfirmAccountDataAction`, and the stub are gone; "Clear this device" keeps its
-  two-step confirm, and cloud deletion remains honestly "contact Hale support".
+  two-step confirm, and cloud deletion remains honestly "contact Pearl support".
 - **Live-form polish:** the bottom mode link duplicated the Sign in / Sign up segmented tabs
   and now appears only in forgot-password mode as "Back to sign in"; the clear-device /
   forgot / mode links raised to 48px targets. 1,244 → 794 lines.
@@ -3390,7 +3390,7 @@ PUBLIC RELEASE REMAINS BLOCKED
 
 ## 2026-07-05 — Menopause repositioning, Phase 1: the copy-layer reframe
 
-- **Product decision (founder-directed): Hale repositions from general "movement age"
+- **Product decision (founder-directed): Pearl repositions from general "movement age"
   longevity for adults 45–65 to women ~40–60 in perimenopause/menopause**, focused on
   menopausal muscle loss and fall/fracture-relevant functional decline. Rationale: acute,
   searchable, community-dense demand instead of the diffuse worried-well segment; competing
@@ -3425,7 +3425,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   independent" (labels stay universal — the goal step precedes the sex question).
 - **New flagship Learn article** `insight-menopause-muscle` ("Menopause and muscle: what
   changes, and what helps"): five sections ending with an explicit claims-boundary section
-  ("What Hale measures — and what it does not"). Labeled **"Awaiting review"** — it must not
+  ("What Pearl measures — and what it does not"). Labeled **"Awaiting review"** — it must not
   inherit the other articles' review claims until a real clinical review happens (founder:
   arrange review or relabel). Reuses the strength-balance card image pending bespoke art.
   Learn section copy now says "staying strong through menopause".
@@ -3484,10 +3484,10 @@ PUBLIC RELEASE REMAINS BLOCKED
   variants (`?focus=strength|balance|mobility`) reframed to the menopause years. "Movement
   Profile" → **"Strength Profile"** everywhere on the site; "Movement Check-Up" stays as the
   activity noun (unchanged, matching voice).
-- **FAQ updates:** audience answer is now women ~40–60 in peri/menopause; new "Is Hale only
+- **FAQ updates:** audience answer is now women ~40–60 in peri/menopause; new "Is Pearl only
   for women?" (No — men fully supported, results compared by age and sex) and "What does
-  Hale not measure?" (honest bone-density/hormones disclaimer). The latter was deliberately
-  phrased as "not measure" — the question form "Does Hale measure bone density?" trips the
+  Pearl not measure?" (honest bone-density/hormones disclaimer). The latter was deliberately
+  phrased as "not measure" — the question form "Does Pearl measure bone density?" trips the
   claim-shaped red-line regex, and the disclaimer form is the legal shape.
 - **Guardrails extended to the site:** `website/tests/unit/components.test.tsx` gained the
   same `MENOPAUSE_CLAIM_COPY` red lines as `copyGuardrails.test.ts` (claim-shaped
@@ -3759,7 +3759,7 @@ PUBLIC RELEASE REMAINS BLOCKED
      `reference_protocol_complete` is reference-eligible
      (`reference/movementProfileV2/{chair,balance}.ts`).
   4. **Consumer honesty** — micro-check `measured:false` is guarded at every
-     haleFlow consumer (appLifecycle/assessments/microCheckSummary — "Not
+     pearlFlow consumer (appLifecycle/assessments/microCheckSummary — "Not
      captured", never a number); velocity means only ever aggregate completed
      reps, with interruption downgrades labeling trust.
   Retry-with-setup-help stands as decided 2026-07-02/04 (setup-issue latch,
@@ -3785,7 +3785,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   comparison violates the baseline-relative default, and nothing of its kind returns
   except inside the opt-in normative view, governed by claim eligibility. The block
   report becomes a phase report (ritual kept, endpoint framing removed).
-- **Export identity approved:** `app: 'Hale'` stays forever as the stable machine
+- **Export identity approved:** `app: 'Pearl'` stays forever as the stable machine
   format id; a separate display-name field carries the brand. Old backups must always
   restore regardless of any future rename — pinned by test (slice 2).
 - **Fog items:** the four §5.1 drafts are placeholders pending the founder's clinical
@@ -3806,12 +3806,12 @@ PUBLIC RELEASE REMAINS BLOCKED
   documented beside the regex as the template. A pre-created
   `CLARITY_SELF_REPORT_COPY_FILES` fence bans "validated" on Clarity surfaces — slice 4
   must register each new copy file at creation. `bareDownwardChanges` helper
-  (`haleFlow/testing/copyInvariants.ts`, unit-tested) is the single definition of the
+  (`pearlFlow/testing/copyInvariants.ts`, unit-tested) is the single definition of the
   worse-never-bare rule for slices 5/7. The fence found zero violations in existing copy.
 - **Slice 2 — brand token** (`brand/brand.js` + `src/brand`): ~150 string literals
   across 51 files now interpolate `BRAND.appName` (AST codemod + JSX attribute fixup);
   app.config.js reads the display name from the token while slug/scheme/bundle ids
-  stay infra identity (F6). The data export gains `appDisplayName`; `app: 'Hale'` is
+  stay infra identity (F6). The data export gains `appDisplayName`; `app: 'Pearl'` is
   the frozen machine format id (founder decision), pinned by test at both value and
   source level. `brandToken.test.ts` lints production source so no new hardcoded name
   can land. The two name-speaking safety cues are tokenized — text stays byte-identical
@@ -3854,7 +3854,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   - **Diagnosis-shaped focus body:** "[Strongest] is your strongest asset. [Focus] is
     your biggest opportunity — your plan starts there." Ranking is ordinal-only over the
     focus engine's existing `domainEvidence` categories (tiers: above-reference >
-    within-reference/hale-building; raw-only/invalid never rank); ties named honestly in
+    within-reference/pearl-building; raw-only/invalid never rank); ties named honestly in
     the plural; no reference-supported asset → the previous honest line. No engine
     change — presentation derivation only.
   - **Baseline-relative card bodies by default** ("Adds to your own X trend with every
@@ -3924,7 +3924,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   sleep quality, optional female-scoped symptom load. Check-in screen is tap-only and
   skippable; the raw check-up is early-saved before the screen, so a crash mid-check-in
   finalizes without a self-report (measurement never blocked). Clarity trend
-  (`haleFlow/clarityTrend`) is baseline-relative ONLY — relations against her own rolling
+  (`pearlFlow/clarityTrend`) is baseline-relative ONLY — relations against her own rolling
   band, never population/age/raw-score-bare; a clouded month always pairs the known drivers
   (sleep, symptom load, stress) + trainable path (worse never bare, shared invariant);
   fluctuation stated every render; flag-gated off scoring surfaces via
@@ -3944,7 +3944,7 @@ PUBLIC RELEASE REMAINS BLOCKED
   anchor at or above the published 0.014/yr rate, so "never over-flatter" is enforced by
   construction, not convention. Flat-conservative at launch (single band); steepening past 60
   is a recorded FUTURE decision, not built. The ghost-curve view model
-  (`haleFlow/ghostCurve.ts`) gates on ≥4 monthly official chair-rise readings, normalizes to
+  (`pearlFlow/ghostCurve.ts`) gates on ≥4 monthly official chair-rise readings, normalizes to
   HER own baseline (100 %) so no population/age value ever appears, and renders a shaded BAND
   (low ≤ high per point — a region, never a false-precision line) with her trajectory on top.
   "Strength kept is strength won" when she holds at/above the typical midline; a personal
@@ -4367,16 +4367,16 @@ imports/fields/store file in backup shapes).
   generation, pinned by test. Voice guidance for programme exercises awaits
   the founder-owned bundled-audio generation step.
 
-## 2026-07-06 — Elegant landing becomes the sole marketing surface
+## 2026-07-06 — Pearl landing becomes the sole marketing surface
 
-- **Founder direction:** the previous Hale `website/` landing app is obsolete and can be
+- **Founder direction:** the previous Pearl `website/` landing app is obsolete and can be
   deleted. The menopause / Clarity / strength-through-measurement framing in `landing/`
   is the committed public landing-page direction for the Meta ads test.
 - **Implementation note:** the retired `website/` tree was removed so there is one active
   web surface to configure, QA, and promote. Historical docs still mention the old site as
   prior context; new ad-readiness work should target `landing/` only.
 
-## 2026-07-06 — Elegant landing ad-readiness cleanup
+## 2026-07-06 — Pearl landing ad-readiness cleanup
 
 - **Public contact:** the landing page now defaults to `suvangoel@gmail.com` for footer,
   privacy, terms, and thank-you contact surfaces; `VITE_CONTACT_EMAIL` remains an override.
@@ -5088,7 +5088,7 @@ proceeds in its own working session once ruled.
   MicroCheckSummaryScreen, ManualCheckupStartScreen,
   MovementProfileV2BlockReportScreen, BlockIntroScreen, RestartSessionScreen,
   SessionCompletionScreen, the old onboarding staging (src/onboarding), and
-  the old-shell haleFlow view models (appLifecycle, planViewModel,
+  the old-shell pearlFlow view models (appLifecycle, planViewModel,
   sessionPlanning, microCheck, microCheckSummary, copy, manualCheckup,
   checkupTransition, focusStimulusEvidence, sessionIds + the legacy block
   report fixture). TodayScreen's lifecycle mode removed — the programme
@@ -5160,7 +5160,7 @@ commits, each suite-green.
   next-check-up card could only render from old-engine blocks and is gone;
   the routine cadence offer on Home/check-up flow is the standing entry.
   Ghost curve + Clarity trend are therefore UNSHIPPED for v1 (they had
-  silently lost their mount at promotion anyway); their haleFlow view models
+  silently lost their mount at promotion anyway); their pearlFlow view models
   remain, tests green, for a future re-entry.
 - **Settings diet:** the life-goal review flow (LifeGoalOnboardingScreen +
   LifeGoalSelector) is deleted; the movement goal is set once in onboarding
@@ -5221,7 +5221,7 @@ file-level reachability lie).** Deleted, zero-live-caller verified:
   promoted app actually stores; the pre-beta re-entry (wire backup into the
   shell) is unchanged, just smaller. The restore suite keeps every V2
   snapshot/assessment fence and the safety_json local-only-law pin.
-- haleFlow old-shell view models: progressViewModel, progressDataAuthority,
+- pearlFlow old-shell view models: progressViewModel, progressDataAuthority,
   assessmentResultState, movementProfileV2OfficialRetestTransition,
   progressionEvidence.
 
@@ -5803,3 +5803,339 @@ Movement Check-Up, storage, and measurement behavior are unchanged.
 - The local-only "Voice on" indicator, permission explanation, end-session
   confirmation, abandonment recording, and all voice/tap parity contracts are
   unchanged.
+
+## 2026-07-11 — Plan becomes state-specific and ends in maintenance
+
+- Plan keeps its explanatory role while Home remains the only primary action
+  surface. The active view now states the current focus, the check-up that set
+  it, the next check-up's approximate duration, one weekly completion rule,
+  and the next session preview without promising a fixed future calendar.
+- The generic adaptation card no longer appears in every journey state.
+  Pre-baseline, consent-declined, Gentle Start, active, saved-check-up, and
+  completed states now receive copy that matches what the programme can
+  actually do in that state.
+- Week 12 now leads into an explicit maintenance presentation: the final phase
+  focus and weekly rhythm continue, all four check-ups remain in Progress, and
+  no additional check-up is promised inside the completed initial plan.
+- Missing prescription data is shown as unavailable rather than silently
+  relabelled as a real Balanced focus. Phase and session states use explicit
+  text/accessibility status and higher-contrast supporting copy for Pearl's
+  target audience.
+
+## 2026-07-12 — Progress leads with personal change and explicit comparison context
+
+- Progress keeps the latest Strength and Balance readings, comparable change,
+  optional Everyday Clarity, and collapsed official history. The summary no
+  longer shows unexplained status-tier pills: raw readings and personal change
+  lead by default, while published comparison copy appears only when the
+  existing Settings preference is enabled and is labelled as such.
+- Balance presentation now follows the measured task band. The mere presence
+  of an age-group benchmark can no longer label every eligible hold "On
+  track"; when no supported band exists the result remains neutrally saved.
+- Change readiness is explicit. One check-up says the baseline is saved, a
+  changed measurement method starts a new baseline, and unmatched endpoints
+  explain why no comparison is shown. Comparable change carries one estimate
+  note and continues treating small differences as steady.
+- The Progress summary calls the chair-rise metric Strength until validated
+  rise-speed presentation is ready; detailed measurement artifacts remain
+  unchanged. The focus banner is shorter and measurement-led rather than
+  instructing the user to start a plan from this page.
+- Everyday Clarity is compact again: latest personal relation, monthly check-in
+  count, cautious support when needed, and relevant saved context only. The
+  permanent activity claim, repeated fluctuation panel, and low-contrast rows
+  that merely said "Saved" are removed. Clarity remains observational and
+  never changes training.
+
+## 2026-07-12 — Settings makes stored choices visible and recoverable
+
+- The four-destination Settings information architecture remains authoritative.
+  Repeated overview cards are removed inside the detail pages so the first real
+  control appears immediately; Profile's goal picker stays collapsed until the
+  user chooses to change it, and the landing summaries name the current effort,
+  voice, health-answer, and quiet-session states.
+- The onboarding promise that local health answers can be changed or removed is
+  now fulfilled in Settings. The review surface writes only the existing derived
+  programme fields (Gentle Start, joint flags, pelvic-friendly guidance, and
+  supported balance), never raw answer prose. Removing answers clears those
+  health-derived fields, turns check-up consent off, preserves conservative
+  support, and leaves workouts available.
+- Gentle Start now has a two-step recovery confirmation. It remains conservative
+  and keeps the Movement Check-Up unavailable until the user confirms that the
+  recommended safety step has been completed; the confirmation explicitly says
+  the app cannot decide whether the camera-measured check-up is appropriate.
+- Balance support now persists whether it was required by the latest accepted
+  check-up. A measurement-required protection is locked in Settings and may be
+  reviewed by a future check-up; a voluntary support preference is reversible.
+  Older enabled records migrate conservatively as required because their source
+  cannot be reconstructed safely.
+- The movement goal is visible and editable in Profile. Changes affect only
+  future plan emphasis and focus tie-breaks; frozen check-up artifacts are never
+  rewritten. The unused symptom checklist is no longer collected in Settings;
+  previously saved optional symptom information is disclosed and can be removed.
+- Privacy now lists health-answer state separately, accurately names the saved
+  safety preferences, places the published-comparison preference before device
+  deletion, keeps deletion last, and shows the app version. Camera-permission
+  recovery appears in Safety & Camera only when access is not available.
+
+## 2026-07-12 — Pearl becomes the sole repository identity and product frame
+
+- `AGENTS.md` is the binding source for audience and scope: Pearl is a private
+  12-week home strength programme for women roughly 45–60 in perimenopause or
+  early postmenopause. The journey measures Strength and Balance at baseline,
+  week 4, week 8 and week 12; optional Everyday Clarity remains a separate
+  observational self-report.
+- `CLAUDE.md`, `README.md`, `Idea.md`, and `docs/README.md` now repeat the same
+  authority and explicitly classify dated audits, migration reports, and old
+  QA protocols as historical engineering evidence rather than product strategy.
+- All repository text and filenames use Pearl as the sole identity. The public
+  landing app, metadata, consent keys, package name, legal copy, social asset,
+  and generated iOS and Android projects now use Pearl consistently.
+- Current user-facing copy no longer presents Mobility as an official check-up
+  dimension, an objective spoken Clarity test, a broad general-longevity
+  product, or an open-ended monthly programme. It presents the fixed 12-week
+  journey and keeps Clarity optional and separate.
+- Versioned legacy movement machinery and historical record readers remain only
+  where needed for compatibility, research, and replay coverage. Their symbols
+  do not grant product authority and they must not re-enter mounted MVP routes
+  without a new explicit product decision.
+
+## 2026-07-12 — Plan may start only the explicitly next session
+
+- Plan remains a programme-orientation surface, but the one session marked Next
+  now has direct Start parity with Home. The action uses the same session-start
+  callback and generation path; Plan does not create a second plan or bypass
+  check-up priority, inactivity easing, or saved-draft routing.
+- Exact movement-pattern names and duration appear only for the already-generated
+  next-session preview. Future sessions remain honest, non-fixed descriptions of
+  the current Strength/Balance emphasis because Pearl may adjust their exact
+  exercises from reported effort.
+- Completed, planned, and check-up-blocked timeline rows never expose a Start
+  button. This narrowly supersedes the 2026-07-11 decision that Home was the only
+  primary action surface without turning Plan into a second general action hub.
+
+## 2026-07-12 — Plan imagery follows the accepted physical focus
+
+- The Plan hero is a coordinated illustration selected from the accepted
+  Strength, Balance, or Balanced emphasis. It reinforces the adjacent focus
+  label instead of acting as generic decoration: Strength shows a chair stand,
+  Balance shows low supported one-leg balance, and Balanced shows both.
+- All variants use the same woman, chair, scale, palette, and editorial style so
+  a focus change feels like the plan adapting rather than the product changing
+  identity. If no accepted physical focus exists, Plan suppresses the hero
+  rather than implying a Balanced prescription.
+
+## 2026-07-13 — Plan hero adopts Home's premium sculptural language
+
+- Founder review rejected the focus-specific character illustrations. Plan now
+  uses one pearl, champagne-metal, and burgundy-enamel sculpture that matches
+  Home's premium product-render language. Its four resting points represent the
+  baseline followed by Foundations, Build, and Progress, with the pearl at the
+  completed end.
+- The artwork is a programme-journey metaphor rather than a physical-focus
+  prescription, so it can appear whenever the journey summary appears. The
+  adjacent copy remains the sole source of the accepted Strength, Balance, or
+  Balanced emphasis. This supersedes the 2026-07-12 focus-specific hero ruling.
+
+## 2026-07-13 — Plan hero becomes a premium session-readiness scene
+
+- Founder review rejected the abstract journey sculpture as too arbitrary.
+  Plan now uses a quiet editorial lifestyle scene of a woman in Pearl's target
+  audience preparing for a home session. It makes the page's purpose legible
+  without turning the artwork into exercise instruction or a focus claim.
+- The image uses the warm-ivory page palette edge to edge, has no card treatment,
+  and is cropped as a wide full-bleed hero. The plan summary and timeline retain
+  responsibility for programme status and actions. This supersedes the earlier
+  2026-07-13 sculptural-hero ruling.
+
+## 2026-07-13 — Plan hero visualises the actual 12-week structure
+
+- Founder review rejected the lifestyle scene. Plan now uses a premium product
+  render of exactly twelve pearls arranged as three distinct groups of four on
+  champagne rails. The count maps directly to Pearl's three four-week phases,
+  so the Home material language supports real programme information instead of
+  a generic metaphor or stock-style wellness scene.
+- Burgundy rail endpoints connect the artwork to the live warm editorial theme.
+  The hero remains text-free and non-interactive; programme state, focus, and
+  session actions remain owned by the surrounding interface. This supersedes
+  the session-readiness hero ruling above.
+
+## 2026-07-12 — Post-reposition dead-surface and design-system cleanup
+
+- A dependency-graph pass from `App.tsx` confirmed that the old
+  `SafetyProfileScreen`, its source-inspection tests, the rejected MediaPipe
+  debug skeleton renderer, its performance logger, and the old developer and
+  pose-latency overlay components had no mounted caller. They are deleted.
+  Current onboarding and Settings remain the sole owners of safety answers;
+  `FitFramePoseTraceRenderer` remains the sole recording visual.
+- The shared UI module no longer carries aliases and components left by the
+  retired Explore, Family, old dashboard, and old metric-card layouts. Unused
+  calendar, reminder, family, profile, and image-backed Settings icons are also
+  removed. Their unreferenced styles and colour aliases were removed with them;
+  current screens continue to use the same live tokens and primitives.
+- The Movement Check-Up recording seam no longer accepts unused viewport/debug
+  props or passes an unused skeleton ref through its shell. Internal naming now
+  describes the recording renderer rather than the retired avatar fallback.
+- Live Home/Progress imports now address the current PearlFlow modules directly
+  instead of loading the retired barrel and its old block/report helpers into
+  the app path. Historical readers and their tests remain in the repository for
+  stored-record compatibility, but they are not part of the mounted dependency
+  graph.
+- The unused presentation-dimension registry is removed. Its four-domain
+  Strength/Balance/Mobility/Clarity model no longer owned any mounted surface
+  and conflicted with the official two-domain physical product. The rolling
+  personal-baseline primitive remains and is imported directly by Clarity.
+  The release audit still rejects the reserved Clarity development flag in a
+  beta/release build.
+- Four test-only PearlFlow remnants are also removed: the unmounted ghost
+  trajectory, the unused GP-escalation proposal, a controlled-beta equipment
+  copy object with no product caller, and the old generated-session work-
+  evidence evaluator. Current Progress, Clarity, onboarding safety routing,
+  and programme-session credit use their mounted owners instead.
+- The Hughes strength-decline slope and its test are removed with the ghost
+  trajectory. It had no mounted consumer and population decline projection is
+  not part of Pearl's personal-change-first MVP.
+- The paired Clarity runtime, fluency research code, JSONL replay stack, and
+  landmark recorder were audited and deliberately retained. They are
+  release-gated or required engineering infrastructure, not accidental product
+  surfaces. Auth-scoped local storage and password-recovery support also remain
+  for existing-data compatibility under the 2026-07-09 product ruling.
+
+## 2026-07-12 — Optional Supabase online profiles become an end-to-end product surface
+
+- **Founder direction:** implement full online user profiles through Supabase.
+  This supersedes the earlier decision to hide account/profile surfaces, but it
+  does not supersede the health/programme local-only ruling. `AGENTS.md` now
+  records the explicit boundary as Product Law 10.
+- **Remote allowlist:** the versioned online projection contains name, exact
+  date of birth, reference sex, the predefined movement-goal category, trainer
+  voice, and published-comparison preference. Free-text legacy goals stay local
+  because they may contain health information. Email belongs to Supabase Auth. Derived
+  ages, local ids/timestamps, menopause/symptom context, safety answers,
+  programme/onboarding routing, workouts, check-ups, Everyday Clarity, camera
+  data, landmarks, device setup, and voice-onboarding flags are excluded by an
+  exact mapper and structural tests. Explicit nulls clear online values.
+- **Guest-first stays:** Pearl remains fully usable without an account. The
+  Settings account entry is rollout-gated for new users and remains available
+  to an already-signed-in user for sign-out/deletion. Welcome keeps guest
+  Continue primary and adds a subordinate returning-user sign-in path so a new
+  device does not require completing onboarding before profile restore. Existing guest files are
+  still adopted without overwrite into an empty account scope; only the narrow
+  online projection can leave that scope. Adoption is a durable, resumable
+  move: Pearl records the account claim before copying, verifies every copied
+  file by reading it back, and deletes the guest source only after the whole
+  destination has passed verification.
+- **Sync/conflicts:** local saves remain immediate and never block workouts.
+  Per-account device metadata stores only the last successful projection
+  fingerprint/timestamps. Three-way reconciliation uploads a lone local edit,
+  hydrates a lone online edit, retries failures without losing the device copy,
+  and asks the user to choose “this device” or “online profile” if both changed.
+  Online hydration overlays only allowlisted fields and cannot replace local
+  health, programme, or onboarding data. Remote writes are conditional on the
+  `updated_at` version that reconciliation read; a concurrent device write is
+  therefore surfaced as a conflict rather than overwritten. Sign-out and
+  destructive device flows cancel queued reconciliation before local writes,
+  preventing a late response from recreating cleared profile metadata. A
+  sync-result finalizer commits the reconciliation watermark only after the
+  returned local profile has been saved durably, and it also verifies that the
+  local revision has not changed in the meantime.
+- **Auth resilience:** persisted Supabase session identity selects the correct
+  local filesystem scope before any network profile read. A profile timeout or
+  offline launch no longer falls through to the guest scope. Email/password,
+  Google, email confirmation, password recovery, and PKCE deep links use
+  `pearl://auth/callback`. Callback handling accepts only a PKCE authorization
+  code; access/refresh tokens in an incoming link are rejected so a crafted
+  link cannot replace the current session. Native Apple sign-in remains
+  release-blocked until cryptographic nonce/state replay protection and
+  real-device tests are approved. The React Native quickstart's
+  AsyncStorage + `processLock` + foreground refresh pattern remains; a move to
+  SecureStore is deferred until oversized-session behavior passes real-device
+  testing.
+- **Database/security:** the repo now owns an idempotent `profiles` migration
+  with `auth.users(id) ON DELETE CASCADE`, owner-only RLS, least-privilege
+  grants, timestamp/signup triggers, and removal of the legacy `safety_json`
+  column. A following non-`CASCADE` migration removes all six known legacy
+  cloud programme/check-up tables, deliberately stopping for review if an
+  unknown dependency remains. Legacy check-up restore/sync/export services are
+  not exported from the live backend barrel.
+- **Lifecycle:** Settings mounts sign-up/sign-in, profile sync status/retry,
+  conflict resolution, sign-out, separate device clearing, and permanent
+  online-account deletion. The authenticated Edge Function derives the caller
+  from a verified JWT, accepts no user id, and hard-deletes with a server-only
+  key. Before invoking it, the client durably records deletion intent outside
+  the user's file scope, binds the request to the captured user and token, and
+  observes a late success even after a client timeout. Confirmed local cleanup
+  is strict and resumable across crashes; session changes cannot make deletion
+  clear another account. Auth-scoped session telemetry, including pain-event
+  records, and the resumable in-progress workout snapshot are included in that
+  cleanup. The public site now has truthful
+  app-account privacy wording and a `/delete-account` route.
+- **Rollout gate:** `EXPO_PUBLIC_ENABLE_ONLINE_PROFILES=1` may be used only after
+  the migration and deletion function are deployed, redirect URLs/providers
+  and production email delivery work, the HTTPS privacy/deletion pages are
+  reviewed and published, and real-device signup, recovery, conflict, offline,
+  sign-out, and deletion checks pass. Every shipped build requires the public
+  Supabase URL/key so an existing persisted session can be handled safely;
+  tester/release config additionally fails fast when an enabled profile rollout
+  lacks the reviewed HTTPS policy URL.
+
+## 2026-07-12 — Second residual-cleanup pass: narrow live imports and remove retired Progress block state
+
+- Current profile, Settings, Clarity, history, training-compatibility, restore,
+  and check-up-sync modules now import their actual owner modules instead of
+  the broad `adherence`, `checkup`, and `scoring` barrels. Type-only
+  compatibility references remain type-only. This reduces the mounted runtime
+  graph from 288 source modules before the two cleanup passes to 233 without
+  changing persisted formats.
+- Progress no longer accepts the permanently empty `blocks`, `reports`, or
+  `today` inputs. The retired four-week block/report history, report actions,
+  report diagnostics, `hasReport` flags, and orphaned-block recovery state are
+  removed from the live view model and its tests. Official check-up history,
+  frozen artifacts, exact-protocol personal change, malformed-artifact
+  recovery, and population-comparison opt-in remain unchanged.
+- A strict compiler sweep with `noUnusedLocals` and `noUnusedParameters`
+  removed residual imports, dead formatter/helper code, unused camera
+  controller fields, and parameters that no longer affected behaviour across
+  the mounted app and retained compatibility/research code.
+- The legacy adherence/training serializers and local stores remain by the
+  existing stored-data compatibility ruling. Historical full-battery graders,
+  paired-Clarity research, JSONL record/replay, reference fixtures, and the
+  generated audio catalog also remain deliberate infrastructure rather than
+  mounted product surfaces. Unreferenced artwork/source variants are not part
+  of Metro's application bundle and were not treated as executable app state.
+
+## 2026-07-12 — Third residual-cleanup pass: isolate voice-only training without changing the approved visual system
+
+- **Founder correction:** Pearl's approved app styling is the warm-light
+  editorial system, not the older black/graphite direction. A cleanup briefly
+  misread the superseded dark-theme wording as authority; that visual change
+  was reverted from the exact pre-change session state. The app retains its
+  warm-ivory canvas and cards, near-black text, burgundy/champagne accents,
+  Fraunces headings, light launch/native camera canvases, and the selected
+  light Pearl-orbit Home artwork. `AGENTS.md` now records this explicitly.
+- Daily programme sessions now construct a dedicated clock-driven
+  `VoiceSessionPlayer`. The camera/preflight/set-grader training player remains
+  only as historical compatibility and test infrastructure and is not
+  reachable from `App.tsx`. The mounted instruction-profile module likewise no
+  longer eagerly imports the retired 37-exercise camera-era voice-contract
+  lattice or the micro-check profile set. The official check-up host remains
+  pinned to Balance plus Chair Stand; shoulder/hinge check-up profiles remain
+  available only to the retained versioned full-battery compatibility path.
+- Progress and results contracts now expose only Strength, Balance, and the
+  separate Everyday Clarity series. Generic Mobility result cards and glyphs,
+  duplicate actions, pending-materialisation state, unused diagnostic payloads,
+  and percentile-derived Strength tier wording while population comparison is
+  disabled are removed. Product copy says “Strength”, not the old
+  “Strength / Power” domain label.
+- Retired mounted structure is removed: the unused skeleton-geometry preview,
+  the test-only eyes-open readiness configuration, and the old cloud
+  check-up-sync/restore/export services and tests. Camera Setup is reduced to
+  its Settings permission role; TabBar, responsive-layout, Today, Plan,
+  onboarding, Settings, and Progress contracts/styles are narrowed to their
+  actual callers. Zero-reference helpers, exports, unused theme tokens, and
+  stale promotion/dev-shell comments are removed.
+- A static runtime import trace now reaches 217 TypeScript source modules from
+  `App.tsx`; it does not reach the old training player, set runtime, generic
+  preflight, voice-v2.1 registry, micro-check runtime, deleted cloud services,
+  or deleted skeleton preview. The dedicated voice-only player is reachable.
+  Full verification passes 188 suites / 1,656 tests, strict TypeScript, both
+  tester release configurations, and `git diff --check`.

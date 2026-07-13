@@ -938,7 +938,7 @@ function cuesForRawComplete(snapshot: MovementProfileV2LiveSnapshot): readonly V
     : ['item-complete-v21', 'checkup-complete-v21'];
   const cues = cuesForCurrentTransition(snapshot, fallback);
   if (!sequenceHasHinge) {
-    // Pearl's monthly host offers optional Everyday Clarity after the movement
+    // Pearl's programme-checkpoint host offers optional Everyday Clarity after the movement
     // battery, so the bundled full-battery "results are ready" line would be
     // premature here. The generic completion cue already says guidance
     // continues and requires no new generated audio.

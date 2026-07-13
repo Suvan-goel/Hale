@@ -179,7 +179,6 @@ export type SfxCueKey =
   | 'tracking-recovered'
   | 'session-complete';
 
-export type AudioCueKey = VoiceCueKey | SfxCueKey;
 
 /** Highest wins the channel; a busy channel drops lower-or-equal priority. */
 export function voicePriority(cue: VoiceCueKey): number {

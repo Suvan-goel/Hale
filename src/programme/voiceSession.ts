@@ -23,7 +23,7 @@
  */
 
 import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
-import type { TrainingItemResult, TrainingSessionResult } from '../training/sessionPlayer';
+import type { TrainingItemResult, TrainingSessionResult } from '../training/voiceSessionPlayer';
 import {
   BALANCE_FEET_TOGETHER_ID,
   BALANCE_SINGLE_LEG_ID,

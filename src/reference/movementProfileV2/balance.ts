@@ -61,7 +61,7 @@ export function interpretBalanceBenchmark({
   rawSeconds,
   protocolEvidence,
   profile,
-  source,
+  source: _source,
 }: {
   result: OneLegBalanceV2Result | null;
   rawSeconds: number | null;

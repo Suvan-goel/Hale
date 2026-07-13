@@ -17,9 +17,9 @@ import {
   type FitFrameTraceEdgeFlags,
 } from './fitFramePoseTraceGeometry';
 import type {
-  PoseAvatarFrameSource,
-  PoseAvatarRendererHandle,
-} from './poseAvatarTypes';
+  RecordingFrameSource,
+  RecordingRendererHandle,
+} from './recordingRendererTypes';
 import {
   fitFrameCanvasFill,
   resolveSegmentationMaskFigureEnabled,
@@ -42,7 +42,7 @@ export interface FitFrameEdgeWarningPolicy {
 export interface FitFramePoseTraceRendererProps {
   visualState?: FitFramePoseTraceVisualState;
   mirrored?: boolean;
-  frameSource?: PoseAvatarFrameSource;
+  frameSource?: RecordingFrameSource;
   contentWindow?: FitFrameContentWindow;
 }
 
@@ -88,7 +88,7 @@ const NO_EDGE_FLAGS: FitFrameTraceEdgeFlags = {
 };
 
 export const FitFramePoseTraceRenderer = React.forwardRef<
-  PoseAvatarRendererHandle,
+  RecordingRendererHandle,
   FitFramePoseTraceRendererProps
 >(function FitFramePoseTraceRenderer(
   {

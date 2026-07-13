@@ -1,6 +1,6 @@
 # Google Play Internal Testing
 
-Hale's Play-managed Android beta uses Google Play Internal Testing. This is the
+Pearl's Play-managed Android beta uses Google Play Internal Testing. This is the
 path to use when testers should install from the Play Store instead of an EAS
 APK link.
 
@@ -27,8 +27,8 @@ first manual Play Console upload.
 Do these once in Google Play Console:
 
 1. Create the app record.
-   - App name: `Hale`
-   - Package name: `com.suvangoel.hale`
+   - App name: `Pearl`
+   - Package name: `com.suvangoel.pearl`
    - App type: app
    - Pricing: free unless product direction changes
    - The package name is fixed after the first artifact upload.

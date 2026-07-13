@@ -13,7 +13,7 @@ const UTM_KEYS = [
   "fbclid",
 ] as const;
 
-const STORE_KEY = "elegant:utm";
+const STORE_KEY = "pearl:utm";
 
 export function captureUtm(): void {
   try {

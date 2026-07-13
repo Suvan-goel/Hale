@@ -1,4 +1,4 @@
-import { LOCAL_USER_ID, type CheckupType, type MovementAssessment } from '../adherence/types';
+import { LOCAL_USER_ID, type MovementAssessment } from '../adherence/types';
 import {
   parseStoredScoreSnapshot,
   type CheckUpScore,

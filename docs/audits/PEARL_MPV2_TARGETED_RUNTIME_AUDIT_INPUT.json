@@ -1,0 +1,2939 @@
+{
+  "inputVersion": 1,
+  "generatedAt": "2026-06-24T15:37:51.604Z",
+  "repositorySnapshot": {
+    "generatedAt": "2026-06-24T15:37:51.604Z",
+    "branch": "dev",
+    "head": "1ff532db38850db1d2b254719836dd147826ea43",
+    "shortHead": "1ff532d",
+    "upstream": "origin/dev",
+    "worktreeClean": false,
+    "worktreeState": "dirty_before_audit_work",
+    "statusShort": [
+      "## dev...origin/dev [ahead 3]",
+      " M .env.example",
+      " M App.tsx",
+      " M docs/decisions.md",
+      " M modules/expo-pose-detection/android/src/main/java/expo/modules/posedetection/AndroidPoseFrameTransforms.kt",
+      " M modules/expo-pose-detection/android/src/main/java/expo/modules/posedetection/PoseDetectionView.kt",
+      " M modules/expo-pose-detection/android/src/test/java/expo/modules/posedetection/LatestNativeEventSchedulerTest.kt",
+      " M modules/expo-pose-detection/src/ExpoPoseDetection.types.ts",
+      " M scripts/generate-audio.ts",
+      " M scripts/verify-audio.ts",
+      " M src/audio/__tests__/voicePlayer.test.ts",
+      " M src/audio/cues.ts",
+      " M src/audio/manifest.ts",
+      " M src/audio/voicePlayer.ts",
+      " M src/checkup/movementProfileV2.ts",
+      " M src/checkup/protocolEvidence.ts",
+      " M src/diagnostics/PoseLatencyDiagnosticsOverlay.tsx",
+      " M src/diagnostics/__tests__/poseLatencyDiagnostics.test.ts",
+      " M src/diagnostics/poseLatencyDiagnostics.ts",
+      " M src/history/trends.ts",
+      " M src/movements/__tests__/hingeReach.test.ts",
+      " M src/movements/hingeReach.ts",
+      " M src/reference/movementProfileV2/__tests__/assessment.test.ts",
+      " M src/scoring/scoring.ts",
+      " M src/screens/MovementProfileV2CheckUpScreen.tsx",
+      " M src/screens/PoseOverlayBenchmarkScreen.tsx",
+      " M src/screens/SettingsScreen.tsx",
+      "?? assets/audio/voice/clara/checkup-balance-intro-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-balance-single-leg-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-chair-stand-intro-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-chair-stand-setup-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-complete-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-hinge-setup-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-shoulder-raise-left-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-shoulder-raise-right-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-shoulder-turn-left-v21.mp3",
+      "?? assets/audio/voice/clara/checkup-shoulder-turn-right-v21.mp3",
+      "?? assets/audio/voice/clara/final-position-set-v21.mp3",
+      "?? assets/audio/voice/clara/item-complete-v21.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_attempt_saved.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_attempt_start.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_complete.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_full_hold.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_ready_after_30.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_ready_after_60.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_rest.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_tracking_retry.mp3",
+      "?? assets/audio/voice/clara/mpv2_balance_use_best.mp3",
+      "?? assets/audio/voice/clara/mpv2_chair_official_ready.mp3",
+      "?? assets/audio/voice/clara/mpv2_chair_practice_start.mp3",
+      "?? assets/audio/voice/clara/mpv2_checkup_intro.mp3",
+      "?? assets/audio/voice/clara/mpv2_hinge_complete.mp3",
+      "?? assets/audio/voice/clara/mpv2_hinge_no_measurement.mp3",
+      "?? assets/audio/voice/clara/mpv2_shoulder_tracking_retry.mp3",
+      "?? assets/audio/voice/clara/retry-v21.mp3",
+      "?? assets/audio/voice/clara/times-up-v21.mp3",
+      "?? assets/audio/voice/clara/tracking-loss-v21.mp3",
+      "?? assets/audio/voice/clara/tracking-recovered-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-balance-intro-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-balance-single-leg-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-chair-stand-intro-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-chair-stand-setup-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-complete-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-hinge-setup-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-shoulder-raise-left-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-shoulder-raise-right-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-shoulder-turn-left-v21.mp3",
+      "?? assets/audio/voice/marcus/checkup-shoulder-turn-right-v21.mp3",
+      "?? assets/audio/voice/marcus/final-position-set-v21.mp3",
+      "?? assets/audio/voice/marcus/item-complete-v21.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_attempt_saved.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_attempt_start.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_complete.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_full_hold.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_ready_after_30.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_ready_after_60.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_rest.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_tracking_retry.mp3",
+      "?? assets/audio/voice/marcus/mpv2_balance_use_best.mp3",
+      "?? assets/audio/voice/marcus/mpv2_chair_official_ready.mp3",
+      "?? assets/audio/voice/marcus/mpv2_chair_practice_start.mp3",
+      "?? assets/audio/voice/marcus/mpv2_checkup_intro.mp3",
+      "?? assets/audio/voice/marcus/mpv2_hinge_complete.mp3",
+      "?? assets/audio/voice/marcus/mpv2_hinge_no_measurement.mp3",
+      "?? assets/audio/voice/marcus/mpv2_shoulder_tracking_retry.mp3",
+      "?? assets/audio/voice/marcus/retry-v21.mp3",
+      "?? assets/audio/voice/marcus/times-up-v21.mp3",
+      "?? assets/audio/voice/marcus/tracking-loss-v21.mp3",
+      "?? assets/audio/voice/marcus/tracking-recovered-v21.mp3",
+      "?? docs/audits/PEARL_LOGIC_REMEDIATION_STAGE_3D_B_2E_A.md",
+      "?? docs/audits/PEARL_LOGIC_REMEDIATION_STAGE_3D_B_2E_A_1.md",
+      "?? docs/audits/PEARL_MPV2_V21_VOICE_RECONCILIATION_LISTENING_PROMPT.md",
+      "?? docs/audits/PEARL_VOICE_CHANGE_LEDGER.csv",
+      "?? docs/audits/PEARL_VOICE_CURRENT_ASSET_INVENTORY.csv",
+      "?? docs/audits/PEARL_VOICE_CURRENT_STATE_RECONCILIATION.json",
+      "?? docs/audits/PEARL_VOICE_CURRENT_STATE_RECONCILIATION.md",
+      "?? docs/audits/PEARL_VOICE_CURRENT_STATE_RECONCILIATION_CODEX_PROMPT.md",
+      "?? docs/audits/PEARL_VOICE_SPEC_V2_1_APPROVED_DECISIONS_CODEX_PROMPT.md",
+      "?? docs/audits/PEARL_VOICE_V2_1_IMPACT_REPORT.md",
+      "?? docs/audits/Pearl_Stage_3D_B_2D_2C_Automatic_V2_Plan_Balanced_Block_Integration_Prompt.md",
+      "?? docs/audits/Pearl_Stage_3D_B_2E_A_1_Live_V2_Software_Completion_Voice_Parity_Prompt.md",
+      "?? docs/specs/PEARL_VOICE_APPROVED_DECISIONS_V2_1.md",
+      "?? docs/specs/PEARL_VOICE_CLARA_PREVIEW_PACK_PLAN_V2_1.md",
+      "?? docs/specs/PEARL_VOICE_COMPOSED_TIMELINES_V2_1.csv",
+      "?? docs/specs/PEARL_VOICE_EXPERIENCE_SPEC_V2_1.json",
+      "?? docs/specs/PEARL_VOICE_EXPERIENCE_SPEC_V2_1.md",
+      "?? docs/specs/PEARL_VOICE_SCRIPT_MANIFEST_V2_1.csv",
+      "?? docs/specs/PEARL_VOICE_SCRIPT_REVIEW_V2_1.md",
+      "?? modules/expo-pose-detection/android/src/main/java/expo/modules/posedetection/AndroidCameraTimestampDiagnostics.kt",
+      "?? scripts/audits/reconcile-mpv2-v21-voice.mjs",
+      "?? scripts/audits/reconcile-voice-current-state.mjs",
+      "?? src/audio/__tests__/movementProfileV2Audio.test.ts",
+      "?? src/audio/movementProfileV2Audio.ts",
+      "?? src/audio/movementProfileV2AudioManifest.ts",
+      "?? src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+      "?? src/movementProfileV2/__tests__/recovery.test.ts",
+      "?? src/movementProfileV2/__tests__/voiceCues.test.ts",
+      "?? src/movementProfileV2/liveCoordinator.ts",
+      "?? src/movementProfileV2/liveDiagnostics.ts",
+      "?? src/movementProfileV2/recovery.ts",
+      "?? src/movementProfileV2/voiceCues.ts",
+      "?? src/screens/MovementProfileV2RecoveryScreen.tsx"
+    ],
+    "nodeVersion": "v25.2.1",
+    "ffmpegVersion": "ffmpeg version 8.1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffprobeVersion": "ffprobe version 8.1 Copyright (c) 2007-2026 the FFmpeg developers"
+  },
+  "scope": {
+    "flow": "movement_profile_v2_checkup",
+    "screens": [
+      "MovementProfileV2CheckUpScreen",
+      "MovementProfileV2RecoveryScreen"
+    ],
+    "controllers": [
+      "MovementProfileV2LiveCoordinator",
+      "MovementProfileV2VoiceSequencer",
+      "VoiceChannel"
+    ],
+    "excludedUnchangedFlows": [
+      "training",
+      "legacy_checkup",
+      "micro_check"
+    ]
+  },
+  "currentCuePolicies": [
+    {
+      "cueKey": "chair-result-prefix-v21",
+      "priority": 9,
+      "requiredness": "conditional",
+      "missingAssetPolicy": "Legacy non-MPV2 cue can fall back to default voice if selected voice asset is absent.",
+      "repeatRule": "Legacy result sentence is emitted per completed item result.",
+      "cancelRule": "VoiceChannel stop/interrupt rules apply.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-balance-intro-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-balance-single-leg-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-chair-stand-intro-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-chair-stand-setup-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-complete-v21",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-hinge-setup-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-shoulder-raise-left-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-shoulder-raise-right-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-shoulder-turn-left-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "checkup-shoulder-turn-right-v21",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "final-position-set-v21",
+      "priority": 50,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "item-complete-v21",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_attempt_saved",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_attempt_start",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Can repeat across balance_ready and balance_trial attempts with distinct transition keys.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_complete",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_full_hold",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_ready_after_30",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Can repeat on distinct retry/rest attempts; deduped per transition key.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_ready_after_60",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Can repeat on distinct retry/rest attempts; deduped per transition key.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_rest",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_tracking_retry",
+      "priority": 100,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Can repeat on distinct retry/rest attempts; deduped per transition key.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_balance_use_best",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_chair_official_ready",
+      "priority": 90,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_chair_practice_start",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_checkup_intro",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_hinge_complete",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_hinge_no_measurement",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "mpv2_shoulder_tracking_retry",
+      "priority": 100,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Can repeat on distinct retry/rest attempts; deduped per transition key.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "retry-v21",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "times-up-v21",
+      "priority": 100,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "tracking-loss-v21",
+      "priority": 100,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "tracking-recovered-v21",
+      "priority": 50,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "repeatRule": "Emitted once per transition key; initial intro once per screen mount.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; higher-priority speech interrupts lower-priority speech.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "tug-intro",
+      "priority": 8,
+      "requiredness": "legacy_only",
+      "missingAssetPolicy": "Legacy non-MPV2 cue can fall back to default voice if selected voice asset is absent.",
+      "repeatRule": "Per legacy TUG item start.",
+      "cancelRule": "VoiceChannel stop/interrupt rules apply.",
+      "blocksProgression": false
+    },
+    {
+      "cueKey": "tug-setup",
+      "priority": 8,
+      "requiredness": "legacy_only",
+      "missingAssetPolicy": "Legacy non-MPV2 cue can fall back to default voice if selected voice asset is absent.",
+      "repeatRule": "Per legacy TUG item start.",
+      "cancelRule": "VoiceChannel stop/interrupt rules apply.",
+      "blocksProgression": false
+    }
+  ],
+  "assets": [
+    {
+      "cueKey": "chair-result-prefix-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/you-completed.mp3",
+          "durationMs": 929,
+          "sha256": "cc9147c53280eabb359b342d06ea11e217edc8bf61ad2f233bc7dd07a02ff8dd"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/you-completed.mp3",
+          "durationMs": 789,
+          "sha256": "64188bcad8bc6bccb9da369b5d0548713488e486743157f7f5e9331269aee298"
+        }
+      },
+      "expectedScript": "You completed",
+      "priority": 9,
+      "requiredness": "conditional",
+      "missingAssetPolicy": "Legacy non-MPV2 cue can fall back to default voice if selected voice asset is absent.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-balance-intro-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-balance-intro-v21.mp3",
+          "durationMs": 4087,
+          "sha256": "ad53bf6a0e36c2a3f7506f4990ba5ef75b2c96628db45a50d3265d9f19a42794"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-balance-intro-v21.mp3",
+          "durationMs": 4644,
+          "sha256": "a201a56394816cd7865ad9de3306e4a3c1627f34feedeb1376d1e7948cda43cc"
+        }
+      },
+      "expectedScript": "Balance check. Keep support within easy reach. I will guide each stance.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-balance-single-leg-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-balance-single-leg-v21.mp3",
+          "durationMs": 4365,
+          "sha256": "3cbdb9004e6957bf32d5ce78912c3d4e04c40ac800fdd9391eaf6e4f04e4a944"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-balance-single-leg-v21.mp3",
+          "durationMs": 4412,
+          "sha256": "557055a574d8e645ea2480c648fa7a5b5f5931fab4e9b35c83490bfcd163a0d3"
+        }
+      },
+      "expectedScript": "Single-leg. Stand on your selected leg and lift the other foot slightly.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-chair-stand-intro-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-chair-stand-intro-v21.mp3",
+          "durationMs": 4365,
+          "sha256": "756c95a3578d4ba4c191b40c89b6893828694c842ed94b4a09395402c42c2419"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-chair-stand-intro-v21.mp3",
+          "durationMs": 4551,
+          "sha256": "4938eb162ef79ba51a02d303183883faabdf0c2643935a300bf08a212f32069c"
+        }
+      },
+      "expectedScript": "Chair stand. Sit in the middle of a sturdy chair, side-on to the phone.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-chair-stand-setup-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-chair-stand-setup-v21.mp3",
+          "durationMs": 4830,
+          "sha256": "a91387e3639d88347ec811d7822bf6569873cc8bd9c94a622eec87f99cd8bfe8"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-chair-stand-setup-v21.mp3",
+          "durationMs": 4923,
+          "sha256": "3b802577cb5552742ed621abff14d1655be146f969588338d176da342b2c02ab"
+        }
+      },
+      "expectedScript": "Cross your arms. When I say go, stand fully and sit with control until I say time.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-complete-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-complete-v21.mp3",
+          "durationMs": 2276,
+          "sha256": "bdc357e2084139df6d329e47ed6f5f7689e0e8cd4edfec184c753da182c4f9a7"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-complete-v21.mp3",
+          "durationMs": 2461,
+          "sha256": "4de7da4dd772f85bc5bc627bb6b04c819025ce98312c8d98af59a7c11600a837"
+        }
+      },
+      "expectedScript": "Check-up complete. Your results are ready.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-hinge-setup-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-hinge-setup-v21.mp3",
+          "durationMs": 5248,
+          "sha256": "4b990638a6ebed8e18589fc9f383c088e36b95abab7d260275b5930bd2d8c16a"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-hinge-setup-v21.mp3",
+          "durationMs": 4876,
+          "sha256": "ebf20d9b70ccb70632fbbc6337ad112f192fe84263a6eaa92e085a14b8d27692"
+        }
+      },
+      "expectedScript": "Slowly fold from your hips and reach toward the floor. Hold there until I say stand tall.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-shoulder-raise-left-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-shoulder-raise-left-v21.mp3",
+          "durationMs": 4644,
+          "sha256": "ffb31b872da861eb1403e1de9a3991aed106e9315b77acb2fd43565e763c46cc"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-shoulder-raise-left-v21.mp3",
+          "durationMs": 4737,
+          "sha256": "5b05b23888323fee15355f2f50493eecef26f5f93c4761701321dce2cd9dcfef"
+        }
+      },
+      "expectedScript": "Raise your left arm as high as comfortable. Hold there until I say relax.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-shoulder-raise-right-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-shoulder-raise-right-v21.mp3",
+          "durationMs": 4876,
+          "sha256": "b1d43a10eb822dcfb180d9f77baebc19483dd722b950bc0171ccf67030b7229e"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-shoulder-raise-right-v21.mp3",
+          "durationMs": 3994,
+          "sha256": "bec3f3d0e51639784eb9f676e40c7759d71fc0a4da55fe2796ef17fe85fe276f"
+        }
+      },
+      "expectedScript": "Raise your right arm as high as comfortable. Hold there until I say relax.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-shoulder-turn-left-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-shoulder-turn-left-v21.mp3",
+          "durationMs": 2229,
+          "sha256": "bdb9efaa37c0eb29c65635152cf3ad07e46f7b06f7c35b8481a2f730d30254be"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-shoulder-turn-left-v21.mp3",
+          "durationMs": 2415,
+          "sha256": "248cdc7603a6dab412048ca5352bef3bd129b53098df8cba009dc1b44f7deff2"
+        }
+      },
+      "expectedScript": "Turn so your left side is nearest the phone.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "checkup-shoulder-turn-right-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/checkup-shoulder-turn-right-v21.mp3",
+          "durationMs": 2322,
+          "sha256": "67cd18e603c1af00b22885ce7bfe4ee29fc83e58b209bb766316ecfe1d008ef0"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/checkup-shoulder-turn-right-v21.mp3",
+          "durationMs": 2229,
+          "sha256": "85174dd789c0b74cf10c8ec05ceb0cbdf857c293cc0faa78c9277f76c81cd243"
+        }
+      },
+      "expectedScript": "Turn so your right side is nearest the phone.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "final-position-set-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/final-position-set-v21.mp3",
+          "durationMs": 929,
+          "sha256": "e9a54f399941ab4c8cc5f21a31d6f19ce6d16a6e7080fc3a01fee3e8c3cca24a"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/final-position-set-v21.mp3",
+          "durationMs": 975,
+          "sha256": "aee3e31392e3c55237ae9bb00c02fa0880746576ed557ad93d802ba1a95c73b0"
+        }
+      },
+      "expectedScript": "You're set.",
+      "priority": 50,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "item-complete-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/item-complete-v21.mp3",
+          "durationMs": 929,
+          "sha256": "f855ad6ed662d49996a55ecc1431834bcf9258e90c57d4a33f73b352c87540ad"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/item-complete-v21.mp3",
+          "durationMs": 789,
+          "sha256": "2c0507a3a6b9d4e920eb5e25779a3124de31122bc1377b1d10ae7052737b2bab"
+        }
+      },
+      "expectedScript": "Complete.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_attempt_saved",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_attempt_saved.mp3",
+          "durationMs": 1393,
+          "sha256": "6d68a030f49573659d661de21636d3d63f8676e1dd387b1fca6051e2408f341c"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_attempt_saved.mp3",
+          "durationMs": 1486,
+          "sha256": "4ac8ba5bb3834ae0b45c988c4b2301a4f9d65b2a26e129de6ef92357769d6dd8"
+        }
+      },
+      "expectedScript": "That attempt is saved.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_attempt_start",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_attempt_start.mp3",
+          "durationMs": 4737,
+          "sha256": "d7b7090fe8708582181950c5a778c2a476ad99fcb59249885dfa1d875798f14c"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_attempt_start.mp3",
+          "durationMs": 4412,
+          "sha256": "a78a2d42ac8321cb0951da322f3298f67212340339b05177cd80c9338cffd287"
+        }
+      },
+      "expectedScript": "Lift your other foot when you're ready. This attempt can last up to 45 seconds.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_complete",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_complete.mp3",
+          "durationMs": 1393,
+          "sha256": "1a2a510b912032b701fbb8f1cf04b92661bf89384a6e9eba1705d17282e4a9f3"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_complete.mp3",
+          "durationMs": 1300,
+          "sha256": "f9ffcaaccc94f5becc0aeaa46bf0db22a8cede2e0e97f8312e5f3fd0c730fc6b"
+        }
+      },
+      "expectedScript": "Balance check complete.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_full_hold",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_full_hold.mp3",
+          "durationMs": 2276,
+          "sha256": "828e73b12c18aa94d881b97062010678f0e7921eaae7eaa6dab956cb19add7bf"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_full_hold.mp3",
+          "durationMs": 2183,
+          "sha256": "d1ece4b507e73d507b76353715a8c4979c06790099cd8b31234f3aa3ccdec290"
+        }
+      },
+      "expectedScript": "You completed the full 45-second hold.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_ready_after_30",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_ready_after_30.mp3",
+          "durationMs": 2322,
+          "sha256": "fb9a0c982aaf2f43fc685719be023e0c89b4429fd12fb61a1852d4b5bb13b522"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_ready_after_30.mp3",
+          "durationMs": 2229,
+          "sha256": "327223dc0fb6be740392d837ad2b83f13d8df2c17d7ea89931e4dcf6f460e831"
+        }
+      },
+      "expectedScript": "You can start the next attempt when you're ready.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_ready_after_60",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_ready_after_60.mp3",
+          "durationMs": 1811,
+          "sha256": "c1f227cf9b222fe378f4d08ff19cf32ea2c18900fc0f7ec9e47c33b70146546f"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_ready_after_60.mp3",
+          "durationMs": 1486,
+          "sha256": "7bc2807280dd932d816c441761a341153d74526dd9e4a7f79d10a6275a74b859"
+        }
+      },
+      "expectedScript": "You're ready for the next attempt.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_rest",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_rest.mp3",
+          "durationMs": 4180,
+          "sha256": "05c77b0d43c4092ac7d178efa88c7a9c9c4f470ad34941b552f5e404ebe4686f"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_rest.mp3",
+          "durationMs": 4087,
+          "sha256": "97ab38ebcb035eefdbec3bb1179dfab3ea1dce13c9d30816d28838d314c680e0"
+        }
+      },
+      "expectedScript": "Rest now. You can start again after 30 seconds, or use your best result.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_tracking_retry",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_tracking_retry.mp3",
+          "durationMs": 6037,
+          "sha256": "4e3aa78182cc475f42d19f9c46d52c7efa047201a45fc7647305cc1c760efa23"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_tracking_retry.mp3",
+          "durationMs": 5666,
+          "sha256": "69a96bf58ed4cc687423bdd188dcd6ab2260e7d647dc961b6a9c64cfc856761c"
+        }
+      },
+      "expectedScript": "Tracking was interrupted, so this attempt will not count. Return to the setup position and we'll try again.",
+      "priority": 100,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_balance_use_best",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_balance_use_best.mp3",
+          "durationMs": 1533,
+          "sha256": "36f091fec6b72e68c5691c1bcede80040c9241cbe4f390570650784ffe0fe572"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_balance_use_best.mp3",
+          "durationMs": 1254,
+          "sha256": "f0c75bfee430be64e8237a0052103b79421d10e294aa3bbd15dd0ee66783879a"
+        }
+      },
+      "expectedScript": "Your best hold is saved.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_chair_official_ready",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_chair_official_ready.mp3",
+          "durationMs": 3483,
+          "sha256": "ca9472fdcc4c22d52b996bca716e33715468743bbad28d7e84d55523bb80fe39"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_chair_official_ready.mp3",
+          "durationMs": 3622,
+          "sha256": "a6dbc0b8ee399fca106eacb440b5b7f8d1420f68ce6e92a31b5ee02cc0aca6f6"
+        }
+      },
+      "expectedScript": "Sit back down. The 30-second check starts after the countdown.",
+      "priority": 90,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_chair_practice_start",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_chair_practice_start.mp3",
+          "durationMs": 2972,
+          "sha256": "49ace7883b366e8c9a8aef7c1a1c078826a15d69e0b9410fcc78830e7c7d84c1"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_chair_practice_start.mp3",
+          "durationMs": 2694,
+          "sha256": "74a9c7d6b9b3216319fc79dd3427f994b969c84e6689d54c56f0d0107718e0d2"
+        }
+      },
+      "expectedScript": "Try one practice stand. This one will not count.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_checkup_intro",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_checkup_intro.mp3",
+          "durationMs": 5016,
+          "sha256": "4a6a1b6ed3ef9e908e680b052a771273b39d4765beef1709253c755de8929dae"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_checkup_intro.mp3",
+          "durationMs": 4876,
+          "sha256": "b4d81972d706347602030597af5642eff509fc4a933fe5daffe4ec815acc888d"
+        }
+      },
+      "expectedScript": "Movement Profile Check-Up. I will guide each capture and save what the camera can measure.",
+      "priority": 60,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_hinge_complete",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_hinge_complete.mp3",
+          "durationMs": 1347,
+          "sha256": "07daf6c4e8fea6be56a5baa32615e882ec4a79869983523aeed075f5302d35ab"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_hinge_complete.mp3",
+          "durationMs": 1347,
+          "sha256": "95b5d78431b5c886452a70e38f618e6ae56a4af0f20357446950bd3d15dc19a6"
+        }
+      },
+      "expectedScript": "Forward reach saved.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_hinge_no_measurement",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_hinge_no_measurement.mp3",
+          "durationMs": 3576,
+          "sha256": "a13c3b1b095c4554f4ba2108c08d883b3307cc19a949b2b94ff53cec4cecc7cd"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_hinge_no_measurement.mp3",
+          "durationMs": 3344,
+          "sha256": "5b11bf570bbdc0ab325178c826ea159542beb70fc3ec2d4f486bc64af1185ec9"
+        }
+      },
+      "expectedScript": "Forward reach was not measured. Your main Check-Up is saved.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "mpv2_shoulder_tracking_retry",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/mpv2_shoulder_tracking_retry.mp3",
+          "durationMs": 5433,
+          "sha256": "f704009108f6596db93803028e8eb238ae4f587070aa92c8ce8c725e409ca49e"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/mpv2_shoulder_tracking_retry.mp3",
+          "durationMs": 4690,
+          "sha256": "ac9428647282775425445dcd83e2a6188652923d338cf5a14abed9e3451fc2d8"
+        }
+      },
+      "expectedScript": "Tracking was interrupted. Lower your arm, return to the setup position, and we'll try once more.",
+      "priority": 100,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "retry-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/retry-v21.mp3",
+          "durationMs": 1207,
+          "sha256": "f4019dd660dbf5f9a7846b8c3291717a3c5de9888941e6fbb168c5175c6ec8fc"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/retry-v21.mp3",
+          "durationMs": 1161,
+          "sha256": "bc48a551c24d6d43f365590818c4e5a67a850ec768ff5fdb09f3f69d144d8a59"
+        }
+      },
+      "expectedScript": "Let's try that again.",
+      "priority": 70,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "times-up-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/times-up-v21.mp3",
+          "durationMs": 743,
+          "sha256": "8bbb2a9ba2fd03f2b680fb6b774472249193bb362af0e0adcb733144b11d38b0"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/times-up-v21.mp3",
+          "durationMs": 743,
+          "sha256": "fb72dd65880bc5e1f0bf052abf7b1fb08005c50c4c9954b6ba9aaf2ba6fcf423"
+        }
+      },
+      "expectedScript": "Time.",
+      "priority": 100,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "tracking-loss-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/tracking-loss-v21.mp3",
+          "durationMs": 2415,
+          "sha256": "e19c3f74db52f97bcea439482dc9b9b78e530ed05218550406de17fa44391585"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/tracking-loss-v21.mp3",
+          "durationMs": 2183,
+          "sha256": "6e1697c29f8d9a1fbb030943447dc54b663472b88a41ca606f7a2b37c625d729"
+        }
+      },
+      "expectedScript": "Pause. Return to the setup position.",
+      "priority": 100,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    },
+    {
+      "cueKey": "tracking-recovered-v21",
+      "voiceAssets": {
+        "clara": {
+          "path": "assets/audio/voice/clara/tracking-recovered-v21.mp3",
+          "durationMs": 2276,
+          "sha256": "432ed99cf776b785eba8a32b574fc2bb8b63f611e03fa37e6388283bf0d76262"
+        },
+        "marcus": {
+          "path": "assets/audio/voice/marcus/tracking-recovered-v21.mp3",
+          "durationMs": 1950,
+          "sha256": "e83aefd7c25ab4d755272312730d288b81c8d15df4480ba2de8a4f831a2ec6e9"
+        }
+      },
+      "expectedScript": "You're back in position. We'll restart.",
+      "priority": 50,
+      "requiredness": "required_fail_closed",
+      "missingAssetPolicy": "MPV2 cue resolution throws for missing selected-voice asset; VoiceChannel catches, skips that cue, and continues any pending sequence.",
+      "listeningStatus": "pending"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "mpv2_entry_initial_intro",
+      "stage": "chair_setup",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "initialMovementProfileV2VoiceEvent",
+        "line": 0
+      },
+      "trigger": "React mount effect creates initialMovementProfileV2VoiceEvent.",
+      "stateBefore": "screen_mount",
+      "cueKeys": [
+        "mpv2_checkup_intro",
+        "checkup-chair-stand-intro-v21",
+        "checkup-chair-stand-setup-v21"
+      ],
+      "priority": 60,
+      "blocksProgression": false,
+      "timerState": "no active measurement timer",
+      "measurementState": "not active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "confirm_chair_setup may occur while intro sequence is still playing"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "chair_setup_confirmed_to_practice",
+      "stage": "chair_practice",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "User confirms chair setup.",
+      "stateBefore": "chair_setup",
+      "cueKeys": [
+        "mpv2_chair_practice_start"
+      ],
+      "priority": 60,
+      "blocksProgression": false,
+      "timerState": "no active measurement timer",
+      "measurementState": "practice detection waiting for stand",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "practice auto-completes when stand is detected",
+        "backgrounded"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "chair_practice_completed_to_countdown",
+      "stage": "chair_countdown",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Practice rep completes.",
+      "stateBefore": "chair_practice",
+      "cueKeys": [
+        "mpv2_chair_official_ready"
+      ],
+      "priority": 90,
+      "blocksProgression": false,
+      "timerState": "internal 3000ms countdown begins",
+      "measurementState": "official chair measurement not active yet",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [
+        "chair_countdown_elapsed_to_active"
+      ],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "chair_countdown_elapsed_to_active",
+      "stage": "chair_active",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "MovementProfileV2LiveCoordinator.receiveTimerTick",
+        "line": 0
+      },
+      "trigger": "Internal countdown timer elapses.",
+      "stateBefore": "chair_countdown",
+      "cueKeys": [],
+      "priority": 0,
+      "blocksProgression": false,
+      "timerState": "30s chair timer starts",
+      "measurementState": "chair measurement active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [
+        "chair_deadline_to_balance_setup"
+      ],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "chair_deadline_to_balance_setup",
+      "stage": "balance_setup",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "30-second chair timer ends.",
+      "stateBefore": "chair_active",
+      "cueKeys": [
+        "times-up-v21",
+        "checkup-balance-intro-v21",
+        "checkup-balance-single-leg-v21"
+      ],
+      "priority": 100,
+      "blocksProgression": false,
+      "timerState": "chair timer ended",
+      "measurementState": "chair measurement finalized; balance setup not active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [
+        "balance_setup_confirmed_to_ready"
+      ],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_setup_confirmed_to_ready",
+      "stage": "balance_ready",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "User confirms selected standing leg.",
+      "stateBefore": "balance_setup",
+      "cueKeys": [
+        "mpv2_balance_attempt_start"
+      ],
+      "priority": 60,
+      "blocksProgression": false,
+      "timerState": "waiting for raised-foot detection",
+      "measurementState": "balance measurement not active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "selected standing leg controls raised-foot side"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_lift_detected_to_trial",
+      "stage": "balance_trial",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Raised foot is detected.",
+      "stateBefore": "balance_ready",
+      "cueKeys": [
+        "mpv2_balance_attempt_start"
+      ],
+      "priority": 60,
+      "blocksProgression": false,
+      "timerState": "45s balance attempt timer starts",
+      "measurementState": "balance measurement active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [
+        "balance_valid_trial_to_rest",
+        "balance_invalid_trial_to_rest",
+        "balance_section_complete_ceiling"
+      ],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_valid_trial_to_rest",
+      "stage": "balance_rest",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Balance attempt terminates with valid hold below ceiling.",
+      "stateBefore": "balance_trial",
+      "cueKeys": [
+        "mpv2_balance_attempt_saved",
+        "mpv2_balance_rest"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "rest timer starts",
+      "measurementState": "balance measurement inactive",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "use_best",
+        "start_next_after_30",
+        "default_after_60"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_invalid_trial_to_rest",
+      "stage": "balance_rest",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Tracking interruption invalidates attempt.",
+      "stateBefore": "balance_trial",
+      "cueKeys": [
+        "mpv2_balance_tracking_retry"
+      ],
+      "priority": 100,
+      "blocksProgression": false,
+      "timerState": "retry rest timer starts",
+      "measurementState": "invalid trial discarded",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "balance_rest_ready_after_30"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_rest_ready_after_30",
+      "stage": "balance_ready",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "User starts next attempt after minimum rest.",
+      "stateBefore": "balance_rest",
+      "cueKeys": [
+        "mpv2_balance_ready_after_30"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "ready; no measurement timer",
+      "measurementState": "balance measurement not active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_default_rest_elapsed",
+      "stage": "balance_ready",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Default 60-second rest elapses.",
+      "stateBefore": "balance_rest",
+      "cueKeys": [
+        "mpv2_balance_ready_after_60"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "ready; no measurement timer",
+      "measurementState": "balance measurement not active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_user_accepted_best",
+      "stage": "shoulder_setup",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "User chooses to use best balance result.",
+      "stateBefore": "balance_rest",
+      "cueKeys": [
+        "mpv2_balance_use_best",
+        "mpv2_balance_complete"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "balance rest ends",
+      "measurementState": "balance complete",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_section_complete_ceiling",
+      "stage": "shoulder_setup",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Balance attempt reaches full 45-second ceiling.",
+      "stateBefore": "balance_trial",
+      "cueKeys": [
+        "mpv2_balance_full_hold",
+        "mpv2_balance_complete"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "balance timer ended",
+      "measurementState": "balance complete",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "balance_section_complete_non_ceiling",
+      "stage": "shoulder_setup",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Maximum valid attempts complete without ceiling.",
+      "stateBefore": "balance_trial_or_rest",
+      "cueKeys": [
+        "mpv2_balance_complete"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "balance timer ended",
+      "measurementState": "balance complete",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "shoulder_setup_confirmed_left",
+      "stage": "shoulder_ready",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "User selects left shoulder side and confirms setup.",
+      "stateBefore": "shoulder_setup",
+      "cueKeys": [
+        "checkup-shoulder-turn-left-v21",
+        "checkup-shoulder-raise-left-v21",
+        "final-position-set-v21"
+      ],
+      "priority": 60,
+      "blocksProgression": false,
+      "timerState": "waiting for arm raise",
+      "measurementState": "shoulder measurement not active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "selected side is passed to setup and grader"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "shoulder_setup_confirmed_right",
+      "stage": "shoulder_ready",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "User selects right shoulder side and confirms setup.",
+      "stateBefore": "shoulder_setup",
+      "cueKeys": [
+        "checkup-shoulder-turn-right-v21",
+        "checkup-shoulder-raise-right-v21",
+        "final-position-set-v21"
+      ],
+      "priority": 60,
+      "blocksProgression": false,
+      "timerState": "waiting for arm raise",
+      "measurementState": "shoulder measurement not active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "selected side is passed to setup and grader"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "shoulder_capture_started",
+      "stage": "shoulder_active",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Arm raise start condition is met.",
+      "stateBefore": "shoulder_ready",
+      "cueKeys": [],
+      "priority": 0,
+      "blocksProgression": false,
+      "timerState": "shoulder capture timer active",
+      "measurementState": "shoulder measurement active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "shoulder_tracking_retry_ready",
+      "stage": "shoulder_retry_ready",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Tracking interruption during shoulder capture.",
+      "stateBefore": "shoulder_active",
+      "cueKeys": [
+        "mpv2_shoulder_tracking_retry"
+      ],
+      "priority": 100,
+      "blocksProgression": false,
+      "timerState": "retry ready; measurement inactive",
+      "measurementState": "shoulder capture reset",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "shoulder_setup_confirmed_same_side"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "shoulder_section_complete_to_hinge",
+      "stage": "hinge_setup",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Shoulder capture completes.",
+      "stateBefore": "shoulder_active",
+      "cueKeys": [
+        "item-complete-v21",
+        "checkup-hinge-setup-v21",
+        "final-position-set-v21"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "hinge setup waiting",
+      "measurementState": "shoulder complete",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "hinge_capture_started",
+      "stage": "hinge_active",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Forward fold start condition is met.",
+      "stateBefore": "hinge_setup",
+      "cueKeys": [],
+      "priority": 0,
+      "blocksProgression": false,
+      "timerState": "hinge capture timer active",
+      "measurementState": "hinge measurement active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "hinge_recorded_valid",
+      "stage": "raw_complete",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Hinge capture completes with valid measurement.",
+      "stateBefore": "hinge_active",
+      "cueKeys": [
+        "mpv2_hinge_complete",
+        "checkup-complete-v21"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "all measurement timers ended",
+      "measurementState": "raw check-up complete",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "hinge_recorded_invalid",
+      "stage": "raw_complete",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveMovementProfileV2CueIdsForTransition",
+        "line": 0
+      },
+      "trigger": "Hinge capture completes without valid measurement.",
+      "stateBefore": "hinge_active",
+      "cueKeys": [
+        "mpv2_hinge_no_measurement",
+        "checkup-complete-v21"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "all measurement timers ended",
+      "measurementState": "raw check-up complete with missing hinge metric",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "shared_retry_defined_not_emitted",
+      "stage": "defined_not_emitted",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "MOVEMENT_PROFILE_V2_CUE_DEFINITIONS",
+        "line": 0
+      },
+      "trigger": "Cue exists for V2.1/shared recovery but no current MPV2 transition returns it.",
+      "stateBefore": "any",
+      "cueKeys": [
+        "retry-v21"
+      ],
+      "priority": 70,
+      "blocksProgression": false,
+      "timerState": "not modelled",
+      "measurementState": "not modelled",
+      "repeatRule": "Not currently emitted.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "tracking_loss_defined_not_emitted",
+      "stage": "defined_not_emitted",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "MOVEMENT_PROFILE_V2_CUE_DEFINITIONS",
+        "line": 0
+      },
+      "trigger": "Cue exists for V2.1 tracking loss but no current MPV2 transition returns it.",
+      "stateBefore": "any",
+      "cueKeys": [
+        "tracking-loss-v21"
+      ],
+      "priority": 100,
+      "blocksProgression": false,
+      "timerState": "not modelled",
+      "measurementState": "not modelled",
+      "repeatRule": "Not currently emitted.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "tracking_recovered_defined_not_emitted",
+      "stage": "defined_not_emitted",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "MOVEMENT_PROFILE_V2_CUE_DEFINITIONS",
+        "line": 0
+      },
+      "trigger": "Cue exists for V2.1 tracking recovery but no current MPV2 transition returns it.",
+      "stateBefore": "any",
+      "cueKeys": [
+        "tracking-recovered-v21"
+      ],
+      "priority": 50,
+      "blocksProgression": false,
+      "timerState": "not modelled",
+      "measurementState": "not modelled",
+      "repeatRule": "Not currently emitted.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "recovery_screen_retry_branch",
+      "stage": "recovery_screen",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "MovementProfileV2RecoveryScreen",
+        "line": 0
+      },
+      "trigger": "User chooses retry from recovery screen.",
+      "stateBefore": "recovery_screen",
+      "cueKeys": [],
+      "priority": 0,
+      "blocksProgression": false,
+      "timerState": "screen-level retry/navigation",
+      "measurementState": "not active",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "retry",
+        "continue_with_raw",
+        "start_training_when_available"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/recovery.test.ts"
+      ]
+    },
+    {
+      "eventId": "unmount_cancel_or_background",
+      "stage": "any",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "MovementProfileV2CheckUpScreen useEffect cleanup/AppState handler",
+        "line": 0
+      },
+      "trigger": "Unmount, cancel, or app background event.",
+      "stateBefore": "any_mounted_state",
+      "cueKeys": [],
+      "priority": 0,
+      "blocksProgression": false,
+      "timerState": "controller may receive backgrounded action",
+      "measurementState": "state depends on active stage",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [
+        "foreground resumes coordinator without replaying previous cue sequence"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "missing_required_cue",
+      "stage": "audio_resolution",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "resolveVoiceCueAssetFromManifest",
+        "line": 0
+      },
+      "trigger": "Selected voice lacks required MPV2 asset.",
+      "stateBefore": "voice_playback_resolution",
+      "cueKeys": [
+        "checkup-balance-intro-v21",
+        "checkup-balance-single-leg-v21",
+        "checkup-chair-stand-intro-v21",
+        "checkup-chair-stand-setup-v21",
+        "checkup-complete-v21",
+        "checkup-hinge-setup-v21",
+        "checkup-shoulder-raise-left-v21",
+        "checkup-shoulder-raise-right-v21",
+        "checkup-shoulder-turn-left-v21",
+        "checkup-shoulder-turn-right-v21",
+        "final-position-set-v21",
+        "item-complete-v21",
+        "mpv2_balance_attempt_saved",
+        "mpv2_balance_attempt_start",
+        "mpv2_balance_complete",
+        "mpv2_balance_full_hold",
+        "mpv2_balance_ready_after_30",
+        "mpv2_balance_ready_after_60",
+        "mpv2_balance_rest",
+        "mpv2_balance_tracking_retry",
+        "mpv2_balance_use_best",
+        "mpv2_chair_official_ready",
+        "mpv2_chair_practice_start",
+        "mpv2_checkup_intro",
+        "mpv2_hinge_complete",
+        "mpv2_hinge_no_measurement",
+        "mpv2_shoulder_tracking_retry",
+        "retry-v21",
+        "times-up-v21",
+        "tracking-loss-v21",
+        "tracking-recovered-v21"
+      ],
+      "priority": 100,
+      "blocksProgression": false,
+      "timerState": "unaffected by speech failure",
+      "measurementState": "unaffected by speech failure",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    },
+    {
+      "eventId": "playback_start_failure",
+      "stage": "audio_playback",
+      "source": {
+        "file": "src/movementProfileV2/voiceCues.ts",
+        "symbol": "VoiceChannel.playCue",
+        "line": 0
+      },
+      "trigger": "createAudioPlayer or player.play fails.",
+      "stateBefore": "voice_playback_start",
+      "cueKeys": [
+        "checkup-balance-intro-v21",
+        "checkup-balance-single-leg-v21",
+        "checkup-chair-stand-intro-v21",
+        "checkup-chair-stand-setup-v21",
+        "checkup-complete-v21",
+        "checkup-hinge-setup-v21",
+        "checkup-shoulder-raise-left-v21",
+        "checkup-shoulder-raise-right-v21",
+        "checkup-shoulder-turn-left-v21",
+        "checkup-shoulder-turn-right-v21",
+        "final-position-set-v21",
+        "item-complete-v21",
+        "mpv2_balance_attempt_saved",
+        "mpv2_balance_attempt_start",
+        "mpv2_balance_complete",
+        "mpv2_balance_full_hold",
+        "mpv2_balance_ready_after_30",
+        "mpv2_balance_ready_after_60",
+        "mpv2_balance_rest",
+        "mpv2_balance_tracking_retry",
+        "mpv2_balance_use_best",
+        "mpv2_chair_official_ready",
+        "mpv2_chair_practice_start",
+        "mpv2_checkup_intro",
+        "mpv2_hinge_complete",
+        "mpv2_hinge_no_measurement",
+        "mpv2_shoulder_tracking_retry",
+        "retry-v21",
+        "times-up-v21",
+        "tracking-loss-v21",
+        "tracking-recovered-v21"
+      ],
+      "priority": 100,
+      "blocksProgression": false,
+      "timerState": "unaffected by speech failure",
+      "measurementState": "unaffected by speech failure",
+      "repeatRule": "No within a transition key; yes on new retry/attempt epoch where transition key differs.",
+      "cancelRule": "voice.stop() on unmount/cancel/app background; otherwise queued sequence continues until interrupted.",
+      "nextCompetingEventIds": [],
+      "branches": [],
+      "tests": [
+        "src/audio/__tests__/voicePlayer.test.ts"
+      ]
+    }
+  ],
+  "requiredScenarios": [
+    {
+      "id": "full_normal_mpv2_checkup_clara",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "full_normal_mpv2_checkup_marcus",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "chair_practice_to_official_attempt",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "balance_valid_attempt_rest_next_attempt",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "balance_invalid_tracking_retry",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "balance_full_hold_ceiling",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "balance_use_best",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "balance_default_ready_after_60",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "shoulder_left",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "shoulder_right",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "hinge_valid_result",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "completion",
+      "category": "normal",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "initial_effect_speech_versus_first_user_action",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "timer_event_while_prior_cue_playing",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "equal_priority_event_while_busy",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "higher_priority_event_while_busy",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "required_cue_missing",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "required_asset_resolution_throws",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "playback_creation_fails",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "playback_start_callback_fails",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "cue_completes_after_state_exit",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "rapid_user_action_during_speech",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "recovery_event_during_speech",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "repeated_tracking_loss_event",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "tracking_recovery_before_loss_cue_finishes",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "countdown_versus_operational_cue",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "go_audible_onset_timing",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "times_up_during_another_cue",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "result_completion_transition_while_prior_cue_busy",
+      "category": "timing_collision",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "retry_during_intro",
+      "category": "user_control",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "retry_during_chair_practice",
+      "category": "user_control",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "retry_during_official_attempt",
+      "category": "user_control",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "retry_during_balance_rest",
+      "category": "user_control",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "recovery_screen_retry",
+      "category": "user_control",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "navigation_unmount_during_speech",
+      "category": "user_control",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "app_background_foreground",
+      "category": "user_control",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "voice_change_while_screen_mounted_channel_exists",
+      "category": "user_control",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "priority_50_100_mapping",
+      "category": "policy",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "fail_closed_required_cue_behavior",
+      "category": "policy",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "droppable_setup_reassurance_cues",
+      "category": "policy",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "no_stale_mpv2_operational_cue_after_state_change",
+      "category": "policy",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    },
+    {
+      "id": "clara_marcus_duration_differences_do_not_alter_state_outcome",
+      "category": "policy",
+      "status": "required_for_later_targeted_runtime_audit",
+      "sourceFiles": [
+        "src/screens/MovementProfileV2CheckUpScreen.tsx",
+        "src/movementProfileV2/liveCoordinator.ts",
+        "src/movementProfileV2/voiceCues.ts",
+        "src/audio/voicePlayer.ts"
+      ],
+      "tests": [
+        "src/movementProfileV2/__tests__/voiceCues.test.ts",
+        "src/movementProfileV2/__tests__/liveCoordinator.test.ts",
+        "src/audio/__tests__/voicePlayer.test.ts",
+        "src/audio/__tests__/movementProfileV2Audio.test.ts"
+      ]
+    }
+  ],
+  "knownRisks": [
+    {
+      "id": "mpv2_no_spoken_countdown_or_go",
+      "severity": "high",
+      "detail": "Current MPV2 starts the chair measurement after an internal 3000ms countdown without emitting countdown-three/two/one/go, so V2.1 audible-go timing remains unresolved."
+    },
+    {
+      "id": "speech_does_not_block_progression",
+      "severity": "medium",
+      "detail": "React user actions and coordinator timers can advance while prior voice sequences are still playing; audit collision/drop outcomes before preview."
+    },
+    {
+      "id": "required_cue_throw_is_caught_as_skip",
+      "severity": "medium",
+      "detail": "Required MPV2 cue lookup throws without fallback, but VoiceChannel catches the error and advances pending cues, leaving possible silent gaps."
+    },
+    {
+      "id": "balance_protocol_differs_from_v21_ladder",
+      "severity": "medium",
+      "detail": "Current MPV2 balance is a single-leg multi-attempt eyes-open protocol, not the full V2.1 balance ladder."
+    }
+  ],
+  "v21Reconciliation": [
+    {
+      "cueKey": "chair-result-prefix-v21",
+      "v21MatchStatus": "different_key_same_script",
+      "proposedAction": "alias_current_key_to_v21_key_later",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": false
+    },
+    {
+      "cueKey": "checkup-balance-intro-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-balance-single-leg-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-chair-stand-intro-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-chair-stand-setup-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-complete-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-hinge-setup-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-shoulder-raise-left-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-shoulder-raise-right-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-shoulder-turn-left-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "checkup-shoulder-turn-right-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "final-position-set-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "item-complete-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_attempt_saved",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_attempt_start",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_complete",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_full_hold",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_ready_after_30",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_ready_after_60",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_rest",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_tracking_retry",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_balance_use_best",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_chair_official_ready",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "rewrite_current_script_later",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_chair_practice_start",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_checkup_intro",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "rewrite_current_script_later",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_hinge_complete",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_hinge_no_measurement",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "rewrite_current_script_later",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "mpv2_shoulder_tracking_retry",
+      "v21MatchStatus": "current_only_mpv2_operational",
+      "proposedAction": "keep_current_mpv2_operational",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "retry-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "times-up-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "tracking-loss-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "tracking-recovered-v21",
+      "v21MatchStatus": "exact_key_exact_script",
+      "proposedAction": "keep_current_exact",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "tug-intro",
+      "v21MatchStatus": "same_key_different_script",
+      "proposedAction": "conditional_legacy_only",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    },
+    {
+      "cueKey": "tug-setup",
+      "v21MatchStatus": "same_key_different_script",
+      "proposedAction": "conditional_legacy_only",
+      "requiresHumanListening": true,
+      "requiresRuntimeAudit": true
+    }
+  ],
+  "listeningReviewRequiredBeforeFinalVerdict": true
+}

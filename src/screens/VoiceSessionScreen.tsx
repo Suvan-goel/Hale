@@ -32,10 +32,10 @@ import { ExerciseDemoGraphic } from '../components/ExerciseDemoGraphic';
 import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { addBreadcrumb, captureError } from '../services/observability/sentry';
 import { SessionFunnelStore } from '../telemetry/sessionFunnelStore';
-import { expoSessionFunnelFs } from '../telemetry/fsAdapter';
+import { createExpoSessionFunnelFs } from '../telemetry/fsAdapter';
 import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
 import { getExercise } from '../exercises';
-import type { TrainingItemResult, TrainingPhase, TrainingSessionResult } from '../training/sessionPlayer';
+import type { TrainingItemResult, TrainingPhase, TrainingSessionResult } from '../training/voiceSessionPlayer';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { matchIntent } from '../voice/intents';
 import {
@@ -80,6 +80,7 @@ export function VoiceSessionScreen({
   resolveExercise,
   resolveSafetyProfile,
   firstSessionStarted,
+  userId,
   voiceSetup,
   onVoiceSetupChange,
 }: {
@@ -96,6 +97,8 @@ export function VoiceSessionScreen({
   resolveSafetyProfile?: VoiceSessionControllerOptions['resolveSafetyProfile'];
   /** Activation stamp for the funnel record (programme v2 first session). */
   firstSessionStarted?: boolean;
+  /** Auth-scoped local telemetry owner; null is the guest scope. */
+  userId?: string | null;
   voiceSetup: VoiceSetupPrefs;
   onVoiceSetupChange: (next: VoiceSetupPrefs) => void;
 }) {
@@ -111,7 +114,7 @@ export function VoiceSessionScreen({
         resolveExercise,
         resolveSafetyProfile,
         firstSessionStarted,
-        funnelStore: new SessionFunnelStore(expoSessionFunnelFs),
+        funnelStore: new SessionFunnelStore(createExpoSessionFunnelFs({ userId })),
         onComplete: (result) => {
           completedRef.current = true;
           onComplete(result);

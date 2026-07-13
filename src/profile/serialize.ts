@@ -5,8 +5,8 @@
  * than crashing the app. Pure — no native imports, fully unit-testable.
  */
 
-import { LIFE_GOAL_CATEGORIES, normalizeLifeGoalDisplayText } from '../adherence';
-import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
+import { LIFE_GOAL_CATEGORIES, normalizeLifeGoalDisplayText } from '../adherence/goalDomainMapping';
+import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence/types';
 import { AppSettings, EMPTY_PROFILE, MenopauseStage, MenopauseSymptom, MenopauseSymptomPicture, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
 import {
   ageBandForAge,

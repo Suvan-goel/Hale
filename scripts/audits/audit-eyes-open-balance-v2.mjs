@@ -14,12 +14,12 @@ const voiceCues = read('src/movementProfileV2/voiceCues.ts');
 const flag = read('src/config/eyesOpenBalanceProtocolV2.ts');
 
 const requiredArtifacts = [
-  'docs/audits/HALE_EYES_OPEN_BALANCE_V2_IMPLEMENTATION.md',
-  'docs/audits/HALE_EYES_OPEN_BALANCE_V2_AUDIT.md',
-  'docs/audits/HALE_EYES_OPEN_BALANCE_V2_AUDIT.json',
-  'docs/audits/HALE_EYES_OPEN_BALANCE_V2_SCENARIOS.csv',
-  'docs/audits/HALE_EYES_OPEN_BALANCE_V2_VOICE_ASSET_REQUIREMENTS.csv',
-  'docs/audits/HALE_VOICE_PROJECT_POST_BALANCE_V2_HANDOFF.md',
+  'docs/audits/PEARL_EYES_OPEN_BALANCE_V2_IMPLEMENTATION.md',
+  'docs/audits/PEARL_EYES_OPEN_BALANCE_V2_AUDIT.md',
+  'docs/audits/PEARL_EYES_OPEN_BALANCE_V2_AUDIT.json',
+  'docs/audits/PEARL_EYES_OPEN_BALANCE_V2_SCENARIOS.csv',
+  'docs/audits/PEARL_EYES_OPEN_BALANCE_V2_VOICE_ASSET_REQUIREMENTS.csv',
+  'docs/audits/PEARL_VOICE_PROJECT_POST_BALANCE_V2_HANDOFF.md',
 ];
 
 const stageIds = [
@@ -58,8 +58,8 @@ const audioDiff = execFileSync('git', ['diff', '--name-only', '--', 'assets/audi
   encoding: 'utf8',
 }).trim();
 
-const voiceRows = parseCsv(read('docs/audits/HALE_EYES_OPEN_BALANCE_V2_VOICE_ASSET_REQUIREMENTS.csv'));
-const scenarios = parseCsv(read('docs/audits/HALE_EYES_OPEN_BALANCE_V2_SCENARIOS.csv'));
+const voiceRows = parseCsv(read('docs/audits/PEARL_EYES_OPEN_BALANCE_V2_VOICE_ASSET_REQUIREMENTS.csv'));
+const scenarios = parseCsv(read('docs/audits/PEARL_EYES_OPEN_BALANCE_V2_SCENARIOS.csv'));
 const pendingNewCuePairs = voiceRows.filter((row) => row.reuseDecision === 'new_pair_required').length;
 const reusedPairs = voiceRows.filter((row) => row.reuseDecision === 'reuse_exact_existing_pair').length;
 

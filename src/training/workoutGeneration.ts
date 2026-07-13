@@ -35,7 +35,6 @@ import {
   equipmentMissingLabels,
   equipmentSupportsTags,
   hasSupportEquipment,
-  humanList,
 } from './equipmentSafety';
 import {
   discomfortConstraintForContext,
@@ -433,12 +432,6 @@ const SUPPORTING_SLOT_LADDERS: Record<SessionSlotType, readonly string[]> = {
   trunk_mobility: [],
   hip_mobility: ['hinge-glutes'],
   posterior_chain_mobility: ['hinge-glutes'],
-};
-
-const DOMAIN_LABEL: Record<TrainingDomain, string> = {
-  strength_power: 'Strength & Power',
-  balance_stability: 'Balance & Stability',
-  mobility_flexibility: 'Mobility & Flexibility',
 };
 
 export const MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_VERSION = 2 as const;

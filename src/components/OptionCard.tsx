@@ -4,7 +4,6 @@
  * renders the same design language. Presentation only; no copy, no logic.
  */
 
-import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';

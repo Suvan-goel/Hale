@@ -1,8 +1,7 @@
 /**
- * Local user profile + app preferences (V1 stays local-only — no accounts, no
- * backend). The profile is the lightweight identity Home greets and Settings
- * edits; settings hold the trainer-voice choice and the (UI-only for now)
- * workout-reminder preference.
+ * Device profile + app preferences. A deliberately narrow non-health
+ * projection can sync to the user's private Supabase profile; the complete
+ * object remains the local authority used by the app.
  */
 
 import type { AgeBand, LifeGoal, MovementSafetyProfile } from '../adherence';

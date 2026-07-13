@@ -1,8 +1,17 @@
-import { ACCOUNT_SIGNED_IN_COPY, isAppleSignInEnabled } from '../accountAuthConfig';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import {
+  ACCOUNT_SIGNED_IN_COPY,
+  isAppleSignInEnabled,
+  isOnlineProfilesEnabled,
+  onlineProfilePrivacyPolicyUrl,
+} from '../accountAuthConfig';
 import {
   CLEAR_THIS_DEVICE_COPY,
   CLEAR_THIS_DEVICE_TITLE,
-  CLOUD_ACCOUNT_DELETION_CONTACT_COPY,
+  DELETE_ONLINE_ACCOUNT_COPY,
+  DELETE_ONLINE_ACCOUNT_TITLE,
 } from '../accountDeletionConfig';
 
 describe('AccountAuthCard auth hardening', () => {
@@ -13,17 +22,53 @@ describe('AccountAuthCard auth hardening', () => {
     expect(isAppleSignInEnabled({ EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN: '1' })).toBe(true);
   });
 
-  it('does not describe movement progress as local-only', () => {
-    expect(ACCOUNT_SIGNED_IN_COPY).toMatch(/saves your progress/i);
-    expect(ACCOUNT_SIGNED_IN_COPY).not.toMatch(/local for now|stays local/i);
+  it('keeps new online-account entry behind the end-to-end rollout flag', () => {
+    expect(isOnlineProfilesEnabled({})).toBe(false);
+    expect(isOnlineProfilesEnabled({ EXPO_PUBLIC_ENABLE_ONLINE_PROFILES: 'true' })).toBe(false);
+    expect(isOnlineProfilesEnabled({ EXPO_PUBLIC_ENABLE_ONLINE_PROFILES: '1' })).toBe(true);
   });
 
-  it('keeps destructive account copy truthful while cloud deletion is deferred', () => {
-    const copy = `${CLEAR_THIS_DEVICE_TITLE} ${CLEAR_THIS_DEVICE_COPY} ${CLOUD_ACCOUNT_DELETION_CONTACT_COPY}`;
+  it('keeps Expo public env reads statically addressable for bundle-time inlining', () => {
+    const onlineProfilesSource = fs.readFileSync(
+      path.join(process.cwd(), 'src/config/onlineProfiles.ts'),
+      'utf8'
+    );
+    const accountConfigSource = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/accountAuthConfig.ts'),
+      'utf8'
+    );
+
+    expect(onlineProfilesSource).toMatch(
+      /const ONLINE_PROFILES_ENABLED\s*=\s*process\.env\.EXPO_PUBLIC_ENABLE_ONLINE_PROFILES/
+    );
+    expect(accountConfigSource).toMatch(
+      /const APPLE_SIGN_IN_ENABLED\s*=\s*process\.env\.EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN/
+    );
+    expect(accountConfigSource).toMatch(
+      /normalizePrivacyPolicyUrl\(\s*process\.env\.EXPO_PUBLIC_PRIVACY_POLICY_URL\s*\)/
+    );
+  });
+
+  it('limits the online promise to the non-health profile', () => {
+    expect(ACCOUNT_SIGNED_IN_COPY).toMatch(/name, reference details, goal/i);
+    expect(ACCOUNT_SIGNED_IN_COPY).toMatch(/private online profile/i);
+    expect(ACCOUNT_SIGNED_IN_COPY).not.toMatch(/progress|check-up|health|clarity/i);
+  });
+
+  it('accepts only an explicit HTTPS privacy-policy URL', () => {
+    expect(onlineProfilePrivacyPolicyUrl({})).toBeNull();
+    expect(onlineProfilePrivacyPolicyUrl({ EXPO_PUBLIC_PRIVACY_POLICY_URL: 'http://example.com' })).toBeNull();
+    expect(onlineProfilePrivacyPolicyUrl({ EXPO_PUBLIC_PRIVACY_POLICY_URL: ' https://example.com/privacy ' }))
+      .toBe('https://example.com/privacy');
+  });
+
+  it('distinguishes device clearing from permanent online-account deletion', () => {
+    const copy = `${CLEAR_THIS_DEVICE_TITLE} ${CLEAR_THIS_DEVICE_COPY} ${DELETE_ONLINE_ACCOUNT_TITLE} ${DELETE_ONLINE_ACCOUNT_COPY}`;
 
     expect(copy).toMatch(/Clear this device/i);
-    expect(copy).toMatch(/does not delete your cloud account/i);
-    expect(copy).toMatch(/contact Pearl support/i);
-    expect(copy).not.toMatch(/will delete synced account data|request account deletion/i);
+    expect(copy).toMatch(/online profile remains available/i);
+    expect(copy).toMatch(/Delete online account/i);
+    expect(copy).toMatch(/permanently deletes your Pearl account/i);
+    expect(copy).toMatch(/cannot be undone/i);
   });
 });

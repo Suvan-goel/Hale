@@ -232,7 +232,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     if (building.status !== 'ready') throw new Error(building.status);
     const subjective = building.series.find((series) => series.id === 'subjective');
     expect(subjective?.trend.status).toBe('building');
-    expect(building.fluctuationNote).toContain('trend over months');
+    expect(building.fluctuationNote).toContain('pattern across check-ups');
     expect(building.activityNote).toContain('never change your training plan');
   });
 
@@ -256,7 +256,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
       expect(series.trend.supportCopy).toContain('sleep, symptom load, or stress');
     }
     expect(trend.series[1].trend.status === 'ready' && trend.series[1].trend.headline).toBe(
-      'Less steady under load than usual this month.'
+      'Less steady under load than usual at this check-up.'
     );
   });
 
@@ -273,7 +273,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
       throw new Error('expected ready subjective trend');
     }
     expect(subjective.trend.latestRelation).toBe('within');
-    expect(subjective.trend.headline).toBe('In your usual range this month.');
+    expect(subjective.trend.headline).toBe('In your usual range at this check-up.');
   });
 
   it('names her own covariates when a dip lines up with them (§6.1) — never diagnostic', () => {

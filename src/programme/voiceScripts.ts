@@ -21,9 +21,6 @@ export function programmeInstructionCueKey(exerciseId: string): VoiceCueKey {
   return `prog-${exerciseId.replace(/[._]/g, '-')}` as VoiceCueKey;
 }
 
-/** Spoken when the rest window doubles as the once-per-item bonus-set offer. */
-export const PROGRAMME_BONUS_OFFER_CUE: VoiceCueKey = 'prog-bonus-set-offer';
-
 export const PROGRAMME_VOICE_LINES: Record<string, string> = {
   // ---- shared -------------------------------------------------------------
   'prog-programme-prep':

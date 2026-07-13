@@ -8,7 +8,7 @@ import { normalizeCheckUpMeasurementMetadata } from '../../checkup/measurementMe
 import {
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+  PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
 } from '../../checkup/measurementProtocolRegistry';
 import {
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
@@ -18,7 +18,6 @@ import type { MovementProfileV2EvidenceStatus } from '../../checkup/protocolEvid
 import type {
   ActiveShoulderReachV2Setup,
   BalanceEyesOpenV2Setup,
-  BodySide,
   ChairRiseV2Setup,
   OneLegBalanceV2Setup,
 } from '../../checkup/protocolSetup';
@@ -926,7 +925,7 @@ function canonicalMovementProfileV2Source(
   // before. Chair and balance remain hard requirements.
   const shoulderItem = resultForItem<ActiveShoulderReachV2Result>(checkUp, ACTIVE_SHOULDER_REACH_V2_ID);
   const shoulderAbsent = shoulderItem === null;
-  const shoulder = shoulderAbsent && isPearlMonthlyStrengthBalanceProtocol(measurementProtocol)
+  const shoulder = shoulderAbsent && isPearlProgrammeStrengthBalanceProtocol(measurementProtocol)
     ? { ok: true as const, canonical: null, evidenceStatus: undefined }
     : canonicalShoulderResult(shoulderItem);
   const missingDomains: MovementProfileV2DomainKey[] = [];
@@ -1008,13 +1007,13 @@ function canonicalTopLevelMeasurementProtocol(
   return normalizeCheckUpMeasurementMetadata(checkUp).measurementProtocol ?? null;
 }
 
-function isPearlMonthlyStrengthBalanceProtocol(
+function isPearlProgrammeStrengthBalanceProtocol(
   value: MeasurementProtocolRef | null
 ): boolean {
   return (
     value?.protocolId === MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID &&
     value.protocolVersion === MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1 &&
-    value.protocolVariant === PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT
+    value.protocolVariant === PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT
   );
 }
 

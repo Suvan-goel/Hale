@@ -23,4 +23,17 @@ describe('simplified programme onboarding surface', () => {
       "assessmentChoice: checkUpAvailable ? 'after_first_workout' : 'skip'"
     );
   });
+
+  it('keeps guest-first Continue primary and makes returning-user sign-in optional', () => {
+    const returningUserCopy = 'Already have a ${BRAND.appName} profile? Sign in';
+    expect(screenSource).toContain('message.continueLabel');
+    expect(screenSource).toContain(returningUserCopy);
+    expect(screenSource.indexOf('message.continueLabel')).toBeLessThan(
+      screenSource.indexOf(returningUserCopy)
+    );
+
+    const root = readFileSync(join(process.cwd(), 'src/screens/ProgrammeV2Root.tsx'), 'utf8');
+    expect(root).toContain('isOnlineProfilesEnabled() && !isSignedIn');
+    expect(root).toContain('onContinueWithoutAccount');
+  });
 });

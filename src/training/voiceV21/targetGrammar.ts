@@ -252,8 +252,3 @@ function unitFor(setType: TrainingVoiceSetTypeV21): TrainingVoiceTargetUnitV21 {
 function numberWord(value: number): string {
   return NUMBER_WORDS[value] ?? value.toString();
 }
-
-function formatSeconds(ms: number): string {
-  const seconds = ms / 1000;
-  return Number.isInteger(seconds) ? seconds.toString() : seconds.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
-}

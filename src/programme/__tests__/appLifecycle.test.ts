@@ -74,7 +74,6 @@ describe('programmeTodayViewModel', () => {
     expect(vm.sessionDetail).toContain(`about ${minutes} minutes`);
     // Fresh placement, nothing deferred/skipped → no check-up affordance yet.
     expect(vm.checkupOffer).toBeNull();
-    expect(vm.easedAfterBreak).toBe(false);
   });
 
   it('normal training day: session detail lists the plan patterns in plain words', () => {
@@ -100,7 +99,6 @@ describe('programmeTodayViewModel', () => {
     expect(vm.state).toBe('returning_after_break');
     expect(vm.primaryAction.type).toBe('start_gentle_restart');
     expect(vm.primaryAction.tone).toBe('gentle');
-    expect(vm.easedAfterBreak).toBe(true);
     // Pure projection: the caller's state object is never mutated — the
     // easing is persisted at session start, not at render.
     expect(JSON.stringify(state)).toBe(before);
@@ -109,7 +107,6 @@ describe('programmeTodayViewModel', () => {
   it('a short gap does not read as a break', () => {
     const vm = programmeTodayViewModel(training({ lastSessionAtIso: daysBeforeNow(13) }), NOW);
     expect(vm.state).toBe('session_ready');
-    expect(vm.easedAfterBreak).toBe(false);
   });
 
   it('after one deferred starter, Home leads with the baseline instead of another generic session', () => {
@@ -138,7 +135,7 @@ describe('programmeTodayViewModel', () => {
     expect(vm.state).toBe('baseline_due');
     expect(vm.primaryAction).toMatchObject({
       type: 'start_baseline_checkup',
-      title: 'Your monthly check-up is ready',
+      title: 'Your next 12-week check-up is ready',
       ctaLabel: 'Start check-up',
     });
     expect(vm.primaryAction.subtitle).toContain('Everyday Clarity');
@@ -180,7 +177,7 @@ describe('checkupOfferFor (dev-shell home semantics preserved)', () => {
     due.profile = { ...due.profile, assessmentStatus: 'done', lastAssessmentAtIso: daysBeforeNow(29) };
     expect(checkupOfferFor(due, NOW)).toEqual({
       kind: 'routine_due',
-      title: 'Your next monthly Movement Check-Up is ready',
+      title: 'Your next Movement Check-Up is ready',
       ctaLabel: 'Start check-up',
     });
 

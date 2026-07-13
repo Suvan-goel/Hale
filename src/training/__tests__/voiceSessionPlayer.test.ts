@@ -12,15 +12,11 @@
 
 import { VoiceCueKey } from '../../audio/cues';
 import { BALANCE_FEET_TOGETHER_ID, STS_STANDARD_ID, getExercise } from '../../exercises';
-import { PosePipeline } from '../../pose/pipeline';
-import { makeFrame, mulberry32 } from '../../pose/testing/syntheticPose';
-import { PreflightCheck } from '../../preflight/preflight';
 import {
-  DEFAULT_TRAINING_CONFIG,
-  TrainingFrameUpdate,
-  TrainingSessionPlayer,
+  type TrainingFrameUpdate,
+  VoiceSessionPlayer as TrainingSessionPlayer,
   VOICE_SESSION_TIMING,
-} from '../sessionPlayer';
+} from '../voiceSessionPlayer';
 
 const TICK_MS = 250;
 const CUE_PLAY_MS = 1200;
@@ -28,10 +24,7 @@ const CUE_PLAY_MS = 1200;
 function makeVoicePlayer(exerciseIds: string[]): TrainingSessionPlayer {
   return new TrainingSessionPlayer(
     '2026-07-06T09:00:00.000Z',
-    exerciseIds,
-    new PreflightCheck(),
-    DEFAULT_TRAINING_CONFIG,
-    { sessionMode: 'voice_guided' }
+    exerciseIds
   );
 }
 
@@ -342,21 +335,7 @@ describe('±rep windows after a final set (founder fix 2026-07-06)', () => {
   });
 });
 
-describe('mode isolation', () => {
-  it('voice mode rejects update(); camera mode rejects tick()', () => {
-    const voicePlayer = makeVoicePlayer([STS_STANDARD_ID]);
-    const pipeline = new PosePipeline();
-    const out = pipeline.process(makeFrame(0, mulberry32(1)));
-    expect(() => voicePlayer.update(out, false)).toThrow(/voice_guided/);
-
-    const cameraPlayer = new TrainingSessionPlayer(
-      '2026-07-06T09:00:00.000Z',
-      [STS_STANDARD_ID],
-      new PreflightCheck()
-    );
-    expect(() => cameraPlayer.tick(0, false)).toThrow(/camera/);
-  });
-
+describe('voice pacing', () => {
   it('exposes the pacing constants for tuning, not magic numbers', () => {
     expect(VOICE_SESSION_TIMING.readyRepromptMs).toBeGreaterThan(0);
     expect(VOICE_SESSION_TIMING.doneRepromptFactor).toBeGreaterThan(1);

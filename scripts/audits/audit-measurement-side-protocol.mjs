@@ -191,18 +191,18 @@ const csvRows = descriptors.map((descriptor) => {
 
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(
-  path.join(outDir, 'HALE_MEASUREMENT_SIDE_PROTOCOL_METADATA_AUDIT.json'),
+  path.join(outDir, 'PEARL_MEASUREMENT_SIDE_PROTOCOL_METADATA_AUDIT.json'),
   `${JSON.stringify(audit, null, 2)}\n`
 );
 fs.writeFileSync(
-  path.join(outDir, 'HALE_MEASUREMENT_PROTOCOL_COMPATIBILITY_MATRIX.csv'),
+  path.join(outDir, 'PEARL_MEASUREMENT_PROTOCOL_COMPATIBILITY_MATRIX.csv'),
   `${csvColumns.join(',')}\n${csvRows
     .map((row) => csvColumns.map((column) => csvEscape(row[column])).join(','))
     .join('\n')}\n`
 );
 fs.writeFileSync(
-  path.join(outDir, 'HALE_MEASUREMENT_SIDE_PROTOCOL_METADATA_AUDIT.md'),
-  `# Hale Measurement-Side Protocol Metadata Audit
+  path.join(outDir, 'PEARL_MEASUREMENT_SIDE_PROTOCOL_METADATA_AUDIT.md'),
+  `# Pearl Measurement-Side Protocol Metadata Audit
 
 Generated: ${audit.generatedAt}
 
@@ -236,7 +236,7 @@ ${audit.findings.map((finding) => `- ${finding.id} (${finding.priority}, ${findi
 
 ## Compatibility Matrix
 
-See \`docs/audits/HALE_MEASUREMENT_PROTOCOL_COMPATIBILITY_MATRIX.csv\`.
+See \`docs/audits/PEARL_MEASUREMENT_PROTOCOL_COMPATIBILITY_MATRIX.csv\`.
 `
 );
 

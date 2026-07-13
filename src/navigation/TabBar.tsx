@@ -15,40 +15,22 @@ import { colors, fonts, spacing, type } from '../theme';
 import { HomeIcon, IconProps, PlanIcon, ProgressIcon } from './icons';
 
 export type TabKey = 'today' | 'plan' | 'progress';
-export type TabScreenName = 'TodayScreen' | 'PlanScreen' | 'ProgressScreen';
-export type TabIconName = 'HomeIcon' | 'PlanIcon' | 'ProgressIcon';
-
 export interface TabDef {
   key: TabKey;
   label: string;
-  screen: TabScreenName;
-  iconName: TabIconName;
   Icon: (p: IconProps) => React.JSX.Element;
 }
 
 export const TAB_DEFS: readonly TabDef[] = [
-  { key: 'today', label: 'Home', screen: 'TodayScreen', iconName: 'HomeIcon', Icon: HomeIcon },
-  { key: 'plan', label: 'Plan', screen: 'PlanScreen', iconName: 'PlanIcon', Icon: PlanIcon },
-  { key: 'progress', label: 'Progress', screen: 'ProgressScreen', iconName: 'ProgressIcon', Icon: ProgressIcon },
+  { key: 'today', label: 'Home', Icon: HomeIcon },
+  { key: 'plan', label: 'Plan', Icon: PlanIcon },
+  { key: 'progress', label: 'Progress', Icon: ProgressIcon },
 ];
 
-export const DEFAULT_TAB_KEY: TabKey = 'today';
 export const TAB_BAR_MIN_HEIGHT = 62;
 export const TAB_BAR_CONTENT_GAP = 0;
 export const TAB_BAR_SCROLL_CLEARANCE =
   TAB_BAR_MIN_HEIGHT + spacing.lg + TAB_BAR_CONTENT_GAP;
-
-export function isTabKey(value: unknown): value is TabKey {
-  return typeof value === 'string' && TAB_DEFS.some((tab) => tab.key === value);
-}
-
-export function normalizeTabKey(value: unknown): TabKey {
-  return isTabKey(value) ? value : DEFAULT_TAB_KEY;
-}
-
-export function getTabDef(key: TabKey): TabDef {
-  return TAB_DEFS.find((tab) => tab.key === key) ?? TAB_DEFS[0];
-}
 
 export function TabBar({
   active,
@@ -59,7 +41,6 @@ export function TabBar({
   onChange: (key: TabKey) => void;
   bottomInset?: number;
 }) {
-  const activeKey = normalizeTabKey(active);
   return (
     <View
       style={[styles.tray, bottomInset > 0 && { paddingBottom: spacing.sm + bottomInset }]}
@@ -67,8 +48,8 @@ export function TabBar({
       <View style={styles.contentRail}>
         <View style={styles.bar}>
           {TAB_DEFS.map((tab) => {
-            const selected = tab.key === activeKey;
-            const tint = selected ? colors.accent : colors.textTertiary;
+            const selected = tab.key === active;
+            const tint = selected ? colors.accentDeep : colors.textTertiary;
             return (
               <Pressable
                 key={tab.key}
@@ -98,11 +79,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 20,
-    backgroundColor: colors.overlaySurface,
+    backgroundColor: colors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.navigationDivider,
     alignItems: 'center',
-    paddingTop: 6,
+    paddingTop: 4,
     paddingBottom: spacing.sm,
   },
   contentRail: {
@@ -152,7 +133,7 @@ const styles = StyleSheet.create({
     textTransform: 'none',
   },
   labelActive: {
-    color: colors.accent,
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
   },
 });

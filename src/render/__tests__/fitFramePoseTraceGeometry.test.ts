@@ -253,7 +253,7 @@ describe('fit frame pose trace geometry', () => {
     const text = source('src/render/FitFramePoseTraceRenderer.tsx');
 
     expect(text).toContain('React.forwardRef');
-    expect(text).toContain('PoseAvatarRendererHandle');
+    expect(text).toContain('RecordingRendererHandle');
     expect(text).toContain('update(output: PipelineFrameOutput, sourceAspect: number)');
     expect(text).toContain("output.state === 'interrupted'");
     expect(text).toContain('<ClipPath id="fitFramePoseTraceClip">');

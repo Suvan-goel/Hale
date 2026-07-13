@@ -11,7 +11,7 @@
  * is never a verdict).
  */
 
-import type { DimensionId } from './registry';
+export type DimensionId = 'strength' | 'balance' | 'clarity';
 
 export interface DimensionReading {
   readonly dimensionId: DimensionId;

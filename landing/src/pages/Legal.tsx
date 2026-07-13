@@ -1,26 +1,26 @@
 import { CONTACT_EMAIL } from "../config";
 
 /**
- * Formal draft copy for the ads test. Still owner-reviewed before public spend:
- * it intentionally avoids naming an unconfirmed legal entity or processor list.
+ * Formal website/app draft. It still requires owner/legal review before public
+ * release, including the final controller identity and jurisdiction wording.
  */
 
 const PRIVACY = [
   {
     h: "Who we are",
-    p: `This Privacy Policy explains how Elegant ("we", "us" and "our") handles information collected through this waitlist website. For privacy questions or requests, contact ${CONTACT_EMAIL}.`,
+    p: `This Privacy Policy explains how Pearl ("we", "us" and "our") handles information collected through the Pearl website and optional mobile-app accounts. For privacy questions or requests, contact ${CONTACT_EMAIL}.`,
   },
   {
     h: "What we collect",
-    p: "When you join the waitlist, we collect your email address, the date and time of submission, and campaign attribution fields that may be present in the page URL, such as UTM parameters or a Facebook click identifier.",
+    p: "When you join the waitlist, we collect your email address, submission time, and campaign attribution fields that may be present in the page URL. If you create an optional app account, we store your email and private non-health profile: name, date of birth, reference group, selected movement-goal category, trainer voice, and published-comparison preference.",
   },
   {
-    h: "What this website does not collect",
-    p: "This website does not create an account, collect payment details, request health records, or access your camera or microphone. Camera and microphone privacy statements on the marketing page describe the planned app experience, not anything collected by this waitlist page.",
+    h: "What stays on your device",
+    p: "Pearl does not upload menopause or symptom context, safety answers, programme state, workouts, check-ups, Everyday Clarity, camera video, pose landmarks, or voice commands. Camera video is not shown or saved. The website does not access your camera or app data.",
   },
   {
     h: "How we use information",
-    p: "We use your email address to send Elegant early-access, beta and launch updates. We use campaign attribution information to understand which ads and channels are working and to improve the landing page. We do not sell your personal information.",
+    p: "We use waitlist email addresses for early-access, beta and launch updates. We use optional account information to authenticate you and make your non-health profile available when you sign in on your devices. Campaign attribution helps us understand which channels are working. We do not sell your personal information.",
   },
   {
     h: "Cookies and analytics",
@@ -28,11 +28,11 @@ const PRIVACY = [
   },
   {
     h: "Service providers",
-    p: "We may use trusted service providers to host the website, store waitlist submissions, send emails and measure advertising performance. They may process information only as needed to provide those services to us.",
+    p: "We use trusted providers to host the website, store waitlist submissions, send emails and measure advertising performance. Optional app accounts and private online profiles are processed through Supabase. Providers may process information only as needed to provide their services to us.",
   },
   {
     h: "Retention",
-    p: "We keep waitlist information while Elegant is in beta and for a reasonable period afterward so we can manage early-access invitations, launch updates, suppression requests and basic campaign records. You can ask us to delete your information at any time.",
+    p: "We keep waitlist information while Pearl is in beta and for a reasonable period afterward so we can manage invitations, launch updates, suppression requests and basic campaign records. Account information is kept while the account is active and removed when you use Delete online account in the app, subject to limited records we must retain by law.",
   },
   {
     h: "Your rights",
@@ -47,19 +47,23 @@ const PRIVACY = [
 const TERMS = [
   {
     h: "About these terms",
-    p: "These Terms of Use apply to this Elegant waitlist website. By using the website or joining the waitlist, you agree to these terms. If you do not agree, do not submit the form.",
+    p: "These Terms of Use apply to this Pearl waitlist website. By using the website or joining the waitlist, you agree to these terms. If you do not agree, do not submit the form.",
   },
   {
     h: "The waitlist",
     p: "Joining the waitlist is free. It is not a purchase, a reservation, or a contract for a future product. Early-access invitations may be sent in waves, and we do not guarantee availability, launch timing, eligibility, pricing or feature access.",
   },
   {
+    h: "Optional app accounts",
+    p: "Pearl can be used without an account. If you create one, you are responsible for keeping your sign-in details secure and for information submitted through your account. You may sign out, clear a device copy, or permanently delete the online account from Settings.",
+  },
+  {
     h: "Product status",
-    p: "Elegant is pre-launch and may change before release. Any descriptions, images, examples, beta details or planned features on this website are provided for information and may be modified, delayed or discontinued.",
+    p: "Pearl is pre-launch and may change before release. Any descriptions, images, examples, beta details or planned features on this website are provided for information and may be modified, delayed or discontinued.",
   },
   {
     h: "Not medical advice",
-    p: "Elegant is intended as a general fitness and wellbeing product. It is not medical advice, medical care, a diagnosis, treatment, prevention, or a medical device. Speak with a qualified health professional before starting a new exercise programme, especially if you have pain, dizziness, a medical condition, or concerns about safe movement.",
+    p: "Pearl is intended as a fitness and wellbeing product for women navigating perimenopause and early postmenopause. It is not medical advice, medical care, a diagnosis, treatment, prevention, or a medical device. Speak with a qualified health professional before starting a new exercise programme, especially if you have pain, dizziness, a medical condition, or concerns about safe movement.",
   },
   {
     h: "No guarantees",
@@ -67,7 +71,7 @@ const TERMS = [
   },
   {
     h: "Intellectual property",
-    p: "The Elegant name, page design, copy, images, graphics, product concepts and other website content belong to us or our licensors. You may view the website for personal, non-commercial use, but you may not copy, reuse, scrape, modify or redistribute its content without permission.",
+    p: "The Pearl name, page design, copy, images, graphics, product concepts and other website content belong to us or our licensors. You may view the website for personal, non-commercial use, but you may not copy, reuse, scrape, modify or redistribute its content without permission.",
   },
   {
     h: "Acceptable use",
@@ -87,8 +91,24 @@ const TERMS = [
   },
 ];
 
-export function Legal({ kind, onHome }: { kind: "privacy" | "terms"; onHome: () => void }) {
-  const sections = kind === "privacy" ? PRIVACY : TERMS;
+const DELETE_ACCOUNT = [
+  {
+    h: "Delete in the app",
+    p: "Open Pearl, go to Settings, choose Online profile, then choose Delete online account. Confirming permanently deletes the Supabase account and private online profile and clears that account's Pearl data from the device.",
+  },
+  {
+    h: "If you cannot sign in",
+    p: `Email ${CONTACT_EMAIL} from the address used for the account and ask for account deletion. We may need to verify that you control the account before deleting it. Never send a password, access token, health answer, check-up, or camera data.`,
+  },
+  {
+    h: "What is deleted",
+    p: "Deletion covers the account identity and private online profile held through Supabase. Pearl's health context, programme, workouts, check-ups, Everyday Clarity, camera data, and landmarks are not stored in the online profile; device copies can be cleared separately in Settings.",
+  },
+];
+
+export function Legal({ kind, onHome }: { kind: "privacy" | "terms" | "delete-account"; onHome: () => void }) {
+  const sections = kind === "privacy" ? PRIVACY : kind === "terms" ? TERMS : DELETE_ACCOUNT;
+  const title = kind === "privacy" ? "Privacy policy" : kind === "terms" ? "Terms of use" : "Delete your Pearl account";
   return (
     <main className="bg-bone">
       <div className="mx-auto max-w-2xl px-5 py-16 md:py-24">
@@ -96,12 +116,12 @@ export function Legal({ kind, onHome }: { kind: "privacy" | "terms"; onHome: () 
           onClick={onHome}
           className="text-sm font-medium text-pine underline underline-offset-4 hover:text-ink"
         >
-          ← Back to Elegant
+          ← Back to Pearl
         </button>
         <h1 className="mt-8 font-display text-[2.2rem] leading-tight md:text-[2.8rem]">
-          {kind === "privacy" ? "Privacy policy" : "Terms of use"}
+          {title}
         </h1>
-        <p className="mt-2 text-sm text-ink/50">Last updated 6 July 2026</p>
+        <p className="mt-2 text-sm text-ink/50">Last updated 12 July 2026</p>
         <div className="mt-10 space-y-8">
           {sections.map((s) => (
             <section key={s.h}>

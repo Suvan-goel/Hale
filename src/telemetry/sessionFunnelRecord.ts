@@ -51,7 +51,7 @@ export interface StoredSessionFunnel {
   voiceIntentCounts?: Record<string, number>;
   /** Tap actions on the same surfaces, keyed by action. */
   tapActionCounts?: Record<string, number>;
-  /** Immutable pain audit trail — never deleted or rewritten. */
+  /** Immutable during normal use; removed only by explicit device/account erasure. */
   painEvents?: TrainingPainEvent[];
   /**
    * v3: the activation event — true only on the user's first-ever session

@@ -10,7 +10,7 @@ these criteria, Option B proceeds without further approval.**
 ## 1. What is being decided
 
 Whether iOS `SFSpeechRecognizer` (`requiresOnDeviceRecognition = true`) and Android's
-on-device `SpeechRecognizer` can support Hale's windowed, ≤8-intent voice vocabulary in
+on-device `SpeechRecognizer` can support Pearl's windowed, ≤8-intent voice vocabulary in
 realistic UK-home session conditions on the two target devices. Recognition quality is
 measured **after** the tolerant intent matcher (`src/voice/intents.ts`) — raw transcripts are
 an implementation detail; the unit that gates is *intent recall*.

@@ -379,6 +379,9 @@ export function completeOnboarding(
     jointFlags,
     balanceSupportDefault:
       answers.consent === 'agree' && (answers.b5Balance === 'yes' || answers.b5Balance === SKIPPED),
+    // Onboarding can express a preference for support, but only an accepted
+    // camera check-up can make that protection measurement-required.
+    balanceSupportRequired: false,
     hasStairs: answers.c1Stairs === 'yes' ? true : answers.c1Stairs === 'no' ? false : null,
     hasBand: null,
     diastasisFlag: false,
@@ -509,6 +512,10 @@ export function applyAssessmentPlacement(
       lastAssessmentAtIso: options.completedAtIso ?? new Date().toISOString(),
       balanceSupportDefault:
         result.balanceSupportRequired === true ? true : state.profile.balanceSupportDefault,
+      balanceSupportRequired:
+        result.balanceSupportRequired === null
+          ? state.profile.balanceSupportRequired
+          : result.balanceSupportRequired,
     },
   };
 }

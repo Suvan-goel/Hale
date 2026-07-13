@@ -55,4 +55,26 @@ describe('moveLocalFiles (guest data adoption)', () => {
     expect(result.moved).toBe(0);
     expect(userFiles.size).toBe(1);
   });
+
+  it('retains the guest source when the target write cannot be verified', async () => {
+    const guestFiles = new Map<string, string>([['prefs.json', '{"voice":"clara"}']]);
+    const target = createMemoryFs();
+    target.write = () => {};
+
+    await expect(
+      moveLocalFiles(createMemoryFs(guestFiles), target)
+    ).rejects.toThrow(/verify adopted guest file/i);
+    expect(guestFiles.has('prefs.json')).toBe(true);
+  });
+
+  it('reports a source deletion that did not take effect', async () => {
+    const guestFiles = new Map<string, string>([['prefs.json', '{"voice":"clara"}']]);
+    const source = createMemoryFs(guestFiles);
+    source.delete = () => {};
+
+    await expect(moveLocalFiles(source, createMemoryFs())).rejects.toThrow(
+      /still exists after adoption/i
+    );
+    expect(guestFiles.has('prefs.json')).toBe(true);
+  });
 });

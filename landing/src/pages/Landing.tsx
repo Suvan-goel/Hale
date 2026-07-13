@@ -3,7 +3,7 @@ import { Reveal } from "../components/Reveal";
 import { WaitlistForm } from "../components/WaitlistForm";
 import { CONTACT_EMAIL } from "../config";
 import heroImage from "../assets/landing/hero-home-checkup.jpg";
-import monthlyCheckupImage from "../assets/landing/monthly-checkup.jpg";
+import progressCheckupImage from "../assets/landing/progress-checkup.jpg";
 import strengthEngineImage from "../assets/landing/strength-engine.jpg";
 
 function Eyebrow({ children, dark = false }: { children: string; dark?: boolean }) {
@@ -30,8 +30,8 @@ function LockIcon() {
 
 const FEATURES = [
   {
-    title: "Monthly re-tests",
-    body: "Strength, balance, mobility and Clarity update month to month, so progress is measured rather than assumed from attendance.",
+    title: "Four comparable check-ups",
+    body: "The same Strength and Balance protocol runs at baseline and after weeks 4, 8 and 12, so change is measured rather than guessed from attendance.",
     icon: (
       <path
         d="M4 12a8 8 0 1 1 2.3 5.6M4 12v-4m0 4h4"
@@ -44,8 +44,8 @@ const FEATURES = [
     ),
   },
   {
-    title: "Clarity stays personal",
-    body: "Short spoken checks track word-finding and attention load against your own normal — never an age chart, never anyone else's numbers.",
+    title: "Everyday Clarity stays separate",
+    body: "An optional five-question check-in tracks how thinking felt against your own pattern. It never changes your training plan or becomes a combined body score.",
     icon: (
       <>
         <path
@@ -69,7 +69,7 @@ const FEATURES = [
   },
   {
     title: "No wearable required",
-    body: "Your phone's camera and mic are the only sensors. Nothing to buy, charge or wear.",
+    body: "Your phone camera measures the four check-ups. Daily training is voice-paced and camera-free. Nothing to buy, charge or wear.",
     icon: (
       <>
         <rect
@@ -88,7 +88,7 @@ const FEATURES = [
   },
   {
     title: "Private by design",
-    body: "All analysis happens on your phone. Camera footage and mic audio are processed on-device and never uploaded — they never leave your hands.",
+    body: "The MVP is local-first. Check-up measurements and your optional Clarity answers stay on your phone, and Pearl never shows or stores self-view video.",
     icon: (
       <path
         d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z"
@@ -103,12 +103,12 @@ const FEATURES = [
 
 const FAQS = [
   {
-    q: "What does Clarity mean?",
-    a: "Clarity is Elegant's name for simple brain-fog signals tracked against your own baseline: how fluently words come, how thinking load affects balance, and how those patterns change over time. It is not a diagnosis, a cause, or a lab test.",
+    q: "What does Everyday Clarity mean?",
+    a: "Everyday Clarity is Pearl's optional five-question check-in about how clear, focused and mentally effortful the day felt. It is tracked against your own pattern, kept separate from Strength and Balance, and is not a diagnosis or an objective cognitive test.",
   },
   {
     q: "How long does the check-up take?",
-    a: "About ten minutes, once a month, guided by voice the whole way — a few minutes of movement, a few spoken minutes for the brain-fog check. You prop your phone against a wall, step back, and follow along.",
+    a: "About eight minutes. You complete the same guided warm-up, one-leg balance hold and 30-second chair stand at baseline and after weeks 4, 8 and 12. The optional Everyday Clarity check-in takes less than a minute.",
   },
   {
     q: "Do I need any equipment?",
@@ -116,15 +116,15 @@ const FAQS = [
   },
   {
     q: "What phone do I need?",
-    a: "Any reasonably recent iPhone or Android phone. The camera and mic it already has are the only sensors involved — no wearable, no extra hardware.",
+    a: "Any reasonably recent iPhone or Android phone. The camera it already has is the only check-up sensor involved — no wearable or extra hardware.",
   },
   {
-    q: "Is my camera and mic data private?",
-    a: "Yes. All analysis — movement and speech — runs on your phone. Footage and audio are never uploaded, never stored and never seen or heard by anyone. Your phone works like a tape measure, not a video call.",
+    q: "Is my check-up data private?",
+    a: "Yes. Pearl's MVP is local-first. Camera measurement runs on your phone, self-view video is never shown or stored, and your optional Clarity answers remain on-device. Your phone works like a tape measure, not a video call.",
   },
   {
     q: "I'm exhausted most days. Is this realistic?",
-    a: "That's exactly who it's designed for. Sessions are short, done at home, and matched to your measured level — not a presenter's. And because progress is re-measured monthly, small consistent efforts show up as numbers you can see.",
+    a: "That's exactly who it's designed for. Sessions are short, done at home, and matched to your measured starting point — not a presenter's. The week-4, week-8 and week-12 check-ups make small changes visible.",
   },
   {
     q: "I've never done strength training. Is this for me?",
@@ -132,7 +132,7 @@ const FAQS = [
   },
   {
     q: "When does it launch?",
-    a: "We're testing Elegant with a small early group now. The waitlist is invited in waves as places open — joining today puts you nearer the front of the queue.",
+    a: "We're testing Pearl with a small early group now. The waitlist is invited in waves as places open — joining today puts you nearer the front of the queue.",
   },
   {
     q: "What will it cost?",
@@ -170,7 +170,7 @@ export function Landing({
         <div className="relative mx-auto max-w-6xl px-5 md:px-8">
           <header className="flex items-center justify-between py-6">
             <span className="font-display text-[22px] font-medium tracking-tight">
-              Elegant<span className="text-brass">.</span>
+              Pearl<span className="text-brass">.</span>
             </span>
             <button
               onClick={onScrollToForm}
@@ -182,16 +182,16 @@ export function Landing({
 
           <div className="max-w-[590px] pb-12 pt-8 md:pb-28 md:pt-16">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-bone/55">
-              Strength · Balance · Mobility · Clarity
+              12 weeks · Strength · Balance · Everyday Clarity
             </p>
             <h1 className="mt-4 font-display text-[2.4rem] leading-[1.06] md:text-[3.4rem]">
-              Measure what menopause changes.{" "}
-              <em className="italic text-brass">Train what you can change.</em>
+              Measure your strength.{" "}
+              <em className="italic text-brass">Track your clarity.</em>
             </h1>
             <p className="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-bone/80">
-              One ten-minute phone check-up a month tracks your strength, balance, mobility and
-              Clarity patterns. Elegant builds short home sessions from your results — and shows
-              you, in your own numbers, what's changing.
+              Pearl is a private 12-week home strength programme for women in perimenopause and
+              early postmenopause. Four camera check-ups measure Strength and Balance; an optional
+              Everyday Clarity check-in tracks how thinking felt alongside them.
             </p>
             <div className="mt-7">
               <button
@@ -208,7 +208,7 @@ export function Landing({
               <span className="mt-0.5 shrink-0">
                 <LockIcon />
               </span>
-              All analysis happens on your phone — video and audio never leave it.
+              Check-up measurement happens on your phone — self-view video is never shown or stored.
             </p>
           </div>
         </div>
@@ -266,7 +266,7 @@ export function Landing({
                 <p>Is it working?</p>
               </div>
               <p className="mx-auto mt-7 max-w-xl text-[17px] leading-relaxed text-ink/70">
-                Elegant answers those three. Nothing else.
+                Pearl answers those three. Nothing else.
               </p>
             </div>
           </Reveal>
@@ -286,8 +286,8 @@ export function Landing({
             <Reveal className="h-full">
               <figure className="flex h-full flex-col">
                 <img
-                  src={monthlyCheckupImage}
-                  alt="A woman doing a controlled sit-to-stand at home while her phone is propped nearby for a monthly check-up."
+                  src={progressCheckupImage}
+                  alt="A woman doing a controlled sit-to-stand at home while her phone is propped nearby for a Pearl check-up."
                   loading="lazy"
                   className="aspect-[4/3] w-full rounded-2xl object-cover object-[58%_center] shadow-[0_26px_70px_-42px_rgba(26,36,32,0.75)] lg:aspect-auto lg:min-h-0 lg:flex-1"
                 />
@@ -300,18 +300,18 @@ export function Landing({
               {[
                 {
                   n: "01",
-                  title: "Take a ten-minute check-up",
-                  body: "Prop your phone against a wall and follow the voice. Sit-to-stands, balance holds and reach tests set your movement baseline; a few short spoken prompts set your Clarity baseline. No wearable, no gym.",
+                  title: "Take your baseline check-up",
+                  body: "Prop your phone against a wall and follow the voice through the fixed protocol: a short warm-up, one-leg balance and a 30-second chair stand. Add the optional Everyday Clarity check-in if you want to track how thinking felt.",
                 },
                 {
                   n: "02",
                   title: "See your baseline",
-                  body: "Strength, balance and mobility are compared with women your age. Clarity is compared only with your own normal. The result shows where to focus first, without turning your symptoms into a diagnosis.",
+                  body: "Pearl uses Strength and Balance to choose a Strength focus, Balance focus or Balanced plan. Everyday Clarity is compared only with your own pattern and never changes the prescription.",
                 },
                 {
                   n: "03",
-                  title: "Build strength, then re-test",
-                  body: "Follow short strength-based sessions built around your starting point. Strength is the engine: it helps preserve muscle and supports the sleep, mood and symptom patterns linked with clearer days. Then re-test and watch your numbers move.",
+                  title: "Train for 12 weeks, then see the pattern",
+                  body: "Follow three short voice-paced home sessions a week through Foundations, Build and Progress. Re-check after weeks 4, 8 and 12 with the same protocol so the comparison stays meaningful.",
                 },
               ].map((step, i) => (
                 <Reveal key={step.n} delay={i * 110}>
@@ -333,11 +333,10 @@ export function Landing({
                 The tests aren't ours. <em className="italic text-brass">The convenience is.</em>
               </p>
               <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-ink/70">
-                Elegant's movement check-up is built on functional tests used in clinical research
-                and physiotherapy for decades — sit-to-stand capacity, timed balance holds, the
-                timed up-and-go — with published reference values behind them. The Clarity checks
-                use short spoken prompts to track your own pattern over time. Your phone doesn't
-                invent the measurements; it just makes them easier to repeat.
+                Pearl's check-up uses a 30-second chair stand and timed one-leg balance — familiar
+                functional tests with published reference values behind them. The same movements,
+                order and setup repeat at every check-up. Your phone does not invent the
+                measurements; it makes a consistent protocol easier to repeat at home.
               </p>
             </div>
           </Reveal>
@@ -367,9 +366,9 @@ export function Landing({
                 mood, two things many people notice alongside foggier days.
               </p>
               <p>
-                Elegant does not promise to cure brain fog. It helps you train consistently, start
-                at the right level, and track whether your own strength and Clarity patterns are
-                shifting.
+                Pearl does not promise to treat brain fog or prove what caused a foggy day. It
+                helps you train consistently, start at an appropriate level, and observe your own
+                Strength, Balance and Everyday Clarity patterns across 12 weeks.
               </p>
             </div>
           </Reveal>
@@ -380,15 +379,15 @@ export function Landing({
       <section className="overflow-hidden bg-ink text-bone">
         <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
           <Reveal className="max-w-2xl">
-            <Eyebrow dark>Why Elegant</Eyebrow>
+            <Eyebrow dark>Why Pearl</Eyebrow>
             <h2 className="mt-5 font-display text-[2rem] leading-[1.12] md:text-[2.6rem]">
               Built around proof, not streaks.
             </h2>
             <p className="mt-5 text-[17px] leading-relaxed text-bone/75">
-              Fitness apps count what you did — sessions, streaks, minutes. Elegant measures what
-              changed. Every month your movement scores and Clarity trend update, and your plan
-              adjusts to what your body actually did. On the weeks motivation dips, a number that
-              moved is worth more than a streak.
+              Fitness apps count what you did — sessions, streaks, minutes. Pearl pairs a
+              structured 12-week plan with comparable check-ups at baseline and after weeks 4, 8
+              and 12. Strength and Balance guide the plan; Everyday Clarity remains an optional,
+              separate observation rather than a promise about cognition.
             </p>
           </Reveal>
 
@@ -450,8 +449,8 @@ export function Landing({
               <p>
                 I've been obsessed with health and fitness for years. When I finally convinced my
                 parents to take their own health seriously, the change in their quality of life
-                was profound — and it left me wanting to help more adults take their health into
-                their own hands.
+                was profound — and it left me wanting to help more women build strength with
+                clear, private guidance.
               </p>
               <p>
                 Then I started noticing changes in my mum. Anxiety, mood swings, forgetfulness —
@@ -468,7 +467,7 @@ export function Landing({
               <p>
                 {CONTACT_EMAIL ? (
                   <>
-                    Elegant is that answer. If it ever overpromises,{" "}
+                    Pearl is that answer. If it ever overpromises,{" "}
                     <a
                       href={`mailto:${CONTACT_EMAIL}`}
                       className="underline underline-offset-4 hover:text-ink"
@@ -478,12 +477,12 @@ export function Landing({
                     and tell me.
                   </>
                 ) : (
-                  "Elegant is that answer. It should never need to overpromise."
+                  "Pearl is that answer. It should never need to overpromise."
                 )}
               </p>
             </div>
             <p className="mt-8 font-display text-2xl italic">— Suvan</p>
-            <p className="mt-1 text-sm text-ink/60">Founder, Elegant</p>
+            <p className="mt-1 text-sm text-ink/60">Founder, Pearl</p>
           </Reveal>
         </div>
       </section>
@@ -545,20 +544,20 @@ export function Landing({
         <div className="relative mx-auto max-w-2xl px-5 py-20 text-center md:px-8 md:py-28">
           <Reveal>
             <h2 className="font-display text-[2.1rem] leading-[1.1] md:text-[2.8rem]">
-              See strength and Clarity <em className="italic text-[#d8b071]">in numbers.</em>
+              See Strength and Balance <em className="italic text-[#d8b071]">in numbers.</em>
             </h2>
             <p className="mt-4 text-[17px] text-bone/80">
               You've guessed long enough. Join the waitlist for early access.
             </p>
             <div className="mx-auto mt-9 max-w-md text-left">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-bone/60">
-                After your first ten-minute check-up, you'll know
+                After your baseline check-up, you'll know
               </p>
               <ul className="mt-4 space-y-3">
                 {[
-                  "Where you stand in all four dimensions",
-                  "Which one deserves your next four weeks",
-                  "The baseline every month after is measured against",
+                  "Your Strength and Balance starting point",
+                  "Whether your plan starts Strength-focused, Balance-focused or Balanced",
+                  "The baseline your week-4, week-8 and week-12 check-ups compare with",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3 text-[16px] text-bone/90">
                     <svg

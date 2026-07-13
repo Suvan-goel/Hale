@@ -23,14 +23,13 @@ import { SessionFunnelStore } from '../telemetry/sessionFunnelStore';
 import { buildStoredSessionFunnel } from '../telemetry/sessionFunnelRecord';
 import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
 import {
-  TrainingFrameUpdate,
-  TrainingItemResult,
-  TrainingPhase,
-  TrainingSessionPlayer,
-  TrainingSessionResult,
-  type TrainingSessionPlayerOptions,
-} from '../training/sessionPlayer';
-import { PreflightCheck } from '../preflight/preflight';
+  VoiceSessionPlayer,
+  type TrainingFrameUpdate,
+  type TrainingItemResult,
+  type TrainingPhase,
+  type TrainingSessionResult,
+  type VoiceSessionPlayerOptions,
+} from '../training/voiceSessionPlayer';
 import type { VoiceIntent } from './intents';
 import { enabledSessionIntents } from './sessionIntentPolicy';
 
@@ -51,10 +50,10 @@ export interface VoiceSessionControllerOptions {
   exerciseIds: readonly string[];
   generatedExercises?: readonly TrainingSetRuntimeGeneratedExercise[];
   /** Injectable catalogue seams (programme v2 bridge); defaults = registry. */
-  resolveExercise?: TrainingSessionPlayerOptions['resolveExercise'];
-  resolveSafetyProfile?: TrainingSessionPlayerOptions['resolveSafetyProfile'];
+  resolveExercise?: VoiceSessionPlayerOptions['resolveExercise'];
+  resolveSafetyProfile?: VoiceSessionPlayerOptions['resolveSafetyProfile'];
   /** Once-per-item bonus-set offer (programme v2); see player options. */
-  bonusSetOffer?: TrainingSessionPlayerOptions['bonusSetOffer'];
+  bonusSetOffer?: VoiceSessionPlayerOptions['bonusSetOffer'];
   /** Activation stamp (funnel v3): true when this is her first-ever session. */
   firstSessionStarted?: boolean;
   funnelStore: SessionFunnelStore;
@@ -67,7 +66,7 @@ export interface VoiceSessionControllerOptions {
 }
 
 export class VoiceSessionController {
-  readonly player: TrainingSessionPlayer;
+  readonly player: VoiceSessionPlayer;
   private readonly options: VoiceSessionControllerOptions;
   private readonly voiceIntentCounts: Record<string, number> = {};
   private readonly tapActionCounts: Record<string, number> = {};
@@ -79,14 +78,10 @@ export class VoiceSessionController {
 
   constructor(options: VoiceSessionControllerOptions) {
     this.options = options;
-    this.player = new TrainingSessionPlayer(
+    this.player = new VoiceSessionPlayer(
       options.startedAtIso,
       [...options.exerciseIds],
-      // Never consulted in voice mode; satisfies the constructor contract.
-      new PreflightCheck(),
-      undefined,
       {
-        sessionMode: 'voice_guided',
         generatedExercises: options.generatedExercises,
         resolveExercise: options.resolveExercise,
         resolveSafetyProfile: options.resolveSafetyProfile,

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { HomeIcon, PlanIcon, ProgressIcon } from '../icons';
-import { DEFAULT_TAB_KEY, TAB_DEFS, TabBar, getTabDef, normalizeTabKey, type TabKey } from '../TabBar';
+import { TAB_DEFS, TabBar, type TabKey } from '../TabBar';
 
 const CANONICAL_KEYS: readonly TabKey[] = ['today', 'plan', 'progress'];
 const CANONICAL_LABELS = ['Home', 'Plan', 'Progress'];
@@ -42,23 +42,12 @@ describe('TabBar V1 navigation', () => {
     expect(TAB_DEFS.map((tab) => tab.label)).not.toContain('Settings');
   });
 
-  it('maps each route to its intended screen identity', () => {
-    expect(TAB_DEFS.map((tab) => [tab.key, tab.screen])).toEqual([
-      ['today', 'TodayScreen'],
-      ['plan', 'PlanScreen'],
-      ['progress', 'ProgressScreen'],
-    ]);
-  });
-
   it('maps each route to its intended icon identity', () => {
-    expect(TAB_DEFS.map((tab) => [tab.key, tab.iconName])).toEqual([
-      ['today', 'HomeIcon'],
-      ['plan', 'PlanIcon'],
-      ['progress', 'ProgressIcon'],
+    expect(TAB_DEFS.map((tab) => [tab.key, tab.Icon])).toEqual([
+      ['today', HomeIcon],
+      ['plan', PlanIcon],
+      ['progress', ProgressIcon],
     ]);
-    expect(getTabDef('today').Icon).toBe(HomeIcon);
-    expect(getTabDef('plan').Icon).toBe(PlanIcon);
-    expect(getTabDef('progress').Icon).toBe(ProgressIcon);
   });
 
   it('has no duplicate or missing tab routes', () => {
@@ -66,20 +55,6 @@ describe('TabBar V1 navigation', () => {
 
     expect(new Set(keys).size).toBe(TAB_DEFS.length);
     expect(keys).toEqual(CANONICAL_KEYS);
-  });
-
-  it('uses Home as the default while preserving the stable today route key', () => {
-    expect(DEFAULT_TAB_KEY).toBe('today');
-    expect(normalizeTabKey('today')).toBe('today');
-    expect(normalizeTabKey('plan')).toBe('plan');
-    expect(normalizeTabKey('progress')).toBe('progress');
-    expect(normalizeTabKey('workout')).toBe('today');
-    expect(normalizeTabKey('learn')).toBe('today');
-    expect(normalizeTabKey('profile')).toBe('today');
-    expect(normalizeTabKey('explore')).toBe('today');
-    expect(normalizeTabKey('settings')).toBe('today');
-    expect(normalizeTabKey(2)).toBe('today');
-    expect(getTabDef(DEFAULT_TAB_KEY).screen).toBe('TodayScreen');
   });
 
   it('renders accessible tab controls in canonical traversal order', () => {
@@ -103,7 +78,7 @@ describe('TabBar V1 navigation', () => {
 
   it('selecting each rendered tab calls back with the stable route key', () => {
     const selected: TabKey[] = [];
-    const tree = TabBar({ active: DEFAULT_TAB_KEY, onChange: (key) => selected.push(key) });
+    const tree = TabBar({ active: 'today', onChange: (key) => selected.push(key) });
     const tabs = collectElements(
       tree,
       (element) => (element.props as { accessibilityRole?: string }).accessibilityRole === 'tab'

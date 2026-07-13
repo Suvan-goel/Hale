@@ -2,4 +2,4 @@
 export const CONTACT_EMAIL =
   import.meta.env.VITE_CONTACT_EMAIL?.trim() || "suvangoel@gmail.com";
 
-export const SITE_NAME = "Elegant";
+export const SITE_NAME = "Pearl";

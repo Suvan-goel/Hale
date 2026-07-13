@@ -22,20 +22,20 @@ import {
   rollingBaseline,
   type BandRelation,
   type DimensionReading,
-} from '../dimensions';
+} from '../dimensions/baseline';
 import type { StoredCheckUp } from '../history';
 
 export const CLARITY_FLUCTUATION_NOTE =
-  'Check-ins fluctuate — sleep, symptom load, and stress all show up here. The trend over months is what matters, never one reading.';
+  'Check-ins fluctuate — sleep, symptom load, and stress all show up here. The pattern across check-ups is what matters, never one reading.';
 
 export const CLARITY_ACTIVITY_NOTE =
   'Regular physical activity supports brain health. These personal signals are for tracking only and never change your training plan.';
 
 const CLARITY_DRIVERS_SUPPORT =
-  'One cloudier check-in can line up with sleep, symptom load, or stress. Keep tracking monthly; this signal never changes your programme.';
+  'One cloudier check-in can line up with sleep, symptom load, or stress. Keep tracking at programme check-ups; this signal never changes your programme.';
 
 const DUAL_TASK_DRIVERS_SUPPORT =
-  'One less-steady hold can line up with sleep, symptom load, or stress. Keep tracking monthly; this signal never changes your programme.';
+  'One less-steady hold can line up with sleep, symptom load, or stress. Keep tracking at programme check-ups; this signal never changes your programme.';
 
 export type ClaritySeriesId = 'subjective' | 'dual_task' | 'fluency';
 
@@ -257,7 +257,7 @@ function seriesTrend(
       entries: readings.map((reading) => savedEntry(reading)),
       body:
         readings.length === 1
-          ? `Your first ${copy.buildingNoun} is saved. A few more monthly check-ups build your own baseline.`
+          ? `Your first ${copy.buildingNoun} is saved. A few more programme check-ups build your own baseline.`
           : `${readings.length} saved. A few more build your own baseline.`,
     };
   }
@@ -278,7 +278,7 @@ function seriesTrend(
         : { dateLabel: dateLabel(reading.atIso), atIso: reading.atIso, relationLabel }
     ),
     latestRelation,
-    headline: `${relationLabel} this month.`,
+    headline: `${relationLabel} at this check-up.`,
     ...(latestRelation === 'below' ? { supportCopy: copy.support } : {}),
   };
 }

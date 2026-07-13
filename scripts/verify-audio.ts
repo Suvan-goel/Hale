@@ -386,7 +386,7 @@ function parseGenerationPlanRows(): Array<{
   physicalCueKey: string;
   exactScript: string;
 }> {
-  const planPath = path.join(ROOT, 'docs/audits/HALE_VOICE_V2_1_GENERATION_PLAN.csv');
+  const planPath = path.join(ROOT, 'docs/audits/PEARL_VOICE_V2_1_GENERATION_PLAN.csv');
   if (!fs.existsSync(planPath)) return [];
   const lines = fs.readFileSync(planPath, 'utf8').trim().split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) return [];

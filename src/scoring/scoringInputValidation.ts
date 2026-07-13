@@ -1,4 +1,3 @@
-import type { CheckUpItem } from '../checkup/types';
 import {
   LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
   normalizeCheckUpRecordProtocolPolicy,

@@ -1,5 +1,5 @@
 import type { CheckupStatus, CheckupType, MovementAssessment, MovementDomain } from '../adherence/types';
-import type { CheckUpScore, Domain } from '../scoring';
+import type { CheckUpScore } from '../scoring';
 
 export const HEADLINE_MOVEMENT_DOMAINS: readonly MovementDomain[] = ['strength_power', 'balance', 'mobility'];
 
@@ -63,18 +63,9 @@ export function isOfficialCheckupType(type: CheckupType | string | null | undefi
   return type === 'baseline' || type === 'baseline_retake' || type === 'official_retest';
 }
 
-export function isExtraCheckupType(type: CheckupType | string | null | undefined): boolean {
-  return type === 'manual_extra' || type === 'quick_recheck' || type === 'micro_check' || type === 'legacy_unknown';
-}
-
 export function movementDomainFromScoreDomainStrict(domain: unknown): MovementDomain | null {
   if (domain === 'strength' || domain === 'strength_power') return 'strength_power';
   if (domain === 'balance') return 'balance';
   if (domain === 'mobility') return 'mobility';
   return null;
 }
-
-export function scoreDomainFromMovementDomainStrict(domain: MovementDomain): Domain {
-  return domain === 'strength_power' ? 'strength' : domain;
-}
-

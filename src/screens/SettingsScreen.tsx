@@ -1,16 +1,24 @@
 /**
- * Settings screen: four MVP sections — details, workout and voice, safety and
- * camera, privacy and data. Accounts, fake scheduling, and no-effect equipment
- * controls remain out of the product surface.
+ * Settings screen: profile, workout/voice, safety/camera, optional online
+ * profile, and privacy/data. Fake scheduling and no-effect equipment controls
+ * remain out of the product surface.
  */
 
 import * as React from 'react';
 import { BackHandler, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Constants from 'expo-constants';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import type { ActivityLevel } from '../adherence';
+import {
+  LIFE_GOAL_PRESETS,
+  createLifeGoal,
+  getLifeGoalDisplayText,
+} from '../adherence/goalDomainMapping';
+import type { ActivityLevel, LifeGoal, LifeGoalCategory } from '../adherence/types';
 import { VoiceChannel } from '../audio/voicePlayer';
 import { BackArrowButton } from '../components/BackArrowButton';
+import { AccountAuthCard } from '../components/AccountAuthCard';
+import { isOnlineProfilesEnabled } from '../config/onlineProfiles';
 import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { Button, Screen, ToggleRow } from '../components/ui';
@@ -18,14 +26,11 @@ import {
   AppSettings,
   MENOPAUSE_STAGE_OPTIONS,
   STARTING_PACE_OPTIONS,
-  SYMPTOM_PICTURE_TOGGLE_OPTIONS,
   ageFromDateOfBirth,
   ageBandForAge,
   dateOfBirthInputLabel,
-  isSymptomToggleSelected,
   normalizeDateOfBirth,
   normalizeDateOfBirthInput,
-  toggleSymptomPicture,
   startingEffortLabel,
   type MenopauseStage,
   type MenopauseSymptomPicture,
@@ -36,6 +41,17 @@ import {
 } from '../profile';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
+import type { JointFlag } from '../programme';
+import type {
+  OnlineProfileConflictResolution,
+  OnlineProfileSyncState,
+} from '../services/backend';
+import {
+  confirmGentleStartSafetyStep,
+  removeHealthAnswers,
+  saveHealthAnswers,
+  type SettingsSafetyPreferences,
+} from '../settings/healthAnswerPreferences';
 
 import { BRAND } from '../brand';
 const VOICE_PREVIEW_CUE = 'voice-preview' as const;
@@ -43,7 +59,10 @@ const VOICE_PREVIEW_CUE = 'voice-preview' as const;
 type ProfileSection =
   | 'details'
   | 'safety'
+  | 'health'
+  | 'gentle-start'
   | 'workout'
+  | 'account'
   | 'privacy';
 
 type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
@@ -51,15 +70,27 @@ type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
 const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> = {
   details: {
     title: 'Your profile',
-    subtitle: 'Update your name and reference details.',
+    subtitle: 'Update your name, goal, and reference details.',
   },
   safety: {
     title: 'Safety & camera',
     subtitle: 'Review movement support and private camera setup.',
   },
+  health: {
+    title: 'Health answers',
+    subtitle: 'Review the local answers that shape safer starting choices.',
+  },
+  'gentle-start': {
+    title: 'Gentle Start',
+    subtitle: 'Review the safety step that keeps your Movement Check-Up unavailable.',
+  },
   workout: {
     title: 'Workout & voice',
     subtitle: 'Choose your starting effort and trainer voice.',
+  },
+  account: {
+    title: 'Online profile',
+    subtitle: 'Sign in, sync your profile, or manage your account.',
   },
   privacy: {
     title: 'Privacy & data',
@@ -67,13 +98,7 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   },
 };
 
-export interface SettingsSafetyPreferences {
-  balanceSupportDefault: boolean;
-  lowImpact: boolean;
-  quietMode: boolean;
-  hasStairs: boolean | null;
-  consentHealthData: boolean;
-}
+export type { SettingsSafetyPreferences } from '../settings/healthAnswerPreferences';
 
 type SettingsScreenProps = {
   profile: UserProfile;
@@ -85,8 +110,15 @@ type SettingsScreenProps = {
   onStartingEffortChange: (startingEffort: ActivityLevel) => void;
   onSafetyPreferencesChange: (next: SettingsSafetyPreferences) => void;
   onOpenCameraSetup: () => void;
+  cameraPermission: 'checking' | 'granted' | 'undetermined' | 'denied';
+  onRequestCameraPermission: () => void;
   onClearDeviceData: () => Promise<void>;
   onDataCleared: () => void;
+  onlineProfileSyncState: OnlineProfileSyncState;
+  onRetryOnlineProfileSync: () => void;
+  onResolveOnlineProfileConflict: (
+    resolution: Exclude<OnlineProfileConflictResolution, 'automatic'>
+  ) => void;
   onBack?: () => void;
   /** DEV-only (gated on `__DEV__` by the caller): seed a mock multi-session,
    * multi-check-up journey so the screens can be viewed populated. */
@@ -110,8 +142,13 @@ function SettingsScreenContent({
   onStartingEffortChange,
   onSafetyPreferencesChange,
   onOpenCameraSetup,
+  cameraPermission,
+  onRequestCameraPermission,
   onClearDeviceData,
   onDataCleared,
+  onlineProfileSyncState,
+  onRetryOnlineProfileSync,
+  onResolveOnlineProfileConflict,
   onBack,
   onFillSampleData,
   onResetSampleData,
@@ -133,6 +170,8 @@ function SettingsScreenContent({
   const effortLabel = startingEffortLabel(startingEffort);
   const selectedVoiceLabel = getVoice(settings.voiceId).label;
   const profileSummary = profileReferenceSummary(profile);
+  const showOnlineProfile =
+    isOnlineProfilesEnabled() || onlineProfileSyncState.status !== 'signed_out';
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => {
@@ -142,15 +181,23 @@ function SettingsScreenContent({
   React.useEffect(() => setMenopauseStage(profile.menopauseStage), [profile.menopauseStage]);
   React.useEffect(() => setSymptomPicture(profile.symptomPicture), [profile.symptomPicture]);
   React.useEffect(() => () => voicePreviewRef.current?.stop(), []);
+  const closeSection = React.useCallback(() => {
+    if (openSection === 'health' || openSection === 'gentle-start') {
+      setOpenSection('safety');
+      return;
+    }
+    setOpenSection(null);
+  }, [openSection]);
+
   React.useEffect(() => {
     if (Platform.OS !== 'android' || openSection === null) return;
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      setOpenSection(null);
+      closeSection();
       return true;
     });
     return () => subscription.remove();
-  }, [openSection]);
+  }, [closeSection, openSection]);
 
   const openProfileSection = (section: ProfileSection) => setOpenSection(section);
   const previewVoice = React.useCallback((voiceId: string) => {
@@ -205,9 +252,16 @@ function SettingsScreenContent({
     setMenopauseStage(next);
     commitReferenceDetails(dateOfBirthText, referenceSex, next);
   };
-  const updateSymptomPicture = (next: MenopauseSymptomPicture | null) => {
-    setSymptomPicture(next);
-    commitReferenceDetails(dateOfBirthText, referenceSex, menopauseStage, next);
+  const removeSymptomPicture = () => {
+    setSymptomPicture(null);
+    onProfileChange({ ...profile, symptomPicture: null });
+  };
+  const updateLifeGoal = (category: LifeGoalCategory) => {
+    const nowIso = new Date().toISOString();
+    const lifeGoal = profile.lifeGoal
+      ? { ...profile.lifeGoal, category, updatedAt: nowIso }
+      : createLifeGoal({ category, nowIso });
+    onProfileChange({ ...profile, lifeGoal });
   };
 
   const renderSectionContent = () => {
@@ -225,7 +279,9 @@ function SettingsScreenContent({
             menopauseStage={menopauseStage}
             onMenopauseStageChange={updateMenopauseStage}
             symptomPicture={symptomPicture}
-            onSymptomPictureChange={updateSymptomPicture}
+            onRemoveSymptomPicture={removeSymptomPicture}
+            lifeGoal={profile.lifeGoal}
+            onLifeGoalChange={updateLifeGoal}
           />
         </>
       );
@@ -234,10 +290,10 @@ function SettingsScreenContent({
     if (openSection === 'safety') {
       return (
         <>
-          <DetailOverview
-            title="Safe support, private camera"
-            body="Review movement support choices and how to place your phone securely. Camera video is never shown or saved."
-            meta={safetyPreferences.consentHealthData ? 'Health answers used on this device' : 'Health answers are off'}
+          <HealthAnswersCard
+            value={safetyPreferences}
+            onReview={() => setOpenSection('health')}
+            onReviewGentleStart={() => setOpenSection('gentle-start')}
           />
 
           <SafetyPreferencesCard
@@ -245,20 +301,39 @@ function SettingsScreenContent({
             onChange={onSafetyPreferencesChange}
           />
 
-          <SafetyReadinessCard onOpenCameraSetup={onOpenCameraSetup} />
+          <SafetyReadinessCard
+            cameraPermission={cameraPermission}
+            onOpenCameraSetup={onOpenCameraSetup}
+            onRequestCameraPermission={onRequestCameraPermission}
+          />
         </>
+      );
+    }
+
+    if (openSection === 'health') {
+      return (
+        <HealthAnswersEditor
+          value={safetyPreferences}
+          onChange={onSafetyPreferencesChange}
+          onDone={() => setOpenSection('safety')}
+        />
+      );
+    }
+
+    if (openSection === 'gentle-start') {
+      return (
+        <GentleStartReview
+          onConfirm={() => {
+            onSafetyPreferencesChange(confirmGentleStartSafetyStep(safetyPreferences));
+            setOpenSection('safety');
+          }}
+        />
       );
     }
 
     if (openSection === 'workout') {
       return (
         <>
-          <DetailOverview
-            title={`${effortLabel} · ${selectedVoiceLabel}`}
-            body="Starting effort shapes programme placement. Your trainer voice guides both workouts and check-ups."
-            meta="Workout preferences"
-          />
-
           <PreferenceCard
             title="Starting effort"
             subtitle="Used when your programme sets or refreshes starting levels."
@@ -276,19 +351,27 @@ function SettingsScreenContent({
       );
     }
 
+    if (openSection === 'account') {
+      return (
+        <AccountAuthCard
+          context="settings"
+          onlineProfileSyncState={onlineProfileSyncState}
+          onRetryOnlineProfileSync={onRetryOnlineProfileSync}
+          onResolveOnlineProfileConflict={onResolveOnlineProfileConflict}
+        />
+      );
+    }
+
     if (openSection === 'privacy') {
       return (
         <>
-          <DetailOverview
-            title="Private by default"
-            body={`${BRAND.appName} uses the camera to measure movement. You never see a live video, and ${BRAND.appName} does not save it.`}
-          />
+          <PrivacyPromiseCard syncState={onlineProfileSyncState} />
 
-          <PrivacyStorageCard />
-
-          <ClearDeviceDataCard
-            onClearDeviceData={onClearDeviceData}
-            onDataCleared={onDataCleared}
+          <PrivacyStorageCard
+            consentHealthData={safetyPreferences.consentHealthData}
+            hasMenopauseContext={menopauseStage !== null}
+            hasSymptomInformation={symptomPicture !== null}
+            syncState={onlineProfileSyncState}
           />
 
           {/* Population-comparison switch (reposition slice 5, condition 3):
@@ -303,6 +386,15 @@ function SettingsScreenContent({
               onValueChange={(value) => onSettingsChange({ ...settings, comparisonOptIn: value })}
             />
           </View>
+
+          <ClearDeviceDataCard
+            onClearDeviceData={onClearDeviceData}
+            onDataCleared={onDataCleared}
+            syncState={onlineProfileSyncState}
+            disabled={onlineProfileSyncState.status === 'syncing'}
+          />
+
+          <AppVersionFooter />
         </>
       );
     }
@@ -315,18 +407,21 @@ function SettingsScreenContent({
 
     return (
       <>
-        <Screen contentStyle={styles.screenContent}>
+        <Screen
+          contentStyle={[
+            styles.screenContent,
+            { paddingHorizontal: responsive.isCompactWidth ? spacing.xl : spacing.xxl },
+          ]}
+        >
           <View style={styles.detailBackRow}>
             <BackArrowButton
               accessibilityLabel="Back to settings"
-              onPress={() => setOpenSection(null)}
+              onPress={closeSection}
             />
           </View>
           <View style={styles.detailHeader}>
-            <View style={styles.titleGroup}>
-              <HeaderLogo />
-              <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>{copy.title}</Text>
-            </View>
+            <Text style={styles.detailEyebrow}>SETTINGS</Text>
+            <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>{copy.title}</Text>
             <Text style={styles.detailSubtitle}>{copy.subtitle}</Text>
           </View>
           {renderSectionContent()}
@@ -344,12 +439,21 @@ function SettingsScreenContent({
   }
 
   return (
-    <Screen contentStyle={styles.screenContent}>
+    <Screen
+      contentStyle={[
+        styles.screenContent,
+        { paddingHorizontal: responsive.isCompactWidth ? spacing.xl : spacing.xxl },
+      ]}
+    >
       {onBack ? <BackArrowButton accessibilityLabel="Back" onPress={onBack} /> : null}
       <View style={styles.headerRow}>
-        <View style={styles.titleGroup}>
-          <HeaderLogo />
+        <View style={styles.headerCopy}>
+          <Text style={styles.headerEyebrow}>YOUR PEARL</Text>
           <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Settings</Text>
+          <Text style={styles.headerSubtitle}>Make your programme feel right for you.</Text>
+        </View>
+        <View style={styles.headerMark}>
+          <HeaderLogo size={42} />
         </View>
       </View>
 
@@ -363,40 +467,58 @@ function SettingsScreenContent({
         accessibilityRole="button"
         accessibilityLabel="Edit personal details"
       >
+        <View style={styles.profileHaloLarge} />
+        <View style={styles.profileHaloSmall} />
         <View style={styles.avatar}>
           <ProfileDetailsGlyph />
         </View>
         <View style={styles.profileCopy}>
+          <Text style={styles.profileEyebrow}>YOUR PROFILE</Text>
           <Text style={styles.profileName} numberOfLines={1}>
             {displayName}
           </Text>
           <Text style={styles.profileSummary} numberOfLines={2}>{profileSummary}</Text>
         </View>
+        <View style={styles.profileEditPill}>
+          <Text style={styles.profileEditText}>Edit</Text>
+          <Text style={styles.profileEditChevron}>{'›'}</Text>
+        </View>
       </Pressable>
 
-      <SettingsSection title="Workout">
+      <SettingsSection title="Preferences" subtitle="Training, guidance, and support">
         <ProfileMenuRow
           title={SECTION_COPY.workout.title}
-          subtitle={`${effortLabel} · ${selectedVoiceLabel}`}
+          subtitle={`Starting effort: ${effortLabel} · Voice: ${selectedVoiceLabel}`}
           icon="sliders"
+          tone="accent"
           onPress={() => openProfileSection('workout')}
+          showDivider
         />
-      </SettingsSection>
-
-      <SettingsSection title="Safety">
         <ProfileMenuRow
           title={SECTION_COPY.safety.title}
-          subtitle="Movement support and private camera setup."
+          subtitle={`${safetyPreferences.consentHealthData ? 'Health answers on' : 'Health answers off'} · ${safetyPreferences.quietMode ? 'Quiet sessions on' : 'Standard sound'}`}
           icon="shield"
+          tone="sage"
           onPress={() => openProfileSection('safety')}
         />
       </SettingsSection>
 
-      <SettingsSection title="Privacy">
+      <SettingsSection title="Account & data" subtitle="Private by default, always under your control">
+        {showOnlineProfile ? (
+          <ProfileMenuRow
+            title={SECTION_COPY.account.title}
+            subtitle={onlineProfileSummary(onlineProfileSyncState)}
+            icon="account"
+            tone="gold"
+            onPress={() => openProfileSection('account')}
+            showDivider
+          />
+        ) : null}
         <ProfileMenuRow
           title={SECTION_COPY.privacy.title}
           subtitle="Local storage, comparisons, and delete data."
           icon="lock"
+          tone="neutral"
           onPress={() => openProfileSection('privacy')}
         />
       </SettingsSection>
@@ -424,10 +546,21 @@ function SettingsScreenContent({
   );
 }
 
-function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+function SettingsSection({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.settingsSection}>
-      <Text style={styles.sectionLabel}>{title}</Text>
+      <View style={styles.sectionHeading}>
+        <Text style={styles.sectionLabel}>{title}</Text>
+        {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+      </View>
       <View style={styles.menuCard}>{children}</View>
     </View>
   );
@@ -437,12 +570,14 @@ function ProfileMenuRow({
   title,
   subtitle,
   icon,
+  tone = 'neutral',
   onPress,
   showDivider,
 }: {
   title: string;
   subtitle?: string;
   icon: MenuIconName;
+  tone?: MenuIconTone;
   onPress: () => void;
   showDivider?: boolean;
 }) {
@@ -459,41 +594,17 @@ function ProfileMenuRow({
       accessibilityRole="button"
       accessibilityLabel={title}
     >
-      <MenuIcon name={icon} />
+      <View style={[styles.menuIconTile, menuIconToneStyle(tone)]}>
+        <MenuIcon name={icon} color={menuIconToneColor(tone)} />
+      </View>
       <View style={styles.menuCopy}>
         <Text style={styles.menuTitle}>{title}</Text>
         {subtitle ? <Text style={styles.menuSubtitle}>{subtitle}</Text> : null}
       </View>
-      <Text style={styles.chevron}>{'›'}</Text>
-    </Pressable>
-  );
-}
-
-function DetailOverview({
-  icon,
-  title,
-  body,
-  meta,
-}: {
-  icon?: MenuIconName;
-  title: string;
-  body?: string;
-  meta?: string;
-}) {
-  const responsive = useResponsiveLayout();
-  return (
-    <View style={[styles.detailOverview, responsive.isCompactPhone && styles.compactCardPadding]}>
-      {icon ? (
-        <View style={styles.detailOverviewIcon}>
-          <MenuIcon name={icon} />
-        </View>
-      ) : null}
-      <View style={styles.detailOverviewCopy}>
-        <Text style={styles.detailOverviewTitle}>{title}</Text>
-        {body ? <Text style={styles.detailOverviewBody}>{body}</Text> : null}
-        {meta ? <Text style={styles.detailOverviewMeta}>{meta}</Text> : null}
+      <View style={styles.chevronButton}>
+        <Text style={styles.chevron}>{'›'}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -529,8 +640,9 @@ function VoiceSelectorCard({
   return (
     <View style={[styles.voiceSelectorCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.voiceSelectorHeader}>
+        <Text style={styles.detailCardTitle}>Trainer voice</Text>
         <Text style={styles.voiceSelectorBody}>
-          Tap a voice to use it next time.
+          Tap the speaker to preview. Tap a name to use that voice next time.
         </Text>
       </View>
       <View style={styles.voiceOptionList}>
@@ -604,6 +716,282 @@ function VoiceOptionRow({
   );
 }
 
+const HEALTH_JOINT_OPTIONS: readonly { value: JointFlag; label: string }[] = [
+  { value: 'knee', label: 'Knees' },
+  { value: 'hip', label: 'Hips' },
+  { value: 'shoulder', label: 'Shoulders' },
+  { value: 'wrist', label: 'Wrists' },
+  { value: 'low_back', label: 'Lower back' },
+];
+
+function HealthAnswersCard({
+  value,
+  onReview,
+  onReviewGentleStart,
+}: {
+  value: SettingsSafetyPreferences;
+  onReview: () => void;
+  onReviewGentleStart: () => void;
+}) {
+  const gentleStartPending = value.gentleStartActive && !value.gpConfirmed;
+  return (
+    <DetailCard
+      title="Health and safety answers"
+      body={
+        value.consentHealthData
+          ? `Used only on this device to choose conservative starting levels, support, and quieter variations.`
+          : `Health answers are off. Sessions stay conservative and the private Movement Check-Up remains unavailable.`
+      }
+    >
+      <View style={styles.healthAnswerActions}>
+        <View style={styles.healthAnswerStatusRow}>
+          <Text style={styles.healthAnswerStatusLabel}>Health answers</Text>
+          <Text style={styles.healthAnswerStatusValue}>
+            {value.consentHealthData ? 'Used on this device' : 'Off'}
+          </Text>
+        </View>
+        <Button
+          title={value.consentHealthData ? 'Review or remove health answers' : 'Review health questions'}
+          variant="secondary"
+          onPress={onReview}
+        />
+        {gentleStartPending ? (
+          <View style={styles.gentleStartNotice}>
+            <Text style={styles.gentleStartNoticeTitle}>Gentle Start is active</Text>
+            <Text style={styles.gentleStartNoticeBody}>
+              Workouts remain available at the gentlest start. Complete the recommended safety step before enabling the Movement Check-Up.
+            </Text>
+            <Button title="Review Gentle Start" variant="secondary" onPress={onReviewGentleStart} />
+          </View>
+        ) : null}
+      </View>
+    </DetailCard>
+  );
+}
+
+function HealthAnswersEditor({
+  value,
+  onChange,
+  onDone,
+}: {
+  value: SettingsSafetyPreferences;
+  onChange: (next: SettingsSafetyPreferences) => void;
+  onDone: () => void;
+}) {
+  const [stage, setStage] = React.useState<'consent' | 'answers'>(
+    value.consentHealthData ? 'answers' : 'consent'
+  );
+  const [heartAnswer, setHeartAnswer] = React.useState<'yes' | 'no' | 'prefer_not_to_say'>(
+    value.gentleStartActive ? 'yes' : 'no'
+  );
+  const [jointFlags, setJointFlags] = React.useState<readonly JointFlag[]>(value.jointFlags);
+  const [pelvicSupport, setPelvicSupport] = React.useState(value.lowImpact);
+  const [balanceSupport, setBalanceSupport] = React.useState(value.balanceSupportDefault);
+  const [confirmingRemoval, setConfirmingRemoval] = React.useState(false);
+
+  const toggleJoint = (joint: JointFlag) => {
+    setJointFlags((current) =>
+      current.includes(joint) ? current.filter((item) => item !== joint) : [...current, joint]
+    );
+  };
+
+  const saveAnswers = () => {
+    onChange(
+      saveHealthAnswers(value, {
+        heartAnswer,
+        jointFlags,
+        pelvicSupport,
+        balanceSupport,
+      })
+    );
+    onDone();
+  };
+
+  const removeAnswers = () => {
+    onChange(removeHealthAnswers(value));
+    onDone();
+  };
+
+  if (stage === 'consent') {
+    return (
+      <DetailCard
+        title="Use health answers on this device?"
+        body="These answers stay on this phone. They tailor starting levels and support; they are never uploaded, sold, or shared."
+      >
+        <View style={styles.healthAnswerActions}>
+          <Button title="Yes, review the questions" onPress={() => setStage('answers')} />
+          <Button title="Keep health answers off" variant="secondary" onPress={onDone} />
+        </View>
+      </DetailCard>
+    );
+  }
+
+  return (
+    <>
+      <DetailCard
+        title="Heart and dizziness"
+        body="Have you been told that you have a heart condition — or do you get chest pain or serious dizziness when active?"
+      >
+        <SettingsChoiceGrid
+          options={[
+            { value: 'yes', label: 'Yes' },
+            { value: 'no', label: 'No' },
+            { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+          ]}
+          selected={heartAnswer}
+          onSelect={(next) => setHeartAnswer(next as typeof heartAnswer)}
+        />
+        {heartAnswer !== 'no' ? (
+          <Text style={styles.personalFieldHint}>
+            This keeps Gentle Start active until the recommended safety step is complete.
+          </Text>
+        ) : null}
+      </DetailCard>
+
+      <DetailCard
+        title="Areas that need a gentler start"
+        body="Select any areas that regularly hurt or feel unreliable. These choices start related movements more conservatively."
+      >
+        <View style={styles.personalAgeOptionGrid}>
+          {HEALTH_JOINT_OPTIONS.map((option) => {
+            const selected = jointFlags.includes(option.value);
+            return (
+              <Pressable
+                key={option.value}
+                style={({ pressed }) => [
+                  styles.personalAgeOption,
+                  styles.personalAgeOptionWide,
+                  selected && styles.personalAgeOptionSelected,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => toggleJoint(option.value)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={option.label}
+              >
+                <Text style={[styles.personalAgeOptionText, selected && styles.personalAgeOptionTextSelected]}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </DetailCard>
+
+      <DetailCard
+        title="Support and comfort"
+        body="These choices change future sessions immediately."
+      >
+        <ToggleRow
+          label="Use pelvic-floor-friendly guidance"
+          description="Leaves out the stomping finisher and enables the related low-impact guidance."
+          value={pelvicSupport}
+          onValueChange={setPelvicSupport}
+        />
+        {value.balanceSupportRequired ? (
+          <LockedSafetyRow
+            label="Use supported balance variations"
+            description="Your latest check-up requires this protection."
+            status="Required"
+          />
+        ) : (
+          <ToggleRow
+            label="Use supported balance variations"
+            description="Keep sturdy support nearby and use supported versions by default."
+            value={balanceSupport}
+            onValueChange={setBalanceSupport}
+          />
+        )}
+      </DetailCard>
+
+      <View style={styles.healthEditorActions}>
+        <Button title="Save health answers" onPress={saveAnswers} />
+        {value.consentHealthData ? (
+          confirmingRemoval ? (
+            <DetailCard
+              title="Remove health answers?"
+              body="This clears the health-derived answers on this device and turns off the Movement Check-Up. Workouts remain available with conservative choices."
+            >
+              <View style={styles.healthAnswerActions}>
+                <Button title="Remove health answers" variant="danger" onPress={removeAnswers} />
+                <Button title="Keep my answers" variant="secondary" onPress={() => setConfirmingRemoval(false)} />
+              </View>
+            </DetailCard>
+          ) : (
+            <Button
+              title="Stop using and remove health answers"
+              variant="danger"
+              onPress={() => setConfirmingRemoval(true)}
+            />
+          )
+        ) : null}
+      </View>
+    </>
+  );
+}
+
+function SettingsChoiceGrid({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: readonly { value: string; label: string }[];
+  selected: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <View style={styles.personalAgeOptionGrid}>
+      {options.map((option) => {
+        const isSelected = selected === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            style={({ pressed }) => [
+              styles.personalAgeOption,
+              styles.personalAgeOptionWide,
+              isSelected && styles.personalAgeOptionSelected,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => onSelect(option.value)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
+            accessibilityLabel={option.label}
+          >
+            <Text style={[styles.personalAgeOptionText, isSelected && styles.personalAgeOptionTextSelected]}>
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function GentleStartReview({ onConfirm }: { onConfirm: () => void }) {
+  const [confirming, setConfirming] = React.useState(false);
+  return (
+    <DetailCard
+      title={confirming ? 'Confirm the safety step' : 'Gentle Start is active'}
+      body={
+        confirming
+          ? 'Only confirm if a qualified health professional has said that a Movement Check-Up is appropriate for you. The app cannot make that decision.'
+          : 'Your workouts remain available at their gentlest starting levels. The Movement Check-Up stays unavailable until the safety step recommended during onboarding is complete.'
+      }
+    >
+      <View style={styles.healthAnswerActions}>
+        {confirming ? (
+          <>
+            <Button title="Confirm and enable check-ups" onPress={onConfirm} />
+            <Button title="Not yet" variant="secondary" onPress={() => setConfirming(false)} />
+          </>
+        ) : (
+          <Button title="I’ve completed the safety step" onPress={() => setConfirming(true)} />
+        )}
+      </View>
+    </DetailCard>
+  );
+}
+
 function SafetyPreferencesCard({
   value,
   onChange,
@@ -617,21 +1005,23 @@ function SafetyPreferencesCard({
       body="These choices change upcoming sessions immediately. You can still stop or skip any movement."
     >
       <View style={styles.safetyPreferenceStack}>
-        <ConservativeSafetyRow
-          label="Keep support nearby for balance"
-          description="Uses supported balance variations by default. Once enabled, this protection stays on."
-          enabled={value.balanceSupportDefault}
-          onEnable={() => onChange({ ...value, balanceSupportDefault: true })}
-        />
-        <ToggleRow
-          label="Keep sessions low impact"
-          description="Leaves out the stomping finisher and uses the low-impact route."
-          value={value.lowImpact}
-          onValueChange={(lowImpact) => onChange({ ...value, lowImpact })}
-        />
+        {value.balanceSupportRequired ? (
+          <LockedSafetyRow
+            label="Keep support nearby for balance"
+            description="Your latest check-up requires supported balance variations. A future check-up can review this protection."
+            status="Required"
+          />
+        ) : (
+          <ToggleRow
+            label="Keep support nearby for balance"
+            description="Use supported balance variations by default. You can change a voluntary preference at any time."
+            value={value.balanceSupportDefault}
+            onValueChange={(balanceSupportDefault) => onChange({ ...value, balanceSupportDefault })}
+          />
+        )}
         <ToggleRow
           label="Avoid stomping sounds"
-          description="Keeps the quiet finisher route on."
+          description="Leaves out the stomping finisher and keeps sessions quieter."
           value={value.quietMode}
           onValueChange={(quietMode) => onChange({ ...value, quietMode })}
         />
@@ -646,16 +1036,14 @@ function SafetyPreferencesCard({
   );
 }
 
-function ConservativeSafetyRow({
+function LockedSafetyRow({
   label,
   description,
-  enabled,
-  onEnable,
+  status,
 }: {
   label: string;
   description: string;
-  enabled: boolean;
-  onEnable: () => void;
+  status: string;
 }) {
   return (
     <View style={styles.conservativeSafetyRow}>
@@ -663,23 +1051,20 @@ function ConservativeSafetyRow({
         <Text style={styles.conservativeSafetyLabel}>{label}</Text>
         <Text style={styles.conservativeSafetyDescription}>{description}</Text>
       </View>
-      {enabled ? (
-        <Text style={styles.conservativeSafetyStatus}>On</Text>
-      ) : (
-        <Pressable
-          style={({ pressed }) => [styles.conservativeSafetyButton, pressed && styles.pressed]}
-          onPress={onEnable}
-          accessibilityRole="button"
-          accessibilityLabel={`Turn on ${label}`}
-        >
-          <Text style={styles.conservativeSafetyButtonText}>Turn on</Text>
-        </Pressable>
-      )}
+      <Text style={styles.conservativeSafetyStatus}>{status}</Text>
     </View>
   );
 }
 
-function SafetyReadinessCard({ onOpenCameraSetup }: { onOpenCameraSetup: () => void }) {
+function SafetyReadinessCard({
+  cameraPermission,
+  onOpenCameraSetup,
+  onRequestCameraPermission,
+}: {
+  cameraPermission: SettingsScreenProps['cameraPermission'];
+  onOpenCameraSetup: () => void;
+  onRequestCameraPermission: () => void;
+}) {
   const responsive = useResponsiveLayout();
   return (
     <View style={[styles.safetyCard, responsive.isCompactPhone && styles.compactCardPadding]}>
@@ -700,6 +1085,14 @@ function SafetyReadinessCard({ onOpenCameraSetup }: { onOpenCameraSetup: () => v
           onPress={onOpenCameraSetup}
           first
         />
+        {cameraPermission === 'denied' || cameraPermission === 'undetermined' ? (
+          <SafetyActionRow
+            icon="lock"
+            title={cameraPermission === 'denied' ? 'Review camera access' : 'Allow camera access'}
+            body="Camera access is needed only for a private Movement Check-Up. Video is never shown or saved."
+            onPress={onRequestCameraPermission}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -752,7 +1145,9 @@ function PersonalDetailsCard({
   menopauseStage,
   onMenopauseStageChange,
   symptomPicture,
-  onSymptomPictureChange,
+  onRemoveSymptomPicture,
+  lifeGoal,
+  onLifeGoalChange,
 }: {
   name: string;
   onNameChange: (value: string) => void;
@@ -764,11 +1159,14 @@ function PersonalDetailsCard({
   menopauseStage: MenopauseStage | null;
   onMenopauseStageChange: (value: MenopauseStage) => void;
   symptomPicture: MenopauseSymptomPicture | null;
-  onSymptomPictureChange: (value: MenopauseSymptomPicture | null) => void;
+  onRemoveSymptomPicture: () => void;
+  lifeGoal: LifeGoal | null;
+  onLifeGoalChange: (category: LifeGoalCategory) => void;
 }) {
   const responsive = useResponsiveLayout();
   const dateOfBirth = normalizeDateOfBirth(dateOfBirthText);
   const exactAge = ageFromDateOfBirth(dateOfBirth);
+  const [goalPickerOpen, setGoalPickerOpen] = React.useState(false);
   return (
     <View style={[styles.personalCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.personalCardIntro}>
@@ -797,6 +1195,57 @@ function PersonalDetailsCard({
               />
             </View>
           </View>
+        </View>
+
+        <View style={[styles.personalAgeRangePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
+          <View style={styles.personalAgeRangeHeader}>
+            <Text style={styles.personalFieldLabel}>What I want to stay strong for</Text>
+            <Text style={styles.personalAgeRangeValue}>{lifeGoal ? 'Selected' : 'Not set'}</Text>
+          </View>
+          <Text style={styles.currentGoalText}>
+            {lifeGoal ? getLifeGoalDisplayText(lifeGoal) : 'Choose a goal when you are ready.'}
+          </Text>
+          <Text style={styles.personalFieldHint}>
+            This can shape future plan emphasis and messaging. It never changes a measured result or rewrites an earlier check-up.
+          </Text>
+          <Button
+            title={goalPickerOpen ? 'Hide goal choices' : lifeGoal ? 'Change goal' : 'Choose a goal'}
+            variant="secondary"
+            onPress={() => setGoalPickerOpen((open) => !open)}
+          />
+          {goalPickerOpen ? (
+            <View style={styles.lifeGoalList}>
+              {LIFE_GOAL_PRESETS.map((option, index) => {
+                const selected = lifeGoal?.category === option.category;
+                return (
+                  <Pressable
+                    key={option.category}
+                    style={({ pressed }) => [
+                      styles.sessionFeelOption,
+                      index > 0 && styles.sessionFeelDivider,
+                      selected && styles.sessionFeelOptionSelected,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => {
+                      onLifeGoalChange(option.category);
+                      setGoalPickerOpen(false);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={option.label}
+                  >
+                    <View style={styles.sessionFeelCopy}>
+                      <Text style={[styles.sessionFeelTitle, selected && styles.sessionFeelTitleSelected]}>
+                        {option.label}
+                      </Text>
+                      <Text style={styles.sessionFeelBody}>{option.hint}</Text>
+                    </View>
+                    <SelectionIndicator selected={selected} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
         </View>
 
         <View style={[styles.personalAgeRangePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
@@ -852,6 +1301,9 @@ function PersonalDetailsCard({
               );
             })}
           </View>
+          <Text style={styles.personalFieldHint}>
+            These details select published reference tables; they do not change what the camera measures. Changes apply to future check-ups, while saved results keep the reference recorded at the time.
+          </Text>
           {referenceSex === 'female' ? (
             <>
               <Text style={styles.personalFieldLabel}>Menopause stage</Text>
@@ -887,39 +1339,15 @@ function PersonalDetailsCard({
               <Text style={styles.personalFieldHint}>
                 Shapes {BRAND.appName}'s guidance — never how your results are measured.
               </Text>
-              <Text style={styles.personalFieldLabel}>Symptom picture (optional)</Text>
-              <View style={styles.personalAgeOptionGrid}>
-                {SYMPTOM_PICTURE_TOGGLE_OPTIONS.map((option) => {
-                  const selected = isSymptomToggleSelected(symptomPicture, option.value);
-                  return (
-                    <Pressable
-                      key={option.value}
-                      style={({ pressed }) => [
-                        styles.personalAgeOption,
-                        styles.personalAgeOptionWide,
-                        selected && styles.personalAgeOptionSelected,
-                        pressed && styles.pressed,
-                      ]}
-                      onPress={() => onSymptomPictureChange(toggleSymptomPicture(symptomPicture, option.value))}
-                      accessibilityRole="button"
-                      accessibilityLabel={option.label}
-                      accessibilityState={{ selected }}
-                    >
-                      <Text
-                        style={[styles.personalAgeOptionText, selected && styles.personalAgeOptionTextSelected]}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.88}
-                      >
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <Text style={styles.personalFieldHint}>
-                Saved as optional context in your profile. It does not change your results or workouts yet.
-              </Text>
+              {symptomPicture !== null ? (
+                <View style={styles.savedSymptomPanel}>
+                  <Text style={styles.personalFieldLabel}>Saved symptom information</Text>
+                  <Text style={styles.personalFieldHint}>
+                    This optional information is not currently used by your results or workouts. You can remove it now.
+                  </Text>
+                  <Button title="Remove symptom information" variant="secondary" onPress={onRemoveSymptomPicture} />
+                </View>
+              ) : null}
             </>
           ) : null}
         </View>
@@ -932,7 +1360,35 @@ function referenceSexSummary(referenceSex: ProfileReferenceSex): string {
   return referenceSex === 'female' ? 'Female' : 'Male';
 }
 
-function PrivacyStorageCard() {
+function PrivacyPromiseCard({ syncState }: { syncState: OnlineProfileSyncState }) {
+  const body = syncState.status === 'signed_out'
+    ? 'Your profile, health choices, programme, workouts, check-ups, Everyday Clarity, and camera data stay on this device.'
+    : syncState.status === 'synced'
+      ? 'Your private non-health profile is saved to Supabase. Health choices, programme, workouts, check-ups, Everyday Clarity, and camera data stay on this device.'
+      : 'Your Supabase account stores your sign-in identity and may hold your last successfully synced non-health profile. Current profile changes remain safe on this device until sync completes. Health and programme data are never uploaded.';
+  return (
+    <DetailCard
+      title="Private by default"
+      body={`${BRAND.appName} uses the camera to measure movement. You never see a live video, and ${BRAND.appName} does not save it.`}
+    >
+      <Text style={styles.privacyPromiseText}>
+        {body}
+      </Text>
+    </DetailCard>
+  );
+}
+
+function PrivacyStorageCard({
+  consentHealthData,
+  hasMenopauseContext,
+  hasSymptomInformation,
+  syncState,
+}: {
+  consentHealthData: boolean;
+  hasMenopauseContext: boolean;
+  hasSymptomInformation: boolean;
+  syncState: OnlineProfileSyncState;
+}) {
   return (
     <DetailCard
       title={`What ${BRAND.appName} saves`}
@@ -943,20 +1399,50 @@ function PrivacyStorageCard() {
           icon="sliders"
           label="Check-up and workout results"
           body="Saved so you can track progress."
-          value="Saved"
+          value="On device"
           first
         />
+        {syncState.status !== 'signed_out' ? (
+          <PrivacyLedgerRow
+            icon="account"
+            label="Account identity"
+            body="Your email and sign-in provider are stored by Supabase Auth."
+            value="Supabase"
+          />
+        ) : null}
         <PrivacyLedgerRow
           icon="account"
           label="Profile information"
-          body="Name, age, reference group, and movement goal."
-          value="Saved"
+          body="Name, date of birth, reference group, selected movement-goal category, trainer voice, and comparison preference."
+          value={onlineProfileStorageLabel(syncState)}
         />
+        {hasMenopauseContext ? (
+          <PrivacyLedgerRow
+            icon="shield"
+            label="Menopause context"
+            body="Used only for local wording and context. It is never uploaded."
+            value="On device"
+          />
+        ) : null}
+        <PrivacyLedgerRow
+          icon="shield"
+          label="Health answers"
+          body="Used only to choose conservative starting levels, support, and low-impact guidance."
+          value={consentHealthData ? 'On device' : 'Off'}
+        />
+        {hasSymptomInformation ? (
+          <PrivacyLedgerRow
+            icon="account"
+            label="Optional symptom information"
+            body="Saved profile context that is not currently used by results or workouts. It can be removed in Your profile."
+            value="On device"
+          />
+        ) : null}
         <PrivacyLedgerRow
           icon="shield"
           label="Safety preferences"
-          body="Support, comfort, and camera setup."
-          value="Saved"
+          body="Support, comfort, quiet-session, and stable-step choices."
+          value="On device"
         />
         <PrivacyLedgerRow
           icon="shield"
@@ -969,20 +1455,35 @@ function PrivacyStorageCard() {
   );
 }
 
+function AppVersionFooter() {
+  const version = Constants.expoConfig?.version ?? '0.1.0';
+  return (
+    <Text style={styles.appVersion} accessibilityLabel={`${BRAND.appName} version ${version}`}>
+      {BRAND.appName} {version}
+    </Text>
+  );
+}
+
 function ClearDeviceDataCard({
   onClearDeviceData,
   onDataCleared,
+  syncState,
+  disabled,
 }: {
   onClearDeviceData: () => Promise<void>;
   onDataCleared: () => void;
+  syncState: OnlineProfileSyncState;
+  disabled: boolean;
 }) {
   const [confirming, setConfirming] = React.useState(false);
   const [clearing, setClearing] = React.useState(false);
   const [cleared, setCleared] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const hasOnlineAccount = syncState.status !== 'signed_out';
+  const profileConfirmedOnline = syncState.status === 'synced';
 
   const clearDeviceData = async () => {
-    if (clearing) return;
+    if (clearing || disabled) return;
     setClearing(true);
     setError(null);
     try {
@@ -1002,7 +1503,11 @@ function ClearDeviceDataCard({
     return (
       <DetailCard
         title="Data cleared"
-        body={`${BRAND.appName} removed your profile, check-ups, workout progress, and settings from this device.`}
+        body={
+          hasOnlineAccount
+            ? `${BRAND.appName} removed the device copy of your profile, check-ups, workout progress, and settings. Your online profile remains, and you were signed out.`
+            : `${BRAND.appName} removed your profile, check-ups, workout progress, and settings from this device.`
+        }
       >
         <Button title="Start again" onPress={onDataCleared} />
       </DetailCard>
@@ -1014,8 +1519,16 @@ function ClearDeviceDataCard({
       title={confirming ? 'Clear all data from this device?' : 'Data on this device'}
       body={
         confirming
-          ? 'This permanently removes your profile, check-ups, workout progress, and settings from this device. It cannot be undone.'
-          : `Your ${BRAND.appName} profile, check-ups, workout progress, and settings are stored on this device.`
+          ? hasOnlineAccount
+            ? 'This permanently removes the device copy of your profile, check-ups, workout progress, and settings, then signs you out. Your online profile remains available. Device deletion cannot be undone.'
+            : 'This permanently removes your profile, check-ups, workout progress, and settings from this device. It cannot be undone.'
+          : disabled
+            ? 'Wait for your online profile to finish saving before clearing this device.'
+            : profileConfirmedOnline
+            ? `Your programme, check-ups, workout progress, and health choices are stored on this device. Your non-health profile is also saved online.`
+            : hasOnlineAccount
+              ? `Your programme, check-ups, workout progress, and health choices are stored on this device. Your Supabase account may hold your last successfully saved non-health profile.`
+            : `Your ${BRAND.appName} profile, check-ups, workout progress, and settings are stored on this device.`
       }
     >
       {error ? (
@@ -1028,14 +1541,14 @@ function ClearDeviceDataCard({
           <Button
             title={clearing ? 'Clearing data...' : 'Clear all data'}
             variant="danger"
-            disabled={clearing}
+            disabled={clearing || disabled}
             accessibilityLabel={`Permanently clear all ${BRAND.appName} data from this device`}
             onPress={() => void clearDeviceData()}
           />
           <Button
             title="Keep my data"
             variant="secondary"
-            disabled={clearing}
+            disabled={clearing || disabled}
             onPress={() => {
               setConfirming(false);
               setError(null);
@@ -1046,6 +1559,7 @@ function ClearDeviceDataCard({
         <Button
           title="Clear data on this device"
           variant="danger"
+          disabled={disabled}
           onPress={() => {
             setConfirming(true);
             setError(null);
@@ -1200,7 +1714,42 @@ function profileReferenceSummary(profile: UserProfile): string {
     parts.push(`Age ${profile.exactAge}`);
   }
   if (profile.referenceSex) parts.push(`${referenceSexSummary(profile.referenceSex)} reference`);
+  if (profile.lifeGoal) parts.push(getLifeGoalDisplayText(profile.lifeGoal));
   return parts.length > 0 ? parts.join(' · ') : 'Review your profile details';
+}
+
+function onlineProfileSummary(state: OnlineProfileSyncState): string {
+  switch (state.status) {
+    case 'signed_out':
+      return 'Optional sign-in · Profile stays on this device';
+    case 'disabled':
+      return 'Signed in · Online profile saving is paused';
+    case 'syncing':
+      return 'Signed in · Saving profile';
+    case 'synced':
+      return 'Signed in · Profile saved online';
+    case 'conflict':
+      return 'Signed in · Choose which profile to keep';
+    case 'failed':
+      return 'Signed in · Online save needs attention';
+  }
+}
+
+function onlineProfileStorageLabel(state: OnlineProfileSyncState): string {
+  switch (state.status) {
+    case 'signed_out':
+      return 'On device';
+    case 'disabled':
+      return 'Sync paused';
+    case 'synced':
+      return 'Device + Supabase';
+    case 'syncing':
+      return 'Saving';
+    case 'conflict':
+      return 'Choose copy';
+    case 'failed':
+      return 'Needs retry';
+  }
 }
 
 function ProfileDetailsGlyph() {
@@ -1234,8 +1783,24 @@ type MenuIconName =
   | 'account'
   | 'lock';
 
-function MenuIcon({ name }: { name: MenuIconName }) {
-  const stroke = colors.textSecondary;
+type MenuIconTone = 'accent' | 'sage' | 'gold' | 'neutral';
+
+function menuIconToneStyle(tone: MenuIconTone) {
+  if (tone === 'accent') return styles.menuIconTileAccent;
+  if (tone === 'sage') return styles.menuIconTileSage;
+  if (tone === 'gold') return styles.menuIconTileGold;
+  return styles.menuIconTileNeutral;
+}
+
+function menuIconToneColor(tone: MenuIconTone): string {
+  if (tone === 'accent') return colors.accentDeep;
+  if (tone === 'sage') return colors.sageDeep;
+  if (tone === 'gold') return colors.accentGold;
+  return colors.textSecondary;
+}
+
+function MenuIcon({ name, color = colors.textSecondary }: { name: MenuIconName; color?: string }) {
+  const stroke = color;
   const common = {
     stroke,
     strokeWidth: 1.8,
@@ -1322,63 +1887,120 @@ function MenuIcon({ name }: { name: MenuIconName }) {
 
 const styles = StyleSheet.create({
   screenContent: {
-    paddingBottom: spacing.xl,
-    gap: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.xl,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing.lg,
+    paddingTop: spacing.xs,
   },
-  titleGroup: {
+  headerCopy: {
     flex: 1,
     minWidth: 0,
-    flexDirection: 'row',
+    gap: 3,
+  },
+  headerEyebrow: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 1.35,
+    color: colors.accentDeep,
+  },
+  headerSubtitle: {
+    ...type.pageSubtitle,
+    marginTop: 2,
+  },
+  headerMark: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'center',
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
   },
   title: { ...type.pageTitle, flexShrink: 1 },
   detailBackRow: {
     alignItems: 'flex-start',
   },
   detailHeader: {
-    gap: spacing.xs,
+    gap: 4,
+    paddingBottom: spacing.xs,
+  },
+  detailEyebrow: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 1.35,
+    color: colors.accentDeep,
   },
   detailSubtitle: {
     ...type.pageSubtitle,
-    paddingLeft: 30 + spacing.sm,
+    marginTop: 1,
   },
   profileCard: {
-    minHeight: 116,
+    minHeight: 126,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderRadius: radius.card,
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
+    overflow: 'hidden',
+  },
+  profileHaloLarge: {
+    position: 'absolute',
+    width: 178,
+    height: 178,
+    borderRadius: 89,
+    right: -92,
+    top: -86,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
+    opacity: 0.4,
+  },
+  profileHaloSmall: {
+    position: 'absolute',
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    right: -30,
+    bottom: -55,
+    backgroundColor: colors.accentSoft,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.input,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgElevated,
+    backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
   },
   profileCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 7,
+    gap: 3,
+  },
+  profileEyebrow: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+    color: colors.accentDeep,
   },
   profileName: {
     fontFamily: fonts.serifMedium,
-    fontSize: 25,
-    lineHeight: 31,
+    fontSize: 24,
+    lineHeight: 30,
     letterSpacing: 0,
     color: colors.primaryText,
   },
@@ -1389,9 +2011,33 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     color: colors.textSecondary,
   },
+  profileEditPill: {
+    minWidth: 58,
+    height: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+  },
+  profileEditText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.onAccent,
+  },
+  profileEditChevron: {
+    fontFamily: fonts.sansRegular,
+    fontSize: 20,
+    lineHeight: 21,
+    color: colors.onAccent,
+    marginTop: -1,
+  },
   menuCard: {
     overflow: 'hidden',
-    borderRadius: radius.card,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
@@ -1400,20 +2046,29 @@ const styles = StyleSheet.create({
   settingsSection: {
     gap: spacing.sm,
   },
-  sectionLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-    fontFamily: fonts.sansMedium,
+  sectionHeading: {
+    gap: 1,
     paddingHorizontal: spacing.xs,
-    textTransform: 'uppercase',
+  },
+  sectionLabel: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 19,
+    lineHeight: 25,
+    color: colors.primaryText,
+  },
+  sectionSubtitle: {
+    fontFamily: fonts.sansRegular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textTertiary,
   },
   menuRow: {
-    minHeight: 70,
+    minHeight: 88,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     backgroundColor: colors.bgSurface,
   },
   menuDivider: {
@@ -1421,117 +2076,73 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.divider,
   },
   menuIcon: {
-    width: 38,
+    width: 24,
     alignItems: 'center',
+  },
+  menuIconTile: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  menuIconTileAccent: {
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
+  },
+  menuIconTileSage: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderHairline,
+  },
+  menuIconTileGold: {
+    backgroundColor: colors.bgGold,
+    borderColor: colors.borderHairline,
+  },
+  menuIconTileNeutral: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderHairline,
   },
   menuCopy: {
     flex: 1,
     minWidth: 0,
+    gap: 3,
   },
   menuTitle: {
-    ...type.cardRowTitle,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 21,
     color: colors.primaryText,
   },
   menuSubtitle: {
-    ...type.caption,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.textSecondary,
-    marginTop: 2,
   },
-  chevron: {
-    ...type.h2,
-    color: colors.textSecondary,
-    lineHeight: 26,
-  },
-  devOnboardingButton: {
-    minHeight: 78,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgGold,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-  },
-  devOnboardingIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.input,
+  chevronButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.bgElevated,
   },
-  devOnboardingCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  devOnboardingTitle: {
-    ...type.bodySmall,
-    color: colors.primaryText,
-    fontFamily: fonts.sansMedium,
-  },
-  devOnboardingBody: {
-    ...type.caption,
+  chevron: {
+    fontFamily: fonts.sansRegular,
+    fontSize: 22,
     color: colors.textSecondary,
-  },
-  devOnboardingChevron: {
-    ...type.h2,
-    color: colors.textSecondary,
-    lineHeight: 26,
-  },
-  detailOverview: {
-    minHeight: 128,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    lineHeight: 24,
+    marginTop: -2,
   },
   compactCardPadding: {
     paddingHorizontal: 14,
     paddingVertical: 16,
   },
-  detailOverviewIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: radius.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bgSurface,
-  },
-  detailOverviewCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  detailOverviewTitle: {
-    ...type.cardTitle,
-    color: colors.primaryText,
-  },
-  detailOverviewBody: {
-    ...type.cardBody,
-    marginTop: spacing.xs,
-  },
-  detailOverviewMeta: {
-    ...type.caption,
-    marginTop: spacing.sm,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-  },
   detailCard: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
-    borderRadius: radius.card,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
@@ -1576,24 +2187,11 @@ const styles = StyleSheet.create({
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
   },
-  conservativeSafetyButton: {
-    minHeight: 44,
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentBorder,
-  },
-  conservativeSafetyButtonText: {
-    ...type.cardBody,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-  },
   voiceSelectorCard: {
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
-    borderRadius: radius.card,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
@@ -1668,7 +2266,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
-    borderRadius: radius.card,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
@@ -1737,7 +2335,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
-    borderRadius: radius.card,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
@@ -1814,8 +2412,28 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: colors.textSecondary,
   },
+  currentGoalText: {
+    ...type.bodySmall,
+    color: colors.primaryText,
+    fontFamily: fonts.sansMedium,
+  },
+  lifeGoalList: {
+    borderRadius: radius.input,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    backgroundColor: colors.bgSurface,
+    marginTop: spacing.xs,
+  },
+  savedSymptomPanel: {
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
   personalFieldInput: {
-    fontFamily: fonts.serifRegular,
+    fontFamily: fonts.sansRegular,
     fontSize: 20,
     lineHeight: 25,
     letterSpacing: 0,
@@ -1870,16 +2488,12 @@ const styles = StyleSheet.create({
   personalAgeOptionWide: {
     flexBasis: '48.5%',
   },
-  personalAgeOptionCompact: {
-    flexBasis: '23.5%',
-    paddingHorizontal: spacing.xs,
-  },
   personalAgeOptionSelected: {
     borderColor: colors.accentDeep,
     backgroundColor: colors.accentDeep,
   },
   personalAgeOptionText: {
-    fontFamily: fonts.sansRegular,
+    fontFamily: fonts.serifRegular,
     fontSize: 14,
     lineHeight: 20,
     letterSpacing: 0,
@@ -1895,7 +2509,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
-    borderRadius: radius.card,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
@@ -2031,6 +2645,57 @@ const styles = StyleSheet.create({
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     textAlign: 'right',
+  },
+  privacyPromiseText: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+  },
+  appVersion: {
+    ...type.caption,
+    color: colors.textTertiary,
+    textAlign: 'center',
+    paddingVertical: spacing.md,
+  },
+  healthAnswerActions: {
+    gap: spacing.sm,
+  },
+  healthAnswerStatusRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  healthAnswerStatusLabel: {
+    ...type.bodySmall,
+    color: colors.primaryText,
+    fontFamily: fonts.sansMedium,
+  },
+  healthAnswerStatusValue: {
+    ...type.caption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    textAlign: 'right',
+  },
+  gentleStartNotice: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  gentleStartNoticeTitle: {
+    ...type.bodySmall,
+    color: colors.primaryText,
+    fontFamily: fonts.sansMedium,
+  },
+  gentleStartNoticeBody: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  healthEditorActions: {
+    gap: spacing.md,
   },
   clearDataActions: {
     gap: spacing.sm,

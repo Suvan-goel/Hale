@@ -6,7 +6,6 @@
  */
 
 import type { VoiceCueKey } from '../../audio/cues';
-import { normalizeMicroCheckMeasurementMetadata } from '../../checkup';
 import { PosePipeline } from '../../pose/pipeline';
 import { balanceSession } from '../../pose/testing/syntheticBalance';
 import { chairStandSession } from '../../pose/testing/syntheticChairStand';

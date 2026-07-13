@@ -294,8 +294,8 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var androidAnalysisResolution = DEFAULT_ANALYSIS_RESOLUTION
 
   init {
-    // focus-canvas (#101114) - keep in sync with the JS theme token (src/theme).
-    setBackgroundColor(Color.parseColor("#101114"))
+    // focus-canvas (#FAF8F7) - keep in sync with the JS theme token (src/theme).
+    setBackgroundColor(Color.parseColor("#FAF8F7"))
     setWillNotDraw(false)
     lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
   }
@@ -416,7 +416,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   }
 
   fun setCanvasColorProp(value: String) {
-    setBackgroundColor(parseColorOr(value, Color.parseColor("#101114")))
+    setBackgroundColor(parseColorOr(value, Color.parseColor("#FAF8F7")))
   }
 
   override fun onDraw(canvas: Canvas) {

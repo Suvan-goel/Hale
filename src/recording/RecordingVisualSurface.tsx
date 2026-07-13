@@ -8,20 +8,18 @@ import {
 } from '../render/FitFramePoseTraceRenderer';
 import type { FitFrameContentWindow } from '../render/fitFramePoseTraceGeometry';
 import type {
-  PoseAvatarFrameSource,
-  PoseAvatarRendererHandle,
-} from '../render/poseAvatarTypes';
+  RecordingFrameSource,
+  RecordingRendererHandle,
+} from '../render/recordingRendererTypes';
 import type { RecordingVisualGuidance, RecordingVisualState } from './recordingVisualGuidance';
 
 export interface RecordingVisualSurfaceProps {
-  rendererRef: React.Ref<PoseAvatarRendererHandle>;
+  rendererRef: React.Ref<RecordingRendererHandle>;
   cameraAvailability?: CameraAvailability;
-  cameraViewport?: { width: number; height: number };
   poseWindow: FitFrameContentWindow;
   guidance: RecordingVisualGuidance;
   mirrored?: boolean;
-  frameSource?: PoseAvatarFrameSource;
-  debugOverlayEnabled?: boolean;
+  frameSource?: RecordingFrameSource;
 }
 
 export function RecordingVisualSurface({

@@ -8,7 +8,6 @@ import type { MicroCheckPhase } from '../training/microCheck';
 import type { MicroCheckCameraSideSetupResult } from '../training/microCheckSideSetup';
 import type {
   TrainingFloorSetupSnapshot,
-  TrainingFrameUpdate,
   TrainingPhase,
 } from '../training/sessionPlayer';
 

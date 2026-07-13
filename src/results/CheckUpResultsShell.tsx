@@ -265,18 +265,12 @@ function DomainGlyph({
             <Path d="M5 14h14" stroke={stroke} strokeWidth={1.9} strokeLinecap="round" />
             <Path d="M7 10v8M17 10v8M10 12h4" stroke={stroke} strokeWidth={1.7} strokeLinecap="round" />
           </>
-        ) : iconToken === 'balance' ? (
+        ) : (
           <>
             <Path d="M12 5v12" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" />
             <Path d="M7 18h10" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" />
             <Circle cx={12} cy={5} r={2.2} stroke={stroke} strokeWidth={1.5} fill="none" />
             <Path d="M8 10c2.2 1.3 5.8 1.3 8 0" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" fill="none" />
-          </>
-        ) : (
-          <>
-            <Path d="M6 16c3.7-7.7 8.6-7.7 12 0" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" fill="none" />
-            <Path d="M7 17h10" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" />
-            <Circle cx={12} cy={10} r={2.1} stroke={stroke} strokeWidth={1.5} fill="none" />
           </>
         )}
       </Svg>

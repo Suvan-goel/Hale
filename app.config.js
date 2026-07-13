@@ -37,6 +37,10 @@ const unsafeBetaReleaseFlags = [
     env: 'EXPO_PUBLIC_ENABLE_CLARITY_DIMENSION',
     reason: 'clarity_dimension_enabled',
   },
+  {
+    env: 'EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN',
+    reason: 'apple_sign_in_nonce_state_not_approved',
+  },
 ];
 
 function isBetaReleaseBuildProfile(value) {
@@ -57,8 +61,33 @@ function assertSafeBetaReleaseFlags() {
   );
 }
 
+function assertOnlineProfileReleaseConfig() {
+  const buildProfile = process.env.EAS_BUILD_PROFILE;
+  if (!isBetaReleaseBuildProfile(buildProfile)) return;
+
+  const required = [
+    'EXPO_PUBLIC_SUPABASE_URL',
+    'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+  ].filter((name) => !process.env[name]?.trim());
+  if (process.env.EXPO_PUBLIC_ENABLE_ONLINE_PROFILES === '1') {
+    if (!process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL?.trim()) {
+      required.push('EXPO_PUBLIC_PRIVACY_POLICY_URL');
+    }
+    const privacyUrl = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL?.trim();
+    if (privacyUrl && !/^https:\/\//i.test(privacyUrl)) {
+      required.push('EXPO_PUBLIC_PRIVACY_POLICY_URL_HTTPS');
+    }
+  }
+  if (required.length > 0) {
+    throw new Error(
+      `[pearl-online-profile-audit] Build profile "${buildProfile}" enables online profiles without required release configuration: ${required.join(', ')}.`
+    );
+  }
+}
+
 module.exports = ({ config }) => {
   assertSafeBetaReleaseFlags();
+  assertOnlineProfileReleaseConfig();
   const plugins = enableSentry
     ? appJson.expo.plugins
     : appJson.expo.plugins.filter((plugin) => plugin !== '@sentry/react-native/expo');

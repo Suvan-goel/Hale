@@ -1,6 +1,6 @@
 import { HOT_INTENTS } from '../intents';
 import { enabledSessionIntents } from '../sessionIntentPolicy';
-import type { TrainingPhase } from '../../training/sessionPlayer';
+import type { TrainingPhase } from '../../training/voiceSessionPlayer';
 
 const ACTIVE_PHASES: TrainingPhase[] = [
   'intro',

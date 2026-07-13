@@ -1,10 +1,10 @@
-import * as React from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { AppBackground } from '../components/AppBackground';
 import { HeaderLogo } from '../components/HeaderLogo';
+import { Button } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { colors, fonts, spacing } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
@@ -13,7 +13,11 @@ import { BRAND } from '../brand';
 const AUTH_HERO_IMAGE = require('../../assets/images/pearl-auth-hero-generated.png');
 const AUTH_CARD_OVERLAP = spacing.huge + spacing.xxxl + spacing.sm;
 
-export function AuthScreen() {
+export function AuthScreen({
+  onContinueWithoutAccount,
+}: {
+  onContinueWithoutAccount?: () => void;
+} = {}) {
   const responsive = useResponsiveLayout();
   const systemInsets = useSystemInsets();
   const isCompactPhone = responsive.isCompactPhone;
@@ -21,7 +25,7 @@ export function AuthScreen() {
   return (
     <View style={styles.container}>
       <AppBackground />
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -69,6 +73,14 @@ export function AuthScreen() {
           ]}
         >
           <AccountAuthCard context="required" />
+          {onContinueWithoutAccount ? (
+            <Button
+              title="Continue without an account"
+              variant="ghost"
+              onPress={onContinueWithoutAccount}
+              style={styles.continueWithoutAccount}
+            />
+          ) : null}
         </View>
       </ScrollView>
     </View>
@@ -192,5 +204,8 @@ const styles = StyleSheet.create({
   },
   authWrapCompact: {
     marginTop: -AUTH_CARD_OVERLAP,
+  },
+  continueWithoutAccount: {
+    marginTop: spacing.md,
   },
 });

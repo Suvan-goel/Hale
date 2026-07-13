@@ -1,8 +1,3 @@
-import {
-  defaultAdherenceStoreState,
-  type MovementBlock,
-  type TrainingSessionCompletion,
-} from '../../adherence';
 import { createCheckUpProtocolPolicy, MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID } from '../../checkup/protocolPolicy';
 import {
   createActiveShoulderReachV2Setup,
@@ -14,7 +9,7 @@ import type { MeasurementProtocolRef } from '../../checkup/measurementContext';
 import {
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+  PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
 } from '../../checkup/measurementProtocolRegistry';
 import { bareDownwardChanges } from '../testing/copyInvariants';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
@@ -30,18 +25,12 @@ import {
   type MovementProfileV2Assessment,
   type StoredMovementProfileV2Snapshot,
 } from '../../reference/movementProfileV2';
-import { getBlockScheduleState } from '../blockSchedule';
-import { requiredMainPlanTemplatesForBlock } from '../mainPlanEvents';
-import { materializeMovementProfileV2Block } from '../movementProfileV2Block';
-import { createMovementProfileV2BlockReport } from '../movementProfileV2BlockReport';
 import { buildMovementProfileV2ProgressViewModel } from '../movementProfileV2ProgressViewModel';
-import { buildMovementProfileV2RetestComparison } from '../movementProfileV2RetestComparison';
 
 const BASELINE_AT = '2026-06-01T08:00:00.000Z';
 const RETAKE_AT = '2026-06-10T08:00:00.000Z';
 const RETEST_AT = '2026-06-29T08:00:00.000Z';
 const CREATED_AT = '2026-06-01T08:08:00.000Z';
-const BLOCK_START = '2026-06-01T09:00:00.000Z';
 const REFERENCE_PROFILE = {
   ageAtTest: 62,
   ageBasis: 'exact_age_at_test' as const,
@@ -49,37 +38,20 @@ const REFERENCE_PROFILE = {
 };
 
 describe('Movement Profile V2 Progress view model', () => {
-  it('shows the latest frozen profile and neutral official history without current-plan actions', () => {
+  it('shows the latest frozen measurements and neutral official history', () => {
     const baseline = artifacts('baseline', BASELINE_AT);
-    const block = mustMaterializeBlock(baseline, BLOCK_START);
 
     const viewModel = buildMovementProfileV2ProgressViewModel({
       history: [baseline.record],
-      blocks: [block],
-      reports: [],
-      today: '2026-06-12T12:00:00.000Z',
     });
 
     expect(viewModel.status).toBe('ready');
     if (viewModel.status !== 'ready') throw new Error(viewModel.status);
-    expect(viewModel.hero.title).toBe('Movement Profile');
-    expect(viewModel.hero.profileId).toBe(BASELINE_AT);
     expect(viewModel.hero.domains.map((card) => card.metric)).toContain('12 rises in 30 seconds');
-    // 12 reps for this reference profile lands in the 10th-40th percentile band,
-    // which reads as the plain 'Building' tier everywhere in the product.
-    const strength = viewModel.hero.domains.find((card) => card.domain === 'strength_power');
-    expect(strength?.interpretation).toBe('Building');
-    // Baseline-relative default (reposition slice 5): Progress never shows
-    // population comparison — that view lives behind the results-screen opt-in.
-    expect(strength?.body).toBe('Adds to your own strength trend with every check-up.');
-    expect(viewModel.actions).toEqual([
-      { id: 'view_movement_profile', label: 'View Movement Profile', targetId: BASELINE_AT },
-    ]);
     expect(viewModel.officialHistory).toHaveLength(1);
     expect(viewModel.officialHistory[0]).toMatchObject({
       id: BASELINE_AT,
       sourceLabel: 'First Movement Check-Up',
-      action: { label: 'View Movement Profile' },
     });
     // Computed-change words stay banned on this frozen surface. The bare word
     // "trend" left the list 2026-07-06 (reposition slice 5): the neutral card
@@ -96,26 +68,29 @@ describe('Movement Profile V2 Progress view model', () => {
 
     const single = buildMovementProfileV2ProgressViewModel({
       history: [baseline.record],
-      blocks: [],
-      reports: [],
-      today: RETAKE_AT,
     });
     if (single.status !== 'ready') throw new Error(single.status);
     expect(single.change).toBeNull();
+    expect(single.changeReadiness).toMatchObject({
+      status: 'building_baseline',
+      title: 'Your baseline is saved',
+    });
 
     const paired = buildMovementProfileV2ProgressViewModel({
       history: [baseline.record, retake.record],
-      blocks: [],
-      reports: [],
-      today: RETAKE_AT,
     });
     if (paired.status !== 'ready') throw new Error(paired.status);
     expect(paired.change).not.toBeNull();
+    expect(paired.changeReadiness).toEqual({ status: 'ready' });
     expect(paired.change?.headline).toContain('Since your first check-up');
     expect(paired.change?.domains.find((domain) => domain.domain === 'strength_power')).toMatchObject({
       direction: 'up',
       value: '12 → 16 rises',
       caption: 'Up 4 rises',
+      series: [
+        { atIso: BASELINE_AT, dateLabel: 'Jun 1, 2026', value: 12 },
+        { atIso: RETAKE_AT, dateLabel: 'Jun 10, 2026', value: 16 },
+      ],
     });
     // Up rows never carry support copy — pairing is for lower readings only.
     expect(
@@ -128,7 +103,7 @@ describe('Movement Profile V2 Progress view model', () => {
     const monthlyProtocol: MeasurementProtocolRef = {
       protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
       protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-      protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+      protocolVariant: PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
     };
     const firstMonthly = artifacts('baseline_retake', RETAKE_AT, {
       chair: chairResult({ reps: 12 }),
@@ -141,9 +116,6 @@ describe('Movement Profile V2 Progress view model', () => {
 
     const viewModel = buildMovementProfileV2ProgressViewModel({
       history: [legacy.record, firstMonthly.record, latestMonthly.record],
-      blocks: [],
-      reports: [],
-      today: RETEST_AT,
     });
     if (viewModel.status !== 'ready') throw new Error(viewModel.status);
     expect(viewModel.change?.headline).toBe('Since this check-up method began · Jun 10, 2026');
@@ -151,6 +123,31 @@ describe('Movement Profile V2 Progress view model', () => {
       direction: 'up',
       value: '12 → 16 rises',
       caption: 'Up 4 rises',
+      series: [
+        { atIso: RETAKE_AT, dateLabel: 'Jun 10, 2026', value: 12 },
+        { atIso: RETEST_AT, dateLabel: 'Jun 29, 2026', value: 16 },
+      ],
+    });
+  });
+
+  it('explains when a changed measurement method is still building its new baseline', () => {
+    const legacy = artifacts('baseline', BASELINE_AT, { chair: chairResult({ reps: 8 }) });
+    const monthly = artifacts('official_retest', RETEST_AT, {
+      chair: chairResult({ reps: 14 }),
+      measurementProtocol: {
+        protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+        protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+        protocolVariant: PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+      },
+    });
+    const viewModel = buildMovementProfileV2ProgressViewModel({
+      history: [legacy.record, monthly.record],
+    });
+    if (viewModel.status !== 'ready') throw new Error(viewModel.status);
+    expect(viewModel.change).toBeNull();
+    expect(viewModel.changeReadiness).toMatchObject({
+      status: 'new_method_baseline',
+      title: 'A new comparison baseline has started',
     });
   });
 
@@ -163,9 +160,6 @@ describe('Movement Profile V2 Progress view model', () => {
     });
     const viewModel = buildMovementProfileV2ProgressViewModel({
       history: [baseline.record, retake.record],
-      blocks: [],
-      reports: [],
-      today: RETAKE_AT,
     });
     if (viewModel.status !== 'ready') throw new Error(viewModel.status);
     expect(viewModel.change?.domains.find((domain) => domain.domain === 'balance')).toMatchObject({
@@ -180,9 +174,6 @@ describe('Movement Profile V2 Progress view model', () => {
     const retake = artifacts('baseline_retake', RETAKE_AT, { chair: chairResult({ reps: 9 }) });
     const paired = buildMovementProfileV2ProgressViewModel({
       history: [baseline.record, retake.record],
-      blocks: [],
-      reports: [],
-      today: RETAKE_AT,
     });
     if (paired.status !== 'ready') throw new Error(paired.status);
     const rows = (paired.change?.domains ?? []).map((domain) => ({
@@ -196,61 +187,6 @@ describe('Movement Profile V2 Progress view model', () => {
     expect(down?.supportCopy).toContain('your plan');
   });
 
-  it('does not surface current-plan provenance when the active plan came from a previous profile', () => {
-    const baseline = artifacts('baseline', BASELINE_AT, { balance: balanceResult({ bestHoldSec: 8 }) });
-    const activeBlock = mustMaterializeBlock(baseline, BLOCK_START);
-    const retake = artifacts('baseline_retake', RETAKE_AT, { chair: chairResult({ reps: 15 }) });
-
-    const viewModel = buildMovementProfileV2ProgressViewModel({
-      history: [baseline.record, retake.record],
-      blocks: [activeBlock],
-      reports: [],
-      today: '2026-06-12T12:00:00.000Z',
-    });
-
-    expect(viewModel.status).toBe('ready');
-    if (viewModel.status !== 'ready') throw new Error(viewModel.status);
-    expect(viewModel.hero.profileId).toBe(RETAKE_AT);
-    expect(viewModel.actions).toEqual([
-      { id: 'view_movement_profile', label: 'View Movement Profile', targetId: RETAKE_AT },
-    ]);
-    expect(JSON.stringify(viewModel)).not.toMatch(
-      /current plan|View current plan|previous Movement Profile|progress_v2_plan_source_differs/i
-    );
-  });
-
-  it('includes only valid source-bound V2 block reports in newest-first report history', () => {
-    const baseline = artifacts('baseline', BASELINE_AT);
-    const priorBlock = { ...mustMaterializeBlock(baseline, BLOCK_START), status: 'completed' as const };
-    const retest = artifacts('official_retest', RETEST_AT, { chair: chairResult({ reps: 14 }) });
-    const nextBlock = mustMaterializeBlock(retest, RETEST_AT, [priorBlock]);
-    const report = mustCreateReport({ prior: baseline, current: retest, priorBlock, nextBlock });
-    const invalidReport = { ...report, id: 'invalid-report', reportFingerprint: 'wrong' };
-
-    const viewModel = buildMovementProfileV2ProgressViewModel({
-      history: [baseline.record, retest.record],
-      blocks: [priorBlock, nextBlock],
-      reports: [invalidReport, report],
-      today: '2026-06-30T12:00:00.000Z',
-    });
-
-    expect(viewModel.status).toBe('ready');
-    if (viewModel.status !== 'ready') throw new Error(viewModel.status);
-    expect(viewModel.officialHistory.map((entry) => entry.sourceLabel)).toEqual([
-      'Follow-up Movement Check-Up',
-      'First Movement Check-Up',
-    ]);
-    expect(viewModel.reports).toEqual([
-      expect.objectContaining({
-        action: expect.objectContaining({ label: 'View phase report', targetId: report.id }),
-        sessionsLabel: '12 plan sessions completed',
-      }),
-    ]);
-    expect(viewModel.diagnostics).toEqual(
-      expect.arrayContaining([expect.objectContaining({ code: 'progress_v2_report_invalid' })])
-    );
-  });
-
   it('uses typed recovery states without V1 fallback copy', () => {
     const malformed = buildMovementProfileV2ProgressViewModel({
       history: [{
@@ -258,23 +194,11 @@ describe('Movement Profile V2 Progress view model', () => {
         movementProfileV2Assessment: undefined,
         movementProfileV2AssessmentCompatibility: 'malformed',
       }],
-      blocks: [],
-      reports: [],
-      today: '2026-06-12T12:00:00.000Z',
     });
     expect(malformed.status).toBe('artifact_recovery');
+    if (malformed.status === 'ready') throw new Error('expected recovery');
     expect(malformed.actions).toEqual([]);
     expect(JSON.stringify(malformed).toLowerCase()).not.toContain('movement age');
-
-    const orphanedV2Block = mustMaterializeBlock(artifacts('baseline', RETAKE_AT), BLOCK_START);
-    const conflict = buildMovementProfileV2ProgressViewModel({
-      history: [],
-      blocks: [orphanedV2Block],
-      reports: [],
-      today: '2026-06-12T12:00:00.000Z',
-    });
-    expect(conflict.status).toBe('active_block_conflict');
-    expect(conflict.actions).toEqual([]);
   });
 });
 
@@ -311,60 +235,6 @@ function artifacts(
       movementProfileV2AssessmentCompatibility: 'current',
     },
   };
-}
-
-function mustMaterializeBlock(
-  artifact: ReturnType<typeof artifacts>,
-  startDate: string,
-  existingBlocks: MovementBlock[] = []
-): MovementBlock {
-  const result = materializeMovementProfileV2Block({
-    adherence: { ...defaultAdherenceStoreState(), blocks: existingBlocks },
-    checkUp: artifact.checkUp,
-    checkupType: artifact.record.checkupType,
-    snapshot: artifact.snapshot,
-    assessment: artifact.assessment,
-    startDate,
-  });
-  if (!result.ok) throw new Error(result.reason);
-  return result.block;
-}
-
-function mustCreateReport({
-  prior,
-  current,
-  priorBlock,
-  nextBlock,
-}: {
-  prior: ReturnType<typeof artifacts>;
-  current: ReturnType<typeof artifacts>;
-  priorBlock: MovementBlock;
-  nextBlock: MovementBlock;
-}) {
-  const comparison = buildMovementProfileV2RetestComparison({
-    priorCheckUp: prior.checkUp,
-    priorSnapshot: prior.snapshot,
-    priorAssessment: prior.assessment,
-    currentCheckUp: current.checkUp,
-    currentSnapshot: current.snapshot,
-    currentAssessment: current.assessment,
-  });
-  if (!comparison.ok) throw new Error(comparison.reason);
-  const schedule = getBlockScheduleState({
-    block: priorBlock,
-    completions: planCompletions(priorBlock, 12),
-    today: RETEST_AT,
-  });
-  const report = createMovementProfileV2BlockReport({
-    priorBlock,
-    schedule,
-    comparison: comparison.comparison,
-    nextBlock,
-    createdAt: RETEST_AT,
-    userId: 'local-device-user',
-  });
-  if (!report.ok) throw new Error(report.reason);
-  return report.report;
 }
 
 function mustCreateSnapshot(
@@ -481,59 +351,4 @@ function shoulderResult(overrides: Partial<ActiveShoulderReachV2Result> = {}): A
     interruptions: 0,
     ...overrides,
   };
-}
-
-function planCompletions(block: MovementBlock, count: number): TrainingSessionCompletion[] {
-  const templateIds = requiredMainPlanTemplatesForBlock(block).templateIds;
-  const dateKeys = [
-    '2026-06-01',
-    '2026-06-02',
-    '2026-06-03',
-    '2026-06-08',
-    '2026-06-09',
-    '2026-06-10',
-    '2026-06-15',
-    '2026-06-16',
-    '2026-06-17',
-    '2026-06-22',
-    '2026-06-23',
-    '2026-06-24',
-  ].slice(0, count);
-  return dateKeys.map((dateKey, index) => {
-    const templateId = templateIds[index % templateIds.length];
-    const completedAt = `${dateKey}T09:00:00.000Z`;
-    return {
-      id: `${block.id}-completion-${index + 1}`,
-      userId: 'local-device-user',
-      blockId: block.id,
-      completedAt,
-      plannedDate: `${templateId}:${dateKey}`,
-      sessionType: 'standard',
-      templateId,
-      mainPlanCredit: true,
-      source: 'block_generated',
-      focusStimulusEvidence: {
-        planStatus: 'eligible',
-        status: 'credited_focus_work',
-        exclusionReason: 'none',
-        mainPlanCredit: true,
-        plannedPrimaryFocusExerciseCount: 1,
-        completedPrimaryFocusExerciseCount: 1,
-        completedSupportingExerciseCount: 0,
-        completedFallbackExerciseCount: 0,
-        completedCrossDomainExerciseCount: 0,
-        plannedPrimaryFocusExerciseIds: [`${templateId}-primary`],
-        completedPrimaryFocusExerciseIds: [`${templateId}-primary`],
-        completedSupportingExerciseIds: [],
-        completedFallbackExerciseIds: [],
-        completedCrossDomainExerciseIds: [],
-        fallbackFocusSlotIds: [],
-        skippedFocusSlotIds: [],
-        focusStimulusExclusionReasons: [],
-        missingMetadataExerciseIds: [],
-        malformedMetadataExerciseIds: [],
-        focusMismatchExerciseIds: [],
-      },
-    };
-  });
 }

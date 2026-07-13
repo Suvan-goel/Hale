@@ -135,7 +135,7 @@ decision they encode is already ruled.
    note to testers is founder-owned).
 
 **Commit 2 — the decommission (C4 + parity check 3):**
-1. Delete the old-engine app wiring: AppGate/HaleApp's lifecycle plumbing in
+1. Delete the old-engine app wiring: AppGate/PearlApp's lifecycle plumbing in
    App.tsx, old onboarding staging (src/onboarding/state.ts flow), PlanScreen
    (old block UI), block progress views, BlockIntroScreen, micro-check
    scheduling surfaces + MicroCheckScreen mounts (the routine 28-day cadence

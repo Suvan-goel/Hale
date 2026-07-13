@@ -13,14 +13,14 @@ import {
   type ClarityItemScore,
   type SleepQuality,
   type SymptomLoad,
-} from '../checkup';
+} from '../checkup/selfReport';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import { colors, fonts, minTapTarget, radius, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 /**
  * Optional self-report appendix to an official Movement Check-Up. The five
- * frozen Clarity items save together or not at all so monthly readings stay
+ * frozen Clarity items save together or not at all so programme readings stay
  * comparable. Context can be saved independently. Nothing from this screen
  * changes training, guidance, or the Strength and Balance results.
  */
@@ -97,7 +97,7 @@ export function ClarityCheckInScreen({
       <ScreenHeader
         eyebrow="Everyday Clarity · optional"
         title="How has your thinking felt?"
-        subtitle="Five quick questions for your personal monthly trend; they never suggest a cause or change your workouts or movement results."
+        subtitle="Five quick questions for your personal programme trend; they never suggest a cause or change your workouts or movement results."
       />
 
       <View style={styles.section}>

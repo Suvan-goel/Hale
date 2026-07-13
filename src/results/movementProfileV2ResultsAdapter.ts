@@ -1,5 +1,5 @@
 import type {
-  MovementProfileV2Domain,
+  MovementProfileV2ReportableDomain,
   MovementProfileV2ResultsViewModel,
 } from '../movementProfileV2/viewModel';
 import type {
@@ -93,21 +93,16 @@ function toneForCard(card: MovementProfileV2ResultsViewModel['domainCards'][numb
   return 'neutral';
 }
 
-function domainId(domain: MovementProfileV2Domain): UnifiedResultDomainId {
-  if (domain === 'strength_power') return 'strength_power';
-  if (domain === 'balance') return 'balance_stability';
-  return 'mobility_flexibility';
+function domainId(domain: MovementProfileV2ReportableDomain): UnifiedResultDomainId {
+  return domain === 'strength_power' ? 'strength_power' : 'balance_stability';
 }
 
-function iconToken(domain: MovementProfileV2Domain): UnifiedDomainResultCard['iconToken'] {
-  if (domain === 'strength_power') return 'strength';
-  if (domain === 'balance') return 'balance';
-  return 'mobility';
+function iconToken(domain: MovementProfileV2ReportableDomain): UnifiedDomainResultCard['iconToken'] {
+  return domain === 'strength_power' ? 'strength' : 'balance';
 }
 
-// Dimension-generic (REPOSITION_TDD §4): one card per registered
-// camera-measured dimension — the view model already iterates the registry,
-// so an empty result is the only impossible state worth guarding.
+// The official view model always supplies Strength and Balance; keep the
+// impossible empty-state guard at this presentation boundary.
 function toDomainCards(domains: UnifiedDomainResultCard[]): readonly UnifiedDomainResultCard[] {
   if (domains.length === 0) {
     throw new Error('Movement Profile V2 results require at least one dimension card.');

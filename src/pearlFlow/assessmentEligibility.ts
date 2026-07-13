@@ -153,10 +153,6 @@ export function isMovementAssessmentUsableForTraining(assessment: MovementAssess
   return assessmentHasCurrentSnapshotMetadata(assessment);
 }
 
-export function measuredMovementDomainsFromScore(score: CheckUpScore | null | undefined): MovementDomain[] {
-  return headlineEvidenceFromScore(score).measuredDomains;
-}
-
 function ineligible(
   reason: BlockCreationIneligibilityReason,
   measuredDomains: MovementDomain[]

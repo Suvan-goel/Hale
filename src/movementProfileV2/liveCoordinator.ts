@@ -14,14 +14,12 @@ import {
 } from '../checkup/protocolSetup';
 import type { CheckUp } from '../checkup/types';
 import {
-  ACTIVE_SHOULDER_REACH_V2_ID,
   ActiveShoulderReachV2ProtocolController,
   DEFAULT_ACTIVE_SHOULDER_REACH_V2_CONFIG,
   shoulderReachAngleDegForSide,
   type ActiveShoulderReachV2Result,
 } from '../movements/activeShoulderReachV2';
 import {
-  CHAIR_RISE_V2_ID,
   ChairRiseV2ProtocolController,
   DEFAULT_CHAIR_RISE_V2_CONFIG,
   type ChairRiseV2Result,
@@ -29,7 +27,6 @@ import {
 import { HINGE_REACH_ID, type HingeReachResult } from '../movements/hingeReach';
 import {
   DEFAULT_ONE_LEG_BALANCE_V2_CONFIG,
-  ONE_LEG_BALANCE_V2_ID,
   OneLegBalanceV2ProtocolController,
   type OneLegBalanceV2Result,
 } from '../movements/oneLegBalanceV2';
@@ -366,7 +363,6 @@ export class MovementProfileV2LiveCoordinator {
 
   private readonly balance = new OneLegBalanceV2ProtocolController();
   private balanceTrialStartedAtMs: number | null = null;
-  private balanceRestStartedAtMs: number | null = null;
   private balanceRestMinUntilMs: number | null = null;
   private balanceSetupConfirmedAtMs: number | null = null;
   private balanceSetupSource: ProtocolSetupSource | null = null;
@@ -1298,7 +1294,6 @@ export class MovementProfileV2LiveCoordinator {
     this.balanceTouchdownFrames = 0;
     this.balanceTouchdownStartedAtMs = null;
     this.clearBalanceReadyLiftEvidence();
-    this.balanceRestStartedAtMs = nowMs;
     this.balanceRestMinUntilMs = nowMs + BALANCE_REST_MIN_MS;
     this.diagnostics.balance.restCount++;
     this.transition('balance_rest', nowMs, reason);

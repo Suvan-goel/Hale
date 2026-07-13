@@ -2,7 +2,7 @@ import { createCheckUpProtocolPolicy, MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID } f
 import {
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+  PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
 } from '../../../checkup/measurementProtocolRegistry';
 import {
   createActiveShoulderReachV2Setup,
@@ -107,7 +107,7 @@ describe('Movement Profile V2 snapshots', () => {
     const monthlyProtocol = {
       protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
       protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-      protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+      protocolVariant: PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
     } as const;
 
     expect(getMovementProfileV2SnapshotEligibility(withoutShoulder(monthlyProtocol), 'baseline')).toMatchObject({
@@ -154,7 +154,7 @@ describe('Movement Profile V2 snapshots', () => {
     const measurementProtocol = {
       protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
       protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
-      protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+      protocolVariant: PEARL_PROGRAMME_STRENGTH_BALANCE_PROTOCOL_VARIANT,
     } as const;
     const checkUp = { ...v2CheckUp(), measurementProtocol };
     const snapshot = mustCreateSnapshot(checkUp);

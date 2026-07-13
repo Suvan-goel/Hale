@@ -8,10 +8,11 @@ describe('SettingsScreen trainer voice', () => {
   it('renders the trainer voice picker without the retired system cards', () => {
     const text = source();
     const workoutSectionStart = text.indexOf("if (openSection === 'workout')");
-    const workoutSectionEnd = text.indexOf("if (openSection === 'privacy')");
+    const workoutSectionEnd = text.indexOf("if (openSection === 'account')");
     const workoutSection = text.slice(workoutSectionStart, workoutSectionEnd);
 
-    expect(text).toContain('Tap a voice to use it next time.');
+    expect(text).toContain('Tap the speaker to preview. Tap a name to use that voice next time.');
+    expect(text).toContain('Trainer voice');
     expect(text).toContain('selectedVoiceLabel');
     expect(workoutSection).toContain('<VoiceSelectorCard');
     expect(workoutSection).toContain('<SessionFeelPicker');

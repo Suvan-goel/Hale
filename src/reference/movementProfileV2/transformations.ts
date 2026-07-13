@@ -1,7 +1,6 @@
 import { deterministicFingerprint } from './fingerprint';
 import type {
   ReferenceTransformationDefinition,
-  ReferenceTransformationId,
   ReferenceEngineDiagnostic,
 } from './types';
 import { WARDEN_CHAIR_APPROVAL_ID, WARDEN_CHAIR_TRANSFORMATION_ID } from './wardenChairTransform';
@@ -62,15 +61,6 @@ export function createReferenceTransformations(
 }
 
 export const REFERENCE_TRANSFORMATIONS = createReferenceTransformations();
-
-export function referenceTransformation(
-  transformationId: ReferenceTransformationId,
-  transformations: readonly ReferenceTransformationDefinition[] = REFERENCE_TRANSFORMATIONS
-): ReferenceTransformationDefinition {
-  const transformation = transformations.find((candidate) => candidate.transformationId === transformationId);
-  if (!transformation) throw new Error(`Missing V2 reference transformation: ${transformationId}`);
-  return transformation;
-}
 
 export function transformationMetadata(transformation: ReferenceTransformationDefinition) {
   return {

@@ -5,11 +5,11 @@
 // seam — auth, profile + check-up sync, restore (profile + history), the
 // full-server data export, and local account-data hygiene.
 export * from './AuthProvider';
+export * from './authScope';
 export * from './accountDataService';
+export * from './accountDeletionService';
+export * from './onlineProfileSyncService';
 export * from './authService';
-export * from './checkupSyncService';
-export * from './dataExportService';
 export * from './profileService';
 export * from './profileSyncService';
-export * from './restoreService';
 export * from './types';

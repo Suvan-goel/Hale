@@ -1,32 +1,54 @@
 import * as React from 'react';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import {
   clearLocalPearlData,
-  sharePearlDataExport,
+  type OnlineProfileConflictResolution,
+  type OnlineProfileSyncState,
   useAuth,
 } from '../services/backend';
-import { colors, radius, shadow, spacing, type } from '../theme';
+import { markDeletedAccountCleanupComplete } from '../services/backend/pendingAccountCleanupStore';
+import { colors, externalBrandColors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import {
   CLEAR_THIS_DEVICE_COPY,
   CLEAR_THIS_DEVICE_TITLE,
-  CLOUD_ACCOUNT_DELETION_CONTACT_COPY,
+  DELETE_ONLINE_ACCOUNT_COPY,
+  DELETE_ONLINE_ACCOUNT_TITLE,
 } from './accountDeletionConfig';
-import { ACCOUNT_SIGNED_IN_COPY, isAppleSignInEnabled } from './accountAuthConfig';
+import {
+  ACCOUNT_SIGNED_IN_COPY,
+  ACCOUNT_SIGNED_OUT_COPY,
+  isAppleSignInEnabled,
+  onlineProfilePrivacyPolicyUrl,
+} from './accountAuthConfig';
 import { Button, Card, Input, SegmentedTabs, Typography } from './ui';
 
 import { BRAND } from '../brand';
 type AccountMode = 'sign-in' | 'sign-up' | 'forgot-password';
 
-// Live surfaces: the Settings account section (signed-in stack or the
-// sign-in/sign-up form) and the password-recovery card that AuthScreen
-// shows via context="required". Guest-first launch means there is no
-// mandatory sign-in flow anymore.
-export function AccountAuthCard({ context }: { context: 'required' | 'settings' }) {
+// Live surfaces: Settings, the optional returning-user path from Welcome,
+// and password recovery. Guest-first Continue remains the primary Welcome
+// action; account access is never mandatory.
+export interface AccountAuthCardProps {
+  context: 'required' | 'settings';
+  onlineProfileSyncState?: OnlineProfileSyncState;
+  onRetryOnlineProfileSync?: () => void;
+  onResolveOnlineProfileConflict?: (
+    resolution: Exclude<OnlineProfileConflictResolution, 'automatic'>
+  ) => void;
+}
+
+export function AccountAuthCard({
+  context,
+  onlineProfileSyncState,
+  onRetryOnlineProfileSync,
+  onResolveOnlineProfileConflict,
+}: AccountAuthCardProps) {
   const {
+    deleteAccount,
     error,
     isPasswordRecovery,
     isSignedIn,
@@ -50,11 +72,13 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
   const [fullName, setFullName] = React.useState('');
   const [appleAvailable, setAppleAvailable] = React.useState(false);
   const [confirmingClearDevice, setConfirmingClearDevice] = React.useState(false);
+  const [confirmingDeleteAccount, setConfirmingDeleteAccount] = React.useState(false);
   const [dataActionLoading, setDataActionLoading] = React.useState(false);
-  const [exportLoading, setExportLoading] = React.useState(false);
   const [localError, setLocalError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const authError = localError ?? error;
+  const profileSyncBusy = onlineProfileSyncState?.status === 'syncing';
+  const accountActionsDisabled = loading || dataActionLoading || profileSyncBusy;
   const isRequiredAuth = context === 'required';
   const title = isPasswordRecovery
     ? 'Set a new password'
@@ -64,6 +88,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
   const showGoogleButton = Platform.OS === 'ios' || Platform.OS === 'android';
   const appleSignInEnabled = isAppleSignInEnabled();
   const showAppleButton = appleSignInEnabled && Platform.OS === 'ios' && appleAvailable;
+  const privacyPolicyUrl = onlineProfilePrivacyPolicyUrl();
   const submitTitle = loading
     ? mode === 'sign-up'
       ? 'Creating account...'
@@ -105,6 +130,10 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
     }
     if (!trimmedEmail || !password) {
       setLocalError('Enter an email and password.');
+      return;
+    }
+    if (mode === 'sign-up' && password.length < 8) {
+      setLocalError('Use at least 8 characters for your password.');
       return;
     }
 
@@ -197,28 +226,9 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
     }
   };
 
-  const submitExportData = async () => {
-    if (!isSignedIn) {
-      setLocalError(`Sign in before exporting your ${BRAND.appName} data.`);
-      return;
-    }
-
-    setExportLoading(true);
-    setLocalError(null);
-    setNotice(null);
-
-    try {
-      const result = await sharePearlDataExport();
-      setNotice(`Export ready: ${result.filename}`);
-    } catch (err) {
-      setLocalError(messageFromError(err));
-    } finally {
-      setExportLoading(false);
-    }
-  };
-
   const beginClearDevice = () => {
     setConfirmingClearDevice(true);
+    setConfirmingDeleteAccount(false);
     setLocalError(null);
     setNotice(null);
   };
@@ -239,9 +249,18 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
     setNotice(null);
 
     try {
-      const result = await clearLocalPearlData();
+      const result = await clearLocalPearlData({ userId: user?.id ?? null });
       if (result.failures.length > 0) {
         throw new Error(`Some local ${BRAND.appName} data could not be deleted. Please try again.`);
+      }
+
+      if (user?.id) {
+        try {
+          await markDeletedAccountCleanupComplete(user.id);
+        } catch {
+          // A retained tombstone is safe: startup retries the now-idempotent
+          // cleanup and removes it once storage is available.
+        }
       }
 
       await signOut();
@@ -251,6 +270,32 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
     } finally {
       setDataActionLoading(false);
       setConfirmingClearDevice(false);
+    }
+  };
+
+  const beginDeleteAccount = () => {
+    setConfirmingDeleteAccount(true);
+    setConfirmingClearDevice(false);
+    setLocalError(null);
+    setNotice(null);
+  };
+
+  const confirmDeleteAccount = async () => {
+    setDataActionLoading(true);
+    setLocalError(null);
+    setNotice(null);
+    try {
+      const result = await deleteAccount();
+      if (result.failures.length > 0) {
+        setLocalError(
+          `Your online account was deleted, but ${result.failures.length} item(s) could not be removed from this device.`
+        );
+      }
+    } catch (err) {
+      setLocalError(messageFromError(err));
+    } finally {
+      setDataActionLoading(false);
+      setConfirmingDeleteAccount(false);
     }
   };
 
@@ -269,29 +314,21 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
           </View>
         </View>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.exportButton,
-            (loading || exportLoading || dataActionLoading) && styles.compactActionDisabled,
-            pressed && !(loading || exportLoading || dataActionLoading) && styles.pressed,
-          ]}
-          onPress={submitExportData}
-          disabled={loading || exportLoading || dataActionLoading}
-          accessibilityRole="button"
-          accessibilityLabel="Export my data"
-        >
-          <DownloadIcon color={colors.onAccent} />
-          <Text style={styles.exportButtonText}>{exportLoading ? 'Preparing export...' : 'Export my data'}</Text>
-        </Pressable>
+        <OnlineProfileStatusCard
+          state={onlineProfileSyncState}
+          disabled={accountActionsDisabled}
+          onRetry={onRetryOnlineProfileSync}
+          onResolve={onResolveOnlineProfileConflict}
+        />
 
         <Pressable
           style={({ pressed }) => [
             styles.signOutButton,
-            loading && styles.compactActionDisabled,
-            pressed && !loading && styles.pressed,
+            accountActionsDisabled && styles.compactActionDisabled,
+            pressed && !accountActionsDisabled && styles.pressed,
           ]}
           onPress={submitSignOut}
-          disabled={loading}
+          disabled={accountActionsDisabled}
           accessibilityRole="button"
           accessibilityLabel="Sign out"
         >
@@ -302,21 +339,21 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
         {confirmingClearDevice ? (
           <View style={[styles.compactConfirmPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
             <Typography variant="bodySmall" color={colors.textPrimary}>
-              {CLEAR_THIS_DEVICE_COPY} {CLOUD_ACCOUNT_DELETION_CONTACT_COPY}
+              {CLEAR_THIS_DEVICE_COPY}
             </Typography>
             <View style={styles.dangerButtonRow}>
               <Button
                 title={dataActionLoading ? 'Working...' : CLEAR_THIS_DEVICE_TITLE}
                 variant="danger"
                 onPress={confirmClearDevice}
-                disabled={dataActionLoading || loading}
+                disabled={accountActionsDisabled}
                 style={styles.dangerButton}
               />
               <Button
                 title="Cancel"
                 variant="ghost"
                 onPress={cancelClearDevice}
-                disabled={dataActionLoading || loading}
+                disabled={accountActionsDisabled}
                 style={styles.dangerButton}
               />
             </View>
@@ -325,11 +362,45 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
           <Pressable
             style={({ pressed }) => [styles.deleteAccountLink, pressed && styles.pressed]}
             onPress={beginClearDevice}
-            disabled={loading || dataActionLoading}
+            disabled={accountActionsDisabled}
             accessibilityRole="button"
             accessibilityLabel={CLEAR_THIS_DEVICE_TITLE}
           >
             <Text style={styles.deleteAccountText}>{CLEAR_THIS_DEVICE_TITLE}</Text>
+          </Pressable>
+        )}
+
+        {confirmingDeleteAccount ? (
+          <View style={[styles.compactConfirmPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
+            <Typography variant="bodySmall" color={colors.textPrimary}>
+              {DELETE_ONLINE_ACCOUNT_COPY}
+            </Typography>
+            <View style={styles.dangerButtonRow}>
+              <Button
+                title={dataActionLoading ? 'Deleting...' : 'Delete permanently'}
+                variant="danger"
+                onPress={confirmDeleteAccount}
+                disabled={accountActionsDisabled}
+                style={styles.dangerButton}
+              />
+              <Button
+                title="Cancel"
+                variant="ghost"
+                onPress={() => setConfirmingDeleteAccount(false)}
+                disabled={accountActionsDisabled}
+                style={styles.dangerButton}
+              />
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.deleteAccountLink, pressed && styles.pressed]}
+            onPress={beginDeleteAccount}
+            disabled={accountActionsDisabled}
+            accessibilityRole="button"
+            accessibilityLabel={DELETE_ONLINE_ACCOUNT_TITLE}
+          >
+            <Text style={styles.deleteAccountText}>{DELETE_ONLINE_ACCOUNT_TITLE}</Text>
           </Pressable>
         )}
 
@@ -357,7 +428,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
           ? `Enter the email you use for ${BRAND.appName}. We will send a link to choose a new password.`
           : isSignedIn
           ? ACCOUNT_SIGNED_IN_COPY
-          : `Sign in if you want ${BRAND.appName} to keep your check-up history and account setup available when you return.`}
+          : ACCOUNT_SIGNED_OUT_COPY}
       </Typography>
 
       {isPasswordRecovery ? (
@@ -412,6 +483,23 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
               ]}
             />
           )}
+          {mode !== 'forgot-password' ? (
+            <View style={styles.signUpPrivacyNotice}>
+              <Typography variant="caption" color={colors.textSecondary}>
+                Supabase stores your email and private non-health profile. You can delete the account here at any time; your health and programme data are never uploaded.
+              </Typography>
+              {privacyPolicyUrl ? (
+                <Pressable
+                  style={({ pressed }) => [styles.privacyLink, pressed && styles.pressed]}
+                  onPress={() => void Linking.openURL(privacyPolicyUrl)}
+                  accessibilityRole="link"
+                  accessibilityLabel="Read privacy policy"
+                >
+                  <Text style={styles.privacyLinkText}>Read privacy policy</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
           {mode !== 'forgot-password' && (showGoogleButton || showAppleButton) ? (
             <View style={styles.socialStack}>
               {showGoogleButton ? (
@@ -522,6 +610,86 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
   );
 }
 
+function OnlineProfileStatusCard({
+  state,
+  disabled,
+  onRetry,
+  onResolve,
+}: {
+  state?: OnlineProfileSyncState;
+  disabled: boolean;
+  onRetry?: () => void;
+  onResolve?: (resolution: 'device' | 'online') => void;
+}) {
+  const status = state?.status ?? 'syncing';
+
+  if (status === 'conflict') {
+    return (
+      <View style={styles.syncStatusCard}>
+        <Text style={styles.syncStatusTitle}>Choose which profile to keep</Text>
+        <Text style={styles.syncStatusBody}>
+          Your profile was changed both here and online. This choice affects only your name, reference details, goal, trainer voice, and comparison preference. On-device programme and health data are not replaced.
+        </Text>
+        <View style={styles.syncActionStack}>
+          <Button
+            title="Use this device"
+            onPress={() => onResolve?.('device')}
+            disabled={disabled || !onResolve}
+          />
+          <Button
+            title="Use online profile"
+            variant="secondary"
+            onPress={() => onResolve?.('online')}
+            disabled={disabled || !onResolve}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (status === 'failed') {
+    return (
+      <View style={styles.syncStatusCard}>
+        <Text style={styles.syncStatusTitle}>Saved on this device</Text>
+        <Text style={styles.syncStatusBody}>
+          Your latest profile changes could not reach Supabase. They are safe here and can be retried.
+        </Text>
+        {state?.error ? <Text style={styles.syncStatusError}>{state.error}</Text> : null}
+        <Button
+          title="Retry online save"
+          variant="secondary"
+          onPress={() => onRetry?.()}
+          disabled={disabled || !onRetry}
+        />
+      </View>
+    );
+  }
+
+  if (status === 'disabled') {
+    return (
+      <View style={styles.syncStatusCard}>
+        <Text style={styles.syncStatusTitle}>Online profile saving is paused</Text>
+        <Text style={styles.syncStatusBody}>
+          You are still signed in and can sign out, clear this device, or delete the online account. New profile changes stay on this device in this build.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.syncStatusCard}>
+      <Text style={styles.syncStatusTitle}>
+        {status === 'synced' ? 'Profile saved online' : 'Saving profile...'}
+      </Text>
+      <Text style={styles.syncStatusBody}>
+        {status === 'synced'
+          ? ACCOUNT_SIGNED_IN_COPY
+          : `Your on-device copy remains available while ${BRAND.appName} connects to Supabase.`}
+      </Text>
+    </View>
+  );
+}
+
 function SocialButton({
   label,
   disabled,
@@ -562,19 +730,19 @@ function GoogleIcon() {
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
         d="M21.6 12.23 C21.6 11.52 21.54 10.84 21.43 10.18 H12 V14.06 H17.39 C17.16 15.31 16.45 16.37 15.38 17.08 V19.6 H18.63 C20.53 17.85 21.6 15.26 21.6 12.23 Z"
-        fill="#4285F4"
+        fill={externalBrandColors.googleBlue}
       />
       <Path
         d="M12 22 C14.7 22 16.96 21.1 18.63 19.6 L15.38 17.08 C14.48 17.68 13.33 18.04 12 18.04 C9.39 18.04 7.18 16.28 6.39 13.91 H3.03 V16.51 C4.69 19.78 8.08 22 12 22 Z"
-        fill="#34A853"
+        fill={externalBrandColors.googleGreen}
       />
       <Path
         d="M6.39 13.91 C6.19 13.31 6.08 12.67 6.08 12 C6.08 11.33 6.19 10.69 6.39 10.09 V7.49 H3.03 C2.35 8.85 1.96 10.38 1.96 12 C1.96 13.62 2.35 15.15 3.03 16.51 L6.39 13.91 Z"
-        fill="#FBBC05"
+        fill={externalBrandColors.googleYellow}
       />
       <Path
         d="M12 5.96 C13.47 5.96 14.79 6.46 15.82 7.46 L18.7 4.58 C16.96 2.96 14.7 2 12 2 C8.08 2 4.69 4.22 3.03 7.49 L6.39 10.09 C7.18 7.72 9.39 5.96 12 5.96 Z"
-        fill="#EA4335"
+        fill={externalBrandColors.googleRed}
       />
     </Svg>
   );
@@ -585,16 +753,6 @@ function MailIcon() {
     <Svg width={25} height={25} viewBox="0 0 24 24" fill="none">
       <Rect x={4} y={6.5} width={16} height={11.5} rx={2.2} stroke={colors.accentDeep} strokeWidth={1.7} />
       <Path d="M5.5 8.5 L12 13 L18.5 8.5" stroke={colors.accentDeep} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-function DownloadIcon({ color }: { color: string }) {
-  return (
-    <Svg width={23} height={23} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 4.5 V14" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-      <Path d="M8 10.5 L12 14.5 L16 10.5" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M5 18.5 H19" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -658,22 +816,30 @@ const styles = StyleSheet.create({
     marginTop: 2,
     color: colors.primaryText,
   },
-  exportButton: {
-    minHeight: 54,
-    borderRadius: radius.button,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  syncStatusCard: {
     gap: spacing.sm,
-    backgroundColor: colors.accent,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    ...shadow.soft,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
   },
-  exportButtonText: {
+  syncStatusTitle: {
     ...type.bodySmall,
     fontFamily: type.button.fontFamily,
-    color: colors.onAccent,
+    color: colors.primaryText,
+  },
+  syncStatusBody: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  syncStatusError: {
+    ...type.caption,
+    color: colors.error,
+  },
+  syncActionStack: {
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   signOutButton: {
     minHeight: 54,
@@ -740,6 +906,20 @@ const styles = StyleSheet.create({
   requiredStack: {
     gap: spacing.md,
     marginTop: spacing.xl,
+  },
+  signUpPrivacyNotice: {
+    gap: spacing.xs,
+  },
+  privacyLink: {
+    minHeight: 44,
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+  },
+  privacyLinkText: {
+    ...type.caption,
+    color: colors.accentDeep,
+    fontFamily: type.button.fontFamily,
+    textDecorationLine: 'underline',
   },
   socialStack: { gap: spacing.sm, marginTop: spacing.xs },
   socialButton: {

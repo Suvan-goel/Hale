@@ -41,15 +41,6 @@ export function createScreenPoseLandmarks(): ScreenPoseLandmarks {
   };
 }
 
-export function copyScreenPoseLandmarks(src: ScreenPoseLandmarks, dst: ScreenPoseLandmarks): void {
-  dst.timestampMs = src.timestampMs;
-  dst.hasPose = src.hasPose;
-  dst.xs.set(src.xs);
-  dst.ys.set(src.ys);
-  dst.visibility.set(src.visibility);
-  dst.presence.set(src.presence);
-}
-
 export function computeViewportTransform(viewport: PoseScreenViewport): PoseViewportTransform {
   const { width, height, sourceAspect, mirrored, fit = 'cover' } = viewport;
   const viewAspect = width / height;

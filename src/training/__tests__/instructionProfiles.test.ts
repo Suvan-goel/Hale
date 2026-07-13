@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { listExercises } from '../../exercises';
 import {
   ACTIVE_SHOULDER_REACH_V2_ID,
   CHAIR_RISE_V2_ID,
@@ -10,12 +9,8 @@ import {
 } from '../../movements';
 import {
   CONTROLLED_BETA_CHECKUP_PROTOCOL_IDS,
-  CONTROLLED_BETA_MICRO_CHECK_TYPES,
-  getMicroCheckInstructionProfile,
   instructionCueIds,
   listCheckUpInstructionProfiles,
-  listMicroCheckInstructionProfiles,
-  listTrainingInstructionProfiles,
   movementProfileV2InstructionCueIdsForStage,
   movementProfileV2InstructionTextForStage,
   protocolIdForMovementProfileV2Stage,
@@ -50,28 +45,6 @@ const FORBIDDEN_PUBLIC_COPY = [
 ] as const;
 
 describe('canonical instruction profiles', () => {
-  it('covers every registered training exercise with first, repeat, help, and visible copy', () => {
-    const exercises = listExercises();
-    const profiles = listTrainingInstructionProfiles();
-    expect(exercises).toHaveLength(37);
-    expect(profiles).toHaveLength(exercises.length);
-    expect(new Set(profiles.map((profile) => profile.exerciseId))).toEqual(
-      new Set(exercises.map((exercise) => exercise.id))
-    );
-
-    for (const profile of profiles) {
-      expect(profile.kind).toBe('training_exercise');
-      expect(profile.schemaVersion).toBe(1);
-      expect(profile.firstTime.text.trim()).not.toHaveLength(0);
-      expect(profile.repeat.text.trim()).not.toHaveLength(0);
-      expect(profile.help.text.trim()).not.toHaveLength(0);
-      expect(instructionCueIds(profile.firstTime)).not.toHaveLength(0);
-      expect(instructionCueIds(profile.repeat)).not.toHaveLength(0);
-      expect(instructionCueIds(profile.help)).not.toHaveLength(0);
-      expect(visibleInstructionText(profile)).toMatch(/\w/);
-    }
-  });
-
   it('covers the four controlled-beta Movement Check-Up protocols', () => {
     const profiles = listCheckUpInstructionProfiles();
     expect(CONTROLLED_BETA_CHECKUP_PROTOCOL_IDS).toEqual([
@@ -96,28 +69,9 @@ describe('canonical instruction profiles', () => {
     expect(movementProfileV2InstructionTextForStage('hinge_setup')).toMatch(/reach your hands toward the floor/i);
   });
 
-  it('covers the three micro-check types with side-specific help cues where needed', () => {
-    expect(CONTROLLED_BETA_MICRO_CHECK_TYPES).toEqual([
-      'chair-power',
-      'single-leg-balance',
-      'mobility-reach',
-    ]);
-    expect(listMicroCheckInstructionProfiles().map((profile) => profile.protocolId)).toEqual(
-      CONTROLLED_BETA_MICRO_CHECK_TYPES
-    );
-    expect(instructionCueIds(getMicroCheckInstructionProfile('single-leg-balance', 'right')!.help)).toEqual([
-      'micro-single-leg-right-v21',
-    ]);
-    expect(instructionCueIds(getMicroCheckInstructionProfile('mobility-reach')!.help)).toEqual([
-      'micro-mobility-left-v21',
-    ]);
-  });
-
   it('keeps forbidden public copy out of spoken and visible instruction text', () => {
     const publicText = [
-      ...listTrainingInstructionProfiles(),
       ...listCheckUpInstructionProfiles(),
-      ...listMicroCheckInstructionProfiles(),
     ].flatMap((profile) => [
       profile.displayName,
       profile.firstTime.text,

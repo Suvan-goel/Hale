@@ -7,12 +7,12 @@ const VERDICT = 'TRAINING_STEP_UP_ALTERNATION_SOFTWARE_COMPLETE_DEFAULT_CLOSED';
 const NEXT_TASK = 'Training floor-transfer readiness gate implementation';
 
 const ARTIFACTS = {
-  implementation: 'docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_IMPLEMENTATION.md',
-  auditMd: 'docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_AUDIT.md',
-  auditJson: 'docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_AUDIT.json',
-  scenariosCsv: 'docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_SCENARIOS.csv',
-  evidenceMatrixCsv: 'docs/audits/HALE_TRAINING_STEP_UP_REP_EVIDENCE_MATRIX.csv',
-  handoff: 'docs/audits/HALE_VOICE_PROJECT_POST_STEP_UP_HANDOFF.md',
+  implementation: 'docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_IMPLEMENTATION.md',
+  auditMd: 'docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_AUDIT.md',
+  auditJson: 'docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_AUDIT.json',
+  scenariosCsv: 'docs/audits/PEARL_TRAINING_STEP_UP_ALTERNATION_SCENARIOS.csv',
+  evidenceMatrixCsv: 'docs/audits/PEARL_TRAINING_STEP_UP_REP_EVIDENCE_MATRIX.csv',
+  handoff: 'docs/audits/PEARL_VOICE_PROJECT_POST_STEP_UP_HANDOFF.md',
 };
 
 const snapshot = loadSnapshot();
@@ -435,7 +435,7 @@ function evidence(value, scenarioIds) {
 }
 
 function implementationMd(audit) {
-  return `# Hale Training Step-Up Alternation Implementation
+  return `# Pearl Training Step-Up Alternation Implementation
 
 Generated: ${audit.generatedAt}
 
@@ -472,7 +472,7 @@ Next task: ${audit.nextTask}
 }
 
 function auditMd(audit) {
-  return `# Hale Training Step-Up Alternation Audit
+  return `# Pearl Training Step-Up Alternation Audit
 
 Generated: ${audit.generatedAt}
 
@@ -504,7 +504,7 @@ Next task: ${audit.nextTask}
 }
 
 function handoffMd(audit) {
-  return `# Hale Voice Project Post Step-Up Handoff
+  return `# Pearl Voice Project Post Step-Up Handoff
 
 ## Status
 

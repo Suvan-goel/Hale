@@ -27,6 +27,7 @@ describe('conservative defaults', () => {
     expect(profile.activityLevel).toBeNull();
     expect(profile.gentleStartActive).toBe(false);
     expect(profile.pelvicRouting).toBe('none');
+    expect(profile.balanceSupportRequired).toBe(false);
     expect(profile.hasStairs).toBeNull();
     expect(profile.hasBand).toBeNull();
     expect(profile.placement).toEqual({});
@@ -59,6 +60,8 @@ describe('round-trip', () => {
       pelvicRouting: 'low_impact',
       quietMode: true,
       jointFlags: ['knee', 'wrist'],
+      balanceSupportDefault: true,
+      balanceSupportRequired: true,
       hasStairs: true,
       placement: { squat: 2, push: 2 },
       assessmentStatus: 'deferred',
@@ -126,6 +129,17 @@ describe('defensive parsing', () => {
     expect(state?.finisher.currentContacts).toBe(50); // clamped into 20–50
     expect(state?.lastSessionEffort).toBeNull();
     expect(state?.journey).toEqual(createEmptyProgrammeJourneyState());
+  });
+
+  it('migrates an older enabled support default conservatively as required', () => {
+    const legacy = JSON.parse(serializeProgrammeState(defaultProgrammeState()));
+    legacy.profile.balanceSupportDefault = true;
+    delete legacy.profile.balanceSupportRequired;
+
+    expect(deserializeProgrammeState(JSON.stringify(legacy))?.profile).toMatchObject({
+      balanceSupportDefault: true,
+      balanceSupportRequired: true,
+    });
   });
 
   it('migrates v1 without losing valid programme progress', () => {

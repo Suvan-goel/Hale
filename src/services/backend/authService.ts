@@ -2,12 +2,14 @@ import { makeRedirectUri } from 'expo-auth-session';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform } from 'react-native';
 
+import { isOnlineProfilesEnabled } from '../../config/onlineProfiles';
 import { supabase } from '../../lib/supabase';
 import { addBreadcrumb, captureError } from '../observability/sentry';
 
-import { ensureCurrentProfile, upsertCurrentProfile } from './profileService';
+import { upsertCurrentProfile } from './profileService';
 import type { AuthSession, AuthState, AuthUser, BackendProfile } from './types';
 
 import { BRAND } from '../../brand';
@@ -17,7 +19,6 @@ const OAUTH_REDIRECT_SCHEME = 'pearl';
 const OAUTH_REDIRECT_PATH = 'auth/callback';
 const OAUTH_REDIRECT_URL = `${OAUTH_REDIRECT_SCHEME}://${OAUTH_REDIRECT_PATH}`;
 const GOOGLE_PROVIDER = 'google';
-const OAUTH_PROFILE_TIMEOUT_MS = 7000;
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -126,6 +127,19 @@ async function handleIncomingAuthUrl(
 
   devAuthLog('incoming URL matched auth callback', { source, url: safeUrlHostPath(url) });
 
+  const { params, errorCode } = QueryParams.getQueryParams(url);
+  const hasPkceCode = typeof params.code === 'string' && params.code.length > 0;
+  const hasProviderError = Boolean(
+    errorCode || params.error || params.error_code || params.error_description
+  );
+  if (!hasPkceCode && !hasProviderError) {
+    // Never accept bearer tokens delivered by an unsolicited app link. All
+    // supported OAuth, confirmation, and recovery callbacks use a one-time
+    // PKCE code bound to the verifier stored by this installation.
+    addBreadcrumb('auth callback rejected', { reason: 'missing_pkce_code' });
+    return;
+  }
+
   const pendingCallback = pendingOAuthCallback;
   pendingOAuthCallback = null;
   if (pendingCallback) {
@@ -135,7 +149,7 @@ async function handleIncomingAuthUrl(
 
   try {
     const session = await createSessionFromAuthUrl(url);
-    const nextState = await stateWithProfile(session);
+    const nextState = stateForSession(session);
     callback?.({
       ...nextState,
       isPasswordRecovery: isPasswordRecoveryUrl(url),
@@ -144,7 +158,6 @@ async function handleIncomingAuthUrl(
     const message = messageFromUnknown(error);
     console.warn(`[auth] incoming auth callback failed: ${message}`);
     captureError(error, { area: 'auth', action: 'incoming_auth_callback' });
-    callback?.(authState(null, null, null, message));
   }
 }
 
@@ -173,19 +186,6 @@ function logAuthSessionResult(result: WebBrowser.WebBrowserAuthSessionResult): v
   });
 }
 
-async function withTimeout<T>(promise: Promise<T>, label: string, timeoutMs: number): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeout = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
-  });
-
-  try {
-    return await Promise.race([promise, timeoutPromise]);
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
-}
-
 function isAppleCancel(error: unknown): boolean {
   return (
     typeof error === 'object' &&
@@ -210,28 +210,13 @@ function appleFullName(fullName: AppleAuthentication.AppleAuthenticationFullName
   return normalizedFullName(value);
 }
 
-async function stateWithProfile(session: AuthSession | null, fallbackUser?: AuthUser | null): Promise<AuthState> {
+function stateForSession(session: AuthSession | null, fallbackUser?: AuthUser | null): AuthState {
   if (!session) return authState(null, fallbackUser ?? null);
-
-  const profile = await ensureCurrentProfile();
-  return authState(session, session.user, profile);
-}
-
-async function stateWithProfileAfterOAuth(session: AuthSession): Promise<AuthState> {
-  try {
-    devAuthLog('Google sign-in profile refresh started');
-    const profile = await withTimeout(
-      ensureCurrentProfile(),
-      'Google sign-in profile refresh',
-      OAUTH_PROFILE_TIMEOUT_MS
-    );
-    devAuthLog('Google sign-in profile refresh succeeded', { hasProfile: Boolean(profile) });
-    return authState(session, session.user, profile);
-  } catch (profileError) {
-    console.warn(`[auth] Google sign-in profile refresh failed after session exchange: ${messageFromUnknown(profileError)}`);
-    captureError(profileError, { area: 'auth', action: 'google_profile_refresh' });
-    return authState(session, session.user);
-  }
+  // A valid Supabase session is the authentication result. Loading the
+  // optional profile is deliberately deferred to AuthProvider so profile
+  // latency, a missing row, or an RLS error cannot reject a successful auth
+  // action (or hold it open until a separate network request times out).
+  return authState(session, session.user);
 }
 
 async function createSessionFromAuthUrl(url: string): Promise<AuthSession> {
@@ -271,26 +256,9 @@ async function createSessionFromAuthUrl(url: string): Promise<AuthSession> {
     return data.session;
   }
 
-  const accessToken = typeof params.access_token === 'string' ? params.access_token : undefined;
-  const refreshToken = typeof params.refresh_token === 'string' ? params.refresh_token : undefined;
-
-  if (!accessToken || !refreshToken) {
-    throw new Error(
-      'Supabase auth callback returned without a session. Check the provider and redirect URL configuration.'
-    );
-  }
-
-  const { data, error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
-
-  if (error) throw error;
-  if (!data.session) {
-    throw new Error('Supabase auth callback completed, but did not create a session.');
-  }
-
-  return data.session;
+  throw new Error(
+    'Supabase auth callback returned without a PKCE code. Check the provider and redirect URL configuration.'
+  );
 }
 
 export async function getCurrentSession(): Promise<AuthSession | null> {
@@ -300,9 +268,15 @@ export async function getCurrentSession(): Promise<AuthSession | null> {
   return data.session;
 }
 
-export async function getCurrentUser(): Promise<AuthUser | null> {
-  const session = await getCurrentSession();
-  return session?.user ?? null;
+/** Server-validated identity for resolving an ambiguous deletion request. */
+export async function getVerifiedCurrentUser(): Promise<AuthUser | null> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    const status = (error as { status?: unknown }).status;
+    if (status === 401 || status === 403 || status === 404) return null;
+    throw error;
+  }
+  return data.user ?? null;
 }
 
 export async function signUpWithEmail(
@@ -314,11 +288,14 @@ export async function signUpWithEmail(
   const { data, error } = await supabase.auth.signUp({
     email: normalizedEmail(email),
     password,
-    ...(name ? { options: { data: { full_name: name } } } : {}),
+    options: {
+      emailRedirectTo: OAUTH_REDIRECT_URL,
+      ...(name ? { data: { full_name: name } } : {}),
+    },
   });
 
   if (error) throw error;
-  return stateWithProfile(data.session, data.user);
+  return stateForSession(data.session, data.user);
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<AuthState> {
@@ -328,7 +305,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
   });
 
   if (error) throw error;
-  return stateWithProfile(data.session, data.user);
+  return stateForSession(data.session, data.user);
 }
 
 export async function sendPasswordResetEmail(email: string): Promise<void> {
@@ -347,7 +324,7 @@ export async function updatePassword(newPassword: string): Promise<AuthState> {
   if (error) throw error;
 
   const session = await getCurrentSession();
-  return stateWithProfile(session, data.user);
+  return stateForSession(session, data.user);
 }
 
 export async function signInWithGoogle(): Promise<AuthState> {
@@ -418,7 +395,7 @@ export async function signInWithGoogle(): Promise<AuthState> {
       const session = await createSessionFromAuthUrl(result.url);
       const currentSession = await getCurrentSession();
       devAuthLog('Google sign-in session confirmed after callback', { hasSession: Boolean(currentSession) });
-      return stateWithProfileAfterOAuth(session);
+      return stateForSession(session);
     } catch (exchangeError) {
       devAuthLog('Google sign-in Supabase session exchange failed', {
         message: messageFromUnknown(exchangeError),
@@ -484,14 +461,16 @@ export async function signInWithApple(): Promise<AuthState> {
         });
 
         if (updateError) throw updateError;
-        await upsertCurrentProfile({ full_name: fullName });
+        if (isOnlineProfilesEnabled()) {
+          await upsertCurrentProfile({ full_name: fullName });
+        }
       } catch (profileError) {
         console.warn(`[auth] Apple profile name save failed: ${messageFromUnknown(profileError)}`);
         captureError(profileError, { area: 'auth', action: 'apple_profile_name_save' });
       }
     }
 
-    return stateWithProfile(data.session, data.user);
+    return stateForSession(data.session, data.user);
   } catch (error) {
     if (isAppleCancel(error)) {
       throw new Error('Apple sign-in was cancelled.');
@@ -504,6 +483,35 @@ export async function signInWithApple(): Promise<AuthState> {
 export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+}
+
+/** Clear only this installation's persisted session after server-side erasure. */
+export async function clearLocalSession(): Promise<void> {
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+  if (!error) return;
+
+  // Supabase normally removes persisted storage even when the deleted user's
+  // JWT returns 401/404. If a different sign-out failure escapes, explicitly
+  // remove this app's default Supabase Auth keys so a deleted session cannot
+  // reappear on relaunch. Never log key contents or token values.
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const authKeys = keys.filter(isDefaultSupabaseAuthStorageKey);
+    if (authKeys.length > 0) await AsyncStorage.multiRemove(authKeys);
+  } catch (storageError) {
+    throw new Error(
+      `Could not clear the saved Supabase session: ${messageFromUnknown(storageError)}`
+    );
+  }
+}
+
+function isDefaultSupabaseAuthStorageKey(key: string): boolean {
+  if (!key.startsWith('sb-')) return false;
+  return (
+    key.endsWith('-auth-token') ||
+    key.endsWith('-auth-token-code-verifier') ||
+    key.endsWith('-auth-token-user')
+  );
 }
 
 export function subscribeToAuthChanges(callback: AuthChangeCallback): () => void {

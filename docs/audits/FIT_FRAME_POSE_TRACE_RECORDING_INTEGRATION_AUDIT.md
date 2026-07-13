@@ -2,11 +2,11 @@
 
 Date: 2026-06-29
 
-Scope: audit only. This document reviews how the experimental Fit Frame + Premium Pose Trace preview should graduate into Hale's production recording surfaces without changing scoring, session completion, data persistence, Supabase/backend code, or the camera/native inference contract.
+Scope: audit only. This document reviews how the experimental Fit Frame + Premium Pose Trace preview should graduate into Pearl's production recording surfaces without changing scoring, session completion, data persistence, Supabase/backend code, or the camera/native inference contract.
 
 ## Executive Summary
 
-The Fit Frame + Premium Pose Trace renderer is a strong candidate for Hale's recording visual, but it should not be integrated screen-by-screen in its current preview shape. The safe path is to introduce a shared recording visual surface and a small guidance adapter that translates existing pose/readiness/session states into visual states. The renderer must remain downstream of the current measurement state machines.
+The Fit Frame + Premium Pose Trace renderer is a strong candidate for Pearl's recording visual, but it should not be integrated screen-by-screen in its current preview shape. The safe path is to introduce a shared recording visual surface and a small guidance adapter that translates existing pose/readiness/session states into visual states. The renderer must remain downstream of the current measurement state machines.
 
 Recommended decision: build a shared `RecordingVisualSurface` around `FitFramePoseTraceRenderer`, then adopt it behind a feature flag in this order:
 
@@ -16,7 +16,7 @@ Recommended decision: build a shared `RecordingVisualSurface` around `FitFramePo
 4. Training, after extracting the duplicated recording viewport and disabling the native skeleton overlay outside debug.
 5. Movement Profile V2 official check-up last, after exposing coordinator-owned guidance state rather than duplicating MPV2 setup inference.
 
-The largest risk is not visual rendering. The largest risk is letting a visual edge/highlight heuristic become a second source of truth for readiness, countdown, tracking loss, or side selection. Hale already has several production-grade sources of truth: `PosePipeline`, `PreflightCheck`, `MovementCameraReadinessTracker`, `SessionController`, `TrainingSessionPlayer`, `MicroCheckRunner`, `MicroCheckCameraSideResolver`, and `MovementProfileV2LiveCoordinator`. The Fit Frame layer should consume those states, never replace them.
+The largest risk is not visual rendering. The largest risk is letting a visual edge/highlight heuristic become a second source of truth for readiness, countdown, tracking loss, or side selection. Pearl already has several production-grade sources of truth: `PosePipeline`, `PreflightCheck`, `MovementCameraReadinessTracker`, `SessionController`, `TrainingSessionPlayer`, `MicroCheckRunner`, `MicroCheckCameraSideResolver`, and `MovementProfileV2LiveCoordinator`. The Fit Frame layer should consume those states, never replace them.
 
 ## Current Recording Architecture
 

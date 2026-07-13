@@ -4,7 +4,7 @@ Date: 2026-06-17
 
 ## Executive summary
 
-Hale already has the right high-level seams for valid active time: exercise and
+Pearl already has the right high-level seams for valid active time: exercise and
 assessment definitions are registry-driven, graders own measurement logic, the
 players are frame-timestamp driven, and the pose pipeline emits explicit
 `subject-gone` events. The timer gap is narrower than a player rewrite.
@@ -653,7 +653,7 @@ Add tests before or with implementation.
 Use this after the audit is accepted:
 
 ```text
-Implement Phase 1 valid-time timers for Hale.
+Implement Phase 1 valid-time timers for Pearl.
 
 Constraints:
 - Do not rewrite TrainingSessionPlayer or CheckUpOrchestrator.

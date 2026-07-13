@@ -106,6 +106,7 @@ export function defaultProgrammeProfile(): ProgrammeProfile {
     quietMode: false,
     jointFlags: [],
     balanceSupportDefault: false,
+    balanceSupportRequired: false,
     hasStairs: null,
     hasBand: null,
     diastasisFlag: false,
@@ -187,6 +188,12 @@ function validProfile(v: unknown): ProgrammeProfile {
     quietMode: p.quietMode === true,
     jointFlags: stringSubset(p.jointFlags, JOINT_FLAGS),
     balanceSupportDefault: p.balanceSupportDefault === true,
+    // Older records did not retain provenance. Treat an existing enabled
+    // support default as required rather than weakening a safety decision.
+    balanceSupportRequired:
+      typeof p.balanceSupportRequired === 'boolean'
+        ? p.balanceSupportRequired
+        : p.balanceSupportDefault === true,
     hasStairs: typeof p.hasStairs === 'boolean' ? p.hasStairs : null,
     hasBand: typeof p.hasBand === 'boolean' ? p.hasBand : null,
     diastasisFlag: p.diastasisFlag === true,

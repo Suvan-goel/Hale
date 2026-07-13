@@ -22,7 +22,6 @@ import { mulberry32 } from './syntheticPose';
 
 // Scale-1 body constants (normalized units).
 const SHANK = 0.17;
-const LEG_FULL = 2 * SHANK; // hip-ankle distance at a perfectly straight knee
 /** Hip height above ankle, standing (knee ≈ 175°). */
 export const HY_STAND = 0.3395;
 /** Hip height above ankle, seated (knee ≈ 88°). */

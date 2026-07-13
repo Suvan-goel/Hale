@@ -66,7 +66,6 @@ export class ChairRiseV2ProtocolController {
   private setup_: ChairRiseV2Setup | null = null;
   private practiceRepCompleted_ = false;
   private activeStartedAtMs: number | null = null;
-  private activeEndedAtMs: number | null = null;
   private windows: ProtocolMeasurementWindow[] = [];
   private reps: ChairRiseV2RepStat[] = [];
   private interruptions = 0;
@@ -97,7 +96,6 @@ export class ChairRiseV2ProtocolController {
   startActive(nowMs: number): boolean {
     if (this.phase_ !== 'countdown' || !this.practiceRepCompleted_) return false;
     this.activeStartedAtMs = nowMs;
-    this.activeEndedAtMs = null;
     this.phase_ = 'active';
     this.windows.push({
       startedAtMs: nowMs,
@@ -135,11 +133,8 @@ export class ChairRiseV2ProtocolController {
     });
   }
 
-  finish(nowMs: number): ChairRiseV2Result {
+  finish(_nowMs: number): ChairRiseV2Result {
     if (this.phase_ !== 'complete') {
-      if (this.activeStartedAtMs !== null) {
-        this.activeEndedAtMs = Math.min(nowMs, this.activeStartedAtMs + this.config.activeWindowMs);
-      }
       this.phase_ = 'complete';
     }
     return this.result();

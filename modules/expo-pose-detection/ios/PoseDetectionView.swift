@@ -86,8 +86,8 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
-    // focus-canvas (#101114) - keep in sync with the JS theme token (src/theme).
-    backgroundColor = UIColor(red: 0x10 / 255.0, green: 0x11 / 255.0, blue: 0x14 / 255.0, alpha: 1.0)
+    // focus-canvas (#FAF8F7) - keep in sync with the JS theme token (src/theme).
+    backgroundColor = UIColor(red: 0xFA / 255.0, green: 0xF8 / 255.0, blue: 0xF7 / 255.0, alpha: 1.0)
     skeletonLayer.fillColor = nil
     skeletonLayer.strokeColor = UIColor(red: 0xEE / 255.0, green: 0xE2 / 255.0, blue: 0xDC / 255.0, alpha: 1.0).cgColor
     skeletonLayer.lineCap = .round

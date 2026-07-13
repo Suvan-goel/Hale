@@ -24,11 +24,17 @@
           "experimentalLauncherActivity": false
         }
       ],
+      [
+        "expo-dev-client",
+        {
+          "toolsButton": false
+        }
+      ],
       "expo-apple-authentication",
       "@sentry/react-native/expo"
     ],
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#000000",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FAF8F7",
     "ios": {
       "supportsTablet": false,
       "icon": "./assets/ios-icon.png",
@@ -46,7 +52,7 @@
     "android": {
       "icon": "./assets/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
+        "backgroundColor": "#FAF8F7",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
