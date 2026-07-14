@@ -47,6 +47,7 @@ describe('ExerciseDemoGraphic guidance', () => {
   });
 
   it.each<[string, ExerciseGuideKey]>([
+    ['programme.prep', 'warmup'],
     ['squat.sit_to_stand', 'chair_rise'],
     ['squat.air_squat', 'squat'],
     ['squat.low_step_up', 'step_up'],

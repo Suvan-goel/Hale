@@ -25,6 +25,7 @@ export type ExerciseDemoSpec = Readonly<{
 }>;
 
 export type ExerciseGuideKey =
+  | 'warmup'
   | 'chair_rise'
   | 'squat'
   | 'step_up'
@@ -41,6 +42,7 @@ export type ExerciseGuideKey =
   | 'balance';
 
 const GUIDE_IMAGES: Readonly<Record<ExerciseGuideKey, ImageSourcePropType>> = {
+  warmup: require('../../assets/images/instructional/guide-warmup.jpg'),
   chair_rise: require('../../assets/images/instructional/guide-chair-rise.jpg'),
   squat: require('../../assets/images/instructional/guide-squat.jpg'),
   step_up: require('../../assets/images/instructional/guide-step-up.jpg'),
@@ -157,6 +159,7 @@ export function getExerciseDemoSpec(exerciseId: string): ExerciseDemoSpec {
 export function exerciseGuideKey(exerciseId: string): ExerciseGuideKey | null {
   const id = exerciseId.trim().toLowerCase().replace(/-/g, '_');
 
+  if (id === 'programme.prep') return 'warmup';
   if (id.includes('step_up')) return 'step_up';
   if (id.includes('split_squat') || id.includes('lunge') || id.includes('rfess')) {
     return 'split_squat';
