@@ -1,8 +1,19 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { allProgrammeDisplayNames } from '../../programme/naming';
 import {
   exerciseDemoFamily,
+  exerciseGuideKey,
   getExerciseDemoSpec,
   type ExerciseDemoFamily,
+  type ExerciseGuideKey,
 } from '../ExerciseDemoGraphic';
+
+const componentSource = readFileSync(
+  join(process.cwd(), 'src/components/ExerciseDemoGraphic.tsx'),
+  'utf8'
+);
 
 describe('ExerciseDemoGraphic guidance', () => {
   it.each<[string, ExerciseDemoFamily]>([
@@ -33,6 +44,56 @@ describe('ExerciseDemoGraphic guidance', () => {
     ['unknown.future-movement', 'prep_finisher'],
   ])('maps %s to the stable %s demonstration family', (exerciseId, expected) => {
     expect(exerciseDemoFamily(exerciseId)).toBe(expected);
+  });
+
+  it.each<[string, ExerciseGuideKey]>([
+    ['squat.sit_to_stand', 'chair_rise'],
+    ['squat.air_squat', 'squat'],
+    ['squat.low_step_up', 'step_up'],
+    ['squat.supported_split_squat', 'split_squat'],
+    ['hinge.glute_bridge', 'bridge'],
+    ['hinge.wall_tap_hinge', 'hinge'],
+    ['push.counter_push_up', 'push'],
+    ['pull.prone_t_raise', 'upper_back'],
+    ['pull.band_pull_apart', 'band_pull'],
+    ['pull.seated_band_row', 'row'],
+    ['core.dead_bug_heel_slides', 'supine_core'],
+    ['core.bird_dog', 'kneeling_core'],
+    ['core.suitcase_carry', 'carry'],
+    ['balance-single-leg-hold', 'balance'],
+    ['finisher.explosive_sit_to_stands', 'chair_rise'],
+    ['finisher.fast_step_ups', 'step_up'],
+    ['finisher.counter_push_offs', 'push'],
+  ])('maps %s to the reusable %s image guide', (exerciseId, expected) => {
+    expect(exerciseGuideKey(exerciseId)).toBe(expected);
+  });
+
+  it('uses the neutral graphic fallback when a movement has no distinct setup guide', () => {
+    expect(exerciseGuideKey('prep.easy_march')).toBeNull();
+    expect(exerciseGuideKey('finisher.heel_drops')).toBeNull();
+    expect(exerciseGuideKey('unknown.future-movement')).toBeNull();
+  });
+
+  it('covers every registered programme movement that needs a separate setup guide', () => {
+    const neutralMovementIds = new Set([
+      'prep.easy_march',
+      'prep.arm_reaches',
+      'finisher.heel_drops',
+      'finisher.moderate_stomps',
+      'finisher.power_march',
+    ]);
+
+    for (const exerciseId of allProgrammeDisplayNames().keys()) {
+      if (neutralMovementIds.has(exerciseId)) continue;
+      expect(exerciseGuideKey(exerciseId)).not.toBeNull();
+    }
+  });
+
+  it('shows the full three-step strip in the same fixed frame as the check-up guides', () => {
+    expect(componentSource).toContain('aspectRatio: 1200 / 659');
+    expect(componentSource).toContain('resizeMode="contain"');
+    expect(componentSource).toContain("height: '100%'");
+    expect(componentSource).not.toContain('resizeMode="cover"');
   });
 
   it('provides three short instructional cues for every family', () => {

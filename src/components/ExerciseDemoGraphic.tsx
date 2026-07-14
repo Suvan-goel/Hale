@@ -1,4 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  type ImageSourcePropType,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
 
 import { BRAND } from '../brand';
@@ -17,6 +23,39 @@ export type ExerciseDemoSpec = Readonly<{
   family: ExerciseDemoFamily;
   cues: readonly [string, string, string];
 }>;
+
+export type ExerciseGuideKey =
+  | 'chair_rise'
+  | 'squat'
+  | 'step_up'
+  | 'split_squat'
+  | 'bridge'
+  | 'hinge'
+  | 'push'
+  | 'upper_back'
+  | 'band_pull'
+  | 'row'
+  | 'supine_core'
+  | 'kneeling_core'
+  | 'carry'
+  | 'balance';
+
+const GUIDE_IMAGES: Readonly<Record<ExerciseGuideKey, ImageSourcePropType>> = {
+  chair_rise: require('../../assets/images/instructional/guide-chair-rise.jpg'),
+  squat: require('../../assets/images/instructional/guide-squat.jpg'),
+  step_up: require('../../assets/images/instructional/guide-step-up.jpg'),
+  split_squat: require('../../assets/images/instructional/guide-split-squat.jpg'),
+  bridge: require('../../assets/images/instructional/guide-bridge.jpg'),
+  hinge: require('../../assets/images/instructional/guide-hinge.jpg'),
+  push: require('../../assets/images/instructional/guide-push.jpg'),
+  upper_back: require('../../assets/images/instructional/guide-upper-back.jpg'),
+  band_pull: require('../../assets/images/instructional/guide-band-pull.jpg'),
+  row: require('../../assets/images/instructional/guide-row.jpg'),
+  supine_core: require('../../assets/images/instructional/guide-supine-core.jpg'),
+  kneeling_core: require('../../assets/images/instructional/guide-kneeling-core.jpg'),
+  carry: require('../../assets/images/instructional/guide-carry.jpg'),
+  balance: require('../../assets/images/instructional/guide-balance.jpg'),
+};
 
 const DEMO_SPECS: Readonly<Record<ExerciseDemoFamily, ExerciseDemoSpec>> = {
   chair_squat: {
@@ -110,6 +149,103 @@ export function getExerciseDemoSpec(exerciseId: string): ExerciseDemoSpec {
   return DEMO_SPECS[exerciseDemoFamily(exerciseId)];
 }
 
+/**
+ * Maps exercise variants onto the smallest useful set of setup guides. Tempo,
+ * loading, range, and hold variants intentionally share the same visual; the
+ * exercise-specific voice line remains the authority for those details.
+ */
+export function exerciseGuideKey(exerciseId: string): ExerciseGuideKey | null {
+  const id = exerciseId.trim().toLowerCase().replace(/-/g, '_');
+
+  if (id.includes('step_up')) return 'step_up';
+  if (id.includes('split_squat') || id.includes('lunge') || id.includes('rfess')) {
+    return 'split_squat';
+  }
+  if (
+    id.includes('sit_to_stand') ||
+    /(?:^|[._])sts(?:[._]|$)/.test(id) ||
+    id.includes('chair_rise')
+  ) {
+    return 'chair_rise';
+  }
+  if (id.includes('squat')) return 'squat';
+  if (id.includes('bridge') || id.includes('hip_thrust')) {
+    return 'bridge';
+  }
+  if (
+    id.includes('hinge') ||
+    id.includes('good_morning') ||
+    id === 'hinge_glutes' ||
+    id.includes('balance_reach')
+  ) {
+    return 'hinge';
+  }
+  if (
+    id.includes('push_up') ||
+    id.includes('press_up') ||
+    id.includes('push_off') ||
+    /(?:^|[._])push(?:[._]|$)/.test(id)
+  ) {
+    return 'push';
+  }
+  if (id.includes('pull_apart') || id.includes('high_band_pull')) return 'band_pull';
+  if (id.includes('row')) return 'row';
+  if (
+    id.includes('prone') ||
+    id.includes('retraction') ||
+    id.includes('shoulder_blade') ||
+    id.includes('snow_angel') ||
+    id.includes('ytw') ||
+    /(?:^|[._])(?:t|w)_raise(?:[._]|$)/.test(id) ||
+    id === 'pull_upper_back'
+  ) {
+    return 'upper_back';
+  }
+  if (id.includes('dead_bug') || id.includes('heel_slide') || id.includes('leg_lower')) {
+    return 'supine_core';
+  }
+  if (id.includes('bird_dog') || id.includes('plank')) return 'kneeling_core';
+  if (id.includes('carry') || id.includes('pallof')) return 'carry';
+  if (
+    id.includes('balance') ||
+    id.includes('single_leg') ||
+    id.includes('tandem') ||
+    id.includes('feet_together') ||
+    id.includes('lateral_stability')
+  ) {
+    return 'balance';
+  }
+
+  if (id === 'sit_to_stand') return 'chair_rise';
+  if (id === 'squat') return 'squat';
+  if (id === 'push') return 'push';
+  if (id === 'pull') return 'row';
+  if (id === 'core') return 'supine_core';
+
+  return null;
+}
+
+export function ExerciseGuideImage({
+  guideKey,
+  accessibilityLabel,
+}: {
+  guideKey: ExerciseGuideKey;
+  accessibilityLabel: string;
+}) {
+  return (
+    <View style={styles.guideImageFrame}>
+      <Image
+        source={GUIDE_IMAGES[guideKey]}
+        style={styles.guideImage}
+        resizeMode="contain"
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={accessibilityLabel}
+      />
+    </View>
+  );
+}
+
 export function ExerciseDemoGraphic({
   exerciseId,
   displayName,
@@ -118,12 +254,20 @@ export function ExerciseDemoGraphic({
   displayName: string;
 }) {
   const spec = getExerciseDemoSpec(exerciseId);
+  const guideKey = exerciseGuideKey(exerciseId);
   const accessibilityLabel = `${displayName}. Instructional preview. ${spec.cues.join(' ')}`;
 
   return (
     <View style={styles.card} accessible accessibilityLabel={accessibilityLabel}>
       <View style={styles.visual} importantForAccessibility="no-hide-descendants">
-        <MovementGraphic family={spec.family} />
+        {guideKey ? (
+          <ExerciseGuideImage
+            guideKey={guideKey}
+            accessibilityLabel={`${displayName} movement sequence`}
+          />
+        ) : (
+          <MovementGraphic family={spec.family} />
+        )}
       </View>
 
       <View style={styles.copy} importantForAccessibility="no-hide-descendants">
@@ -269,6 +413,17 @@ const styles = StyleSheet.create({
   },
   visual: {
     width: '100%',
+    backgroundColor: colors.focusSurface,
+  },
+  guideImageFrame: {
+    width: '100%',
+    aspectRatio: 1200 / 659,
+    overflow: 'hidden',
+    backgroundColor: colors.focusSurface,
+  },
+  guideImage: {
+    width: '100%',
+    height: '100%',
   },
   copy: {
     paddingHorizontal: spacing.lg,
