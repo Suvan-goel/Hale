@@ -10,10 +10,15 @@ describe('Progress UI restoration', () => {
 
     expect(progress).toContain("viewModel.status === 'no_profile'");
     expect(progress).toContain('if (onStartCheckUp) return <ProgressEmptyState />');
-    expect(progress).toContain('Your progress will appear here');
-    expect(progress).toContain('After your first Movement Check-Up');
-    expect(progress).toContain('Everyday Clarity will appear too if you choose to answer it.');
-    expect(progress).toContain('Start your check-up from Home when you’re ready.');
+    expect(progress).toContain('A clear record of where you start');
+    expect(progress).toContain('same check-up at weeks 4, 8 and 12');
+    expect(progress).toContain('<EmptyResultRow');
+    expect(progress).toContain('title="Strength"');
+    expect(progress).toContain('title="Balance"');
+    expect(progress).toContain('title="Everyday Clarity"');
+    expect(progress).toContain('detail="Optional check-in · always kept separate"');
+    expect(progress).toContain('Saved privately on this device');
+    expect(progress).toContain('Your first Movement Check-Up starts from Home.');
     expect(progress).not.toContain('Set your starting point');
     expect(progress).not.toContain('Plan preparation steps');
     expect(progress).not.toContain('<ProgressEmptyStep');

@@ -80,19 +80,86 @@ export function ProgressScreen({
 
 function ProgressEmptyState() {
   return (
-    <Card style={styles.emptyProgressCard}>
-      <View style={styles.emptyProgressIcon}>
-        <ProgressPictogram size={24} color={colors.accent} />
-      </View>
-      <View style={styles.emptyProgressCopy}>
-        <Text style={styles.emptyProgressTitle}>Your progress will appear here</Text>
+    <View style={styles.emptyProgress}>
+      <View style={styles.emptyProgressHero}>
+        <Text style={styles.emptyProgressEyebrow}>YOUR RESULTS</Text>
+        <Text style={styles.emptyProgressTitle}>A clear record of where you start</Text>
         <Text style={styles.emptyProgressBody}>
-          After your first Movement Check-Up, you’ll see your Strength and Balance results here.
-          Everyday Clarity will appear too if you choose to answer it.
+          Your first Movement Check-Up sets a personal baseline for Strength and Balance. The
+          same check-up at weeks 4, 8 and 12 builds a comparable record of your results.
         </Text>
-        <Text style={styles.emptyProgressHint}>Start your check-up from Home when you’re ready.</Text>
+        <View style={styles.emptyProgressRule} />
       </View>
-    </Card>
+
+      <View style={styles.emptyResultPreview}>
+        <View style={styles.emptyResultPreviewHeader}>
+          <Text style={styles.eyebrow}>WHAT WILL APPEAR HERE</Text>
+          <Text style={styles.emptyResultPreviewMeta}>After your check-up</Text>
+        </View>
+        <View style={styles.emptyResultRows}>
+          <EmptyResultRow
+            index="01"
+            title="Strength"
+            detail="30-second chair stand"
+            mode="Measure"
+          />
+          <EmptyResultRow
+            index="02"
+            title="Balance"
+            detail="One-leg hold"
+            mode="Measure"
+          />
+          <EmptyResultRow
+            index="03"
+            title="Everyday Clarity"
+            detail="Optional check-in · always kept separate"
+            mode="Track"
+            last
+          />
+        </View>
+      </View>
+
+      <View style={styles.emptyProgressFooter}>
+        <View style={styles.emptyProgressPrivacy}>
+          <View style={styles.emptyProgressPrivacyDot} />
+          <Text style={styles.emptyProgressPrivacyText}>Saved privately on this device</Text>
+        </View>
+        <Text style={styles.emptyProgressHint}>
+          Your first Movement Check-Up starts from Home.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function EmptyResultRow({
+  index,
+  title,
+  detail,
+  mode,
+  last = false,
+}: {
+  index: string;
+  title: string;
+  detail: string;
+  mode: 'Measure' | 'Track';
+  last?: boolean;
+}) {
+  return (
+    <View
+      style={[styles.emptyResultRow, last && styles.emptyResultRowLast]}
+      accessible
+      accessibilityLabel={`${title}. ${detail}. ${mode}.`}
+    >
+      <Text style={styles.emptyResultIndex}>{index}</Text>
+      <View style={styles.emptyResultCopy}>
+        <Text style={styles.emptyResultTitle}>{title}</Text>
+        <Text style={styles.emptyResultDetail}>{detail}</Text>
+      </View>
+      <Text style={[styles.emptyResultMode, mode === 'Track' && styles.emptyResultModeTrack]}>
+        {mode}
+      </Text>
+    </View>
   );
 }
 
@@ -614,14 +681,14 @@ function blockedCheckUpCopy(reason?: OfficialCheckUpBlockedReason): {
 } {
   if (reason === 'health_data_consent_required') {
     return {
-      title: 'Movement Check-Up is off',
-      body: `You chose not to save health information on this device, so ${BRAND.appName} will not open or store a camera check-up.`,
+      title: 'Your Movement Check-Up is off',
+      body: `Health information saving is off on this device, so ${BRAND.appName} will not open or save a camera check-up. You can review this in Settings.`,
     };
   }
   if (reason === 'gentle_start_safety_gate') {
     return {
       title: 'Gentle Start is active',
-      body: `${BRAND.appName} keeps the private Movement Check-Up unavailable while your Gentle Start safety gate is active.`,
+      body: 'You can keep training with easier sessions. The Movement Check-Up stays unavailable while this safety setting is active.',
     };
   }
   if (reason === 'journey_completed') {
@@ -838,53 +905,108 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  emptyProgressCard: {
-    minHeight: 196,
-    paddingHorizontal: 0,
-    paddingVertical: spacing.sm,
-    borderRadius: 0,
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-    shadowOpacity: 0,
-    elevation: 0,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.lg,
-  },
-  emptyProgressIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgElevated,
-  },
-  emptyProgressCopy: {
-    flex: 1,
-    minWidth: 0,
+  emptyProgress: { gap: spacing.xxxl },
+  emptyProgressHero: { gap: spacing.md },
+  emptyProgressEyebrow: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1.5,
   },
   emptyProgressTitle: {
     color: colors.textPrimary,
-    fontFamily: fonts.serifMedium,
-    fontSize: 24,
-    lineHeight: 29,
-    letterSpacing: 0,
+    fontFamily: fonts.serifRegular,
+    fontSize: 37,
+    lineHeight: 43,
+    letterSpacing: -0.45,
+    maxWidth: 380,
   },
   emptyProgressBody: {
     color: colors.textSecondary,
     fontFamily: fonts.sansRegular,
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 23,
     letterSpacing: 0,
-    marginTop: spacing.sm,
+    maxWidth: 370,
+  },
+  emptyProgressRule: {
+    width: 56,
+    height: 2,
+    marginTop: spacing.xs,
+    backgroundColor: colors.accentDeep,
+  },
+  emptyResultPreview: { gap: spacing.md },
+  emptyResultPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  emptyResultPreviewMeta: { ...type.cardCaption, color: colors.textSecondary, flexShrink: 1 },
+  emptyResultRows: { gap: 0 },
+  emptyResultRow: {
+    minHeight: 78,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
+  },
+  emptyResultRowLast: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderHairline,
+  },
+  emptyResultIndex: {
+    width: 30,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    lineHeight: 16,
+    letterSpacing: 0.7,
+  },
+  emptyResultCopy: { flex: 1, minWidth: 0, gap: 2 },
+  emptyResultTitle: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+  },
+  emptyResultDetail: { ...type.cardBody, color: colors.textSecondary },
+  emptyResultMode: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+    textAlign: 'right',
+  },
+  emptyResultModeTrack: { color: colors.accentGold },
+  emptyProgressFooter: { gap: spacing.md },
+  emptyProgressPrivacy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  emptyProgressPrivacyDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.accentGold,
+  },
+  emptyProgressPrivacyText: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
   },
   emptyProgressHint: {
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     letterSpacing: 0,
-    marginTop: spacing.md,
+    maxWidth: 340,
   },
   sectionText: {
     flex: 1,

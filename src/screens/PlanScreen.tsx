@@ -178,8 +178,9 @@ function PreBaselinePlan({
     return (
       <BlockedPlan
         today={today}
-        title="Your conservative plan"
-        body="The camera check-up is off, so sessions begin at conservative levels."
+        title="Review your private health answers"
+        body="Week 1 will open after you confirm the two safety answers and complete your starting Movement Check-Up."
+        showSessionPreview={false}
       />
     );
   }
@@ -188,25 +189,125 @@ function PreBaselinePlan({
       <BlockedPlan
         today={today}
         title="Gentle Start is active"
-        body="Sessions stay at the easiest starting levels while the Movement Check-Up remains unavailable."
+        body="You can still begin with easier sessions. The camera check-up stays unavailable while this safety setting is active."
       />
     );
   }
 
   const checkUpNext = today.primaryAction.type === 'start_baseline_checkup';
-  const starterComplete = checkUpNext || checkUpDraftInProgress;
   return (
     <View style={styles.preBaselineSection}>
-      <Text style={styles.eyebrow}>STARTING YOUR PLAN</Text>
-      <View style={styles.preparationRows}>
-        <PreparationRow index="1" title="Starter session" state={starterComplete ? 'Complete' : 'Next'} />
-        <PreparationRow
-          index="2"
-          title="Movement Check-Up"
-          state={checkUpDraftInProgress ? 'Continue' : checkUpNext ? 'Next' : 'After starter'}
-        />
+      <View style={styles.preBaselineHero}>
+        <Text style={styles.preBaselineEyebrow}>BEFORE WEEK 1</Text>
+        <Text style={styles.preBaselineTitle}>Your 12 weeks begin with a clear starting point</Text>
+        <Text style={styles.preBaselineBody}>
+          Your first Movement Check-Up measures where you are starting in Strength and Balance,
+          then sets the emphasis for Foundations.
+        </Text>
+        <View style={styles.preBaselineRule} />
       </View>
-      <Text style={styles.caption}>8 min · No video shown or saved</Text>
+
+      <PrePlanPreview />
+
+      <View style={styles.preparationSection}>
+        <Text style={styles.eyebrow}>TWO STEPS TO BEGIN</Text>
+        <View style={styles.preparationRows}>
+          <PreparationStep
+            index="1"
+            title="Complete your Movement Check-Up"
+            body="A private, eight-minute starting measure of Strength and Balance."
+            state={checkUpDraftInProgress ? 'Continue' : checkUpNext ? 'Next' : 'Required'}
+            active
+          />
+          <PreparationStep
+            index="2"
+            title="Begin Foundations"
+            body="Your first voice-paced session will reflect your starting emphasis."
+            state="After check-up"
+            last
+          />
+        </View>
+      </View>
+
+      <View style={styles.preBaselineFooter}>
+        <View style={styles.privacyDot} />
+        <Text style={styles.caption}>About 8 min · No camera video shown or saved</Text>
+      </View>
+    </View>
+  );
+}
+
+function PrePlanPreview() {
+  const phases = [
+    { title: 'Foundations', weeks: 'Weeks 1–4' },
+    { title: 'Build', weeks: 'Weeks 5–8' },
+    { title: 'Progress', weeks: 'Weeks 9–12' },
+  ] as const;
+
+  return (
+    <View
+      style={styles.prePlanPreview}
+      accessible
+      accessibilityRole="summary"
+      accessibilityLabel="Your 12-week plan has three phases: Foundations, weeks 1 to 4; Build, weeks 5 to 8; and Progress, weeks 9 to 12."
+    >
+      <View style={styles.prePlanPreviewHeader}>
+        <Text style={styles.eyebrow}>YOUR 12-WEEK PATH</Text>
+        <Text style={styles.prePlanPreviewMeta}>3 phases</Text>
+      </View>
+      <View style={styles.prePhaseGrid}>
+        {phases.map((phase, index) => (
+          <View key={phase.title} style={styles.prePhase}>
+            <View style={[styles.prePhaseLine, index === 0 && styles.prePhaseLineFirst]} />
+            <Text style={[styles.prePhaseTitle, index === 0 && styles.prePhaseTitleFirst]}>
+              {phase.title}
+            </Text>
+            <Text style={styles.prePhaseWeeks}>{phase.weeks}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function PreparationStep({
+  index,
+  title,
+  body,
+  state,
+  active = false,
+  last = false,
+}: {
+  index: string;
+  title: string;
+  body: string;
+  state: string;
+  active?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <View
+      style={styles.preparationRow}
+      accessible
+      accessibilityLabel={`Step ${index}. ${title}. ${body} ${state}.`}
+    >
+      <View style={styles.preparationRail}>
+        <View style={[styles.preparationIndex, active && styles.preparationIndexActive]}>
+          <Text style={[styles.preparationIndexText, active && styles.preparationIndexTextActive]}>
+            {index}
+          </Text>
+        </View>
+        {!last ? <View style={styles.preparationConnector} /> : null}
+      </View>
+      <View style={[styles.preparationCopy, last && styles.preparationCopyLast]}>
+        <View style={styles.preparationTitleRow}>
+          <Text style={styles.preparationTitle}>{title}</Text>
+          <Text style={[styles.preparationState, active && styles.preparationStateActive]}>
+            {state}
+          </Text>
+        </View>
+        <Text style={styles.preparationBody}>{body}</Text>
+      </View>
     </View>
   );
 }
@@ -215,20 +316,24 @@ function BlockedPlan({
   today,
   title,
   body,
+  showSessionPreview = true,
 }: {
   today: ProgrammeTodayViewModel;
   title: string;
   body: string;
+  showSessionPreview?: boolean;
 }) {
   return (
     <View style={styles.blockedSection}>
       <Text style={styles.eyebrow}>YOUR PLAN</Text>
       <Text style={styles.planTitle}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
-      <View style={styles.blockedNextSession}>
-        <Text style={styles.eyebrow}>Next session</Text>
-        <Text style={styles.nextSessionPreview}>{nextSessionDetail(today)}</Text>
-      </View>
+      {showSessionPreview ? (
+        <View style={styles.blockedNextSession}>
+          <Text style={styles.eyebrow}>Next session</Text>
+          <Text style={styles.nextSessionPreview}>{nextSessionDetail(today)}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -434,20 +539,6 @@ function sessionMeta(row: PlanWeekSessionRow, today: ProgrammeTodayViewModel): s
   return sessionStateLabel(row.state);
 }
 
-function PreparationRow({ index, title, state }: { index: string; title: string; state: string }) {
-  return (
-    <View
-      style={styles.preparationRow}
-      accessible
-      accessibilityLabel={`Step ${index}. ${title}. ${state}`}
-    >
-      <View style={styles.preparationIndex}><Text style={styles.preparationIndexText}>{index}</Text></View>
-      <Text style={styles.preparationTitle}>{title}</Text>
-      <Text style={styles.preparationState}>{state}</Text>
-    </View>
-  );
-}
-
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.summaryRow}>
@@ -511,7 +602,7 @@ const styles = StyleSheet.create({
   heroImage: { width: '100%', height: '100%' },
   planTitle: { fontFamily: fonts.serifMedium, fontSize: 26, lineHeight: 32, color: colors.textPrimary },
   body: { ...type.bodySmall, color: colors.textSecondary },
-  caption: { ...type.cardBody, color: colors.textSecondary },
+  caption: { ...type.cardBody, color: colors.textSecondary, flexShrink: 1 },
   summaryRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg, paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderHairline },
   summaryLabel: { ...type.cardBody, color: colors.textSecondary },
   summaryValue: { ...type.cardBody, color: colors.textPrimary, fontFamily: fonts.sansMedium, textAlign: 'right', flexShrink: 1 },
@@ -539,13 +630,154 @@ const styles = StyleSheet.create({
   startButton: { minWidth: 70, minHeight: 48, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.accent },
   startButtonPressed: { backgroundColor: colors.accentHover, transform: [{ scale: 0.98 }] },
   startButtonText: { ...type.cardBody, color: colors.onAccent, fontFamily: fonts.sansMedium },
+  preBaselineSection: { gap: spacing.xxxl },
+  preBaselineHero: { gap: spacing.md },
+  preBaselineEyebrow: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1.5,
+  },
+  preBaselineTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.serifRegular,
+    fontSize: 37,
+    lineHeight: 43,
+    letterSpacing: -0.45,
+    maxWidth: 390,
+  },
+  preBaselineBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+    maxWidth: 370,
+  },
+  preBaselineRule: {
+    width: 56,
+    height: 2,
+    marginTop: spacing.xs,
+    backgroundColor: colors.accentDeep,
+  },
+  prePlanPreview: {
+    gap: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  prePlanPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  prePlanPreviewMeta: { ...type.cardCaption, color: colors.textSecondary },
+  prePhaseGrid: { flexDirection: 'row', gap: spacing.md },
+  prePhase: { flex: 1, minWidth: 0, gap: 2 },
+  prePhaseLine: {
+    width: '100%',
+    height: 3,
+    marginBottom: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgElevated,
+  },
+  prePhaseLineFirst: { backgroundColor: colors.accentBorder },
+  prePhaseTitle: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  prePhaseTitleFirst: { color: colors.accentDeep },
+  prePhaseWeeks: {
+    ...type.cardCaption,
+    color: colors.textTertiary,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  preparationSection: { gap: spacing.md },
   preparationRows: { gap: 0 },
-  preparationRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderHairline },
-  preparationIndex: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgElevated },
-  preparationIndexText: { ...type.cardCaption, color: colors.textPrimary, fontFamily: fonts.sansMedium },
-  preparationTitle: { ...type.cardBody, color: colors.textPrimary, flex: 1 },
-  preparationState: { ...type.cardCaption, color: colors.textSecondary, fontSize: 13, lineHeight: 18, textAlign: 'right', flexShrink: 1 },
-  preBaselineSection: { gap: spacing.lg },
+  preparationRow: {
+    minHeight: 104,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing.md,
+  },
+  preparationRail: { width: 34, alignItems: 'center' },
+  preparationIndex: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    backgroundColor: colors.background,
+  },
+  preparationIndexActive: {
+    borderColor: colors.accentBorder,
+    backgroundColor: colors.accentSoft,
+  },
+  preparationIndexText: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansMedium,
+  },
+  preparationIndexTextActive: { color: colors.accentDeep },
+  preparationConnector: {
+    width: 1,
+    flex: 1,
+    marginVertical: spacing.xs,
+    backgroundColor: colors.accentBorder,
+  },
+  preparationCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xs,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
+  },
+  preparationCopyLast: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderHairline,
+  },
+  preparationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  preparationTitle: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    flex: 1,
+  },
+  preparationState: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'right',
+    flexShrink: 1,
+  },
+  preparationStateActive: { color: colors.accentDeep, fontFamily: fonts.sansMedium },
+  preparationBody: { ...type.cardBody, color: colors.textSecondary, maxWidth: 300 },
+  preBaselineFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  privacyDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.accentGold,
+  },
   blockedSection: { gap: spacing.lg },
   nextSessionPreview: { ...type.bodySmall, color: colors.textPrimary, fontFamily: fonts.sansMedium },
   blockedNextSession: { gap: spacing.xs, paddingTop: spacing.sm },
