@@ -12,6 +12,16 @@ describe('official Movement Check-Up lifecycle', () => {
   it('uses a fixed warm-up and offers Everyday Clarity after the movement battery', () => {
     expect(host).toContain('const WARM_UP_SECONDS = 60');
     expect(host).not.toContain('I’m warm — let’s go');
+    expect(host).toContain("setPhase('guides')");
+    expect(host).toContain("id: 'balance'");
+    expect(host).toContain("id: 'chair_rise'");
+    expect(host).toContain('title="Your two movements"');
+    expect(host).toContain('prominentTitle');
+    expect(host).toContain("phoneView: 'Phone in front'");
+    expect(host).toContain("phoneView: 'Phone side-on'");
+    expect(host).toContain('resizeMode="contain"');
+    expect(host).toContain('Begin the one-minute warm-up');
+    expect(host).toContain("setPhase('battery')");
     expect(host).toContain("setPhase('clarity')");
     expect(host).toContain('<ClarityCheckInScreen');
     expect(host.indexOf('<MovementProfileV2UnifiedCheckUpScreen')).toBeLessThan(

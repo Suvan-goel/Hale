@@ -1,7 +1,8 @@
 /**
  * Check-up #0 host (Option 1 build, acceptance criteria in
- * docs/pre-promotion-checklist.md): brief guided gentle warm-up → the
- * two-protocol battery (one-leg balance on the anchored SINGLE side — ruled
+ * docs/pre-promotion-checklist.md): a visual preview of the two movements →
+ * brief guided gentle warm-up → the two-protocol battery (one-leg balance on
+ * the anchored SINGLE side — ruled
  * 2026-07-06, preserving the instrument's side-consistency — then the
  * 30-second chair rise, max effort LAST), run by the real unified machinery with a
  * batterySequence derived from the pinned CHECKUP_ZERO_PROTOCOL_SEQUENCE.
@@ -18,7 +19,14 @@
  */
 
 import * as React from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  type ImageSourcePropType,
+  Linking,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { BRAND } from '../brand';
 import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
@@ -32,6 +40,38 @@ import { MovementProfileV2UnifiedCheckUpScreen } from './MovementProfileV2Unifie
 import { ClarityCheckInScreen } from './ClarityCheckInScreen';
 
 const WARM_UP_SECONDS = 60;
+
+const CHECKUP_MOVEMENT_GUIDES: readonly Readonly<{
+  id: 'balance' | 'chair_rise';
+  image: ImageSourcePropType;
+  step: string;
+  domain: string;
+  phoneView: string;
+  title: string;
+  body: string;
+  accessibilityLabel: string;
+}>[] = [
+  {
+    id: 'balance',
+    image: require('../../assets/images/instructional/guide-balance.jpg'),
+    step: '01',
+    domain: 'BALANCE',
+    phoneView: 'Phone in front',
+    title: 'One-leg balance',
+    body: 'Lift one foot and hold with your eyes open. Keep a sturdy support within reach.',
+    accessibilityLabel: 'One-leg balance setup and hold sequence, viewed from the front',
+  },
+  {
+    id: 'chair_rise',
+    image: require('../../assets/images/instructional/guide-chair-rise.jpg'),
+    step: '02',
+    domain: 'STRENGTH',
+    phoneView: 'Phone side-on',
+    title: 'Thirty-second chair stands',
+    body: 'From a sturdy chair, stand fully, then sit with control. Keep both feet flat.',
+    accessibilityLabel: 'Chair stand sequence from seated to standing, viewed from the side',
+  },
+];
 
 export function ProgrammeCheckupZeroScreen({
   onComplete,
@@ -63,9 +103,9 @@ export function ProgrammeCheckupZeroScreen({
    * intro voice line is already speaking over it. */
   onRequestCameraPermission: () => Promise<boolean>;
 }) {
-  const [phase, setPhase] = React.useState<'intro' | 'warmup' | 'battery' | 'clarity'>(
-    () => (initialDraft ? 'clarity' : 'intro')
-  );
+  const [phase, setPhase] = React.useState<
+    'intro' | 'warmup' | 'guides' | 'battery' | 'clarity'
+  >(() => (initialDraft ? 'clarity' : 'intro'));
   const [measuredCheckUp, setMeasuredCheckUp] = React.useState<CheckUp | null>(
     initialDraft ?? null
   );
@@ -88,10 +128,10 @@ export function ProgrammeCheckupZeroScreen({
     return () => clearInterval(interval);
   }, [phase]);
 
-  const startWarmup = React.useCallback(async () => {
+  const prepareCheckup = React.useCallback(async () => {
     if (cameraPermissionGranted || (await onRequestCameraPermission())) {
       setPermissionDenied(false);
-      setPhase('warmup');
+      setPhase('guides');
       return;
     }
     setPermissionDenied(true);
@@ -105,7 +145,7 @@ export function ProgrammeCheckupZeroScreen({
           subtitle={`${BRAND.appName} uses your phone's camera to measure the check-up. You will not see a live video of yourself — just a simple outline, and nothing leaves your phone.`}
           panelText="If the phone doesn't ask again, allow camera access in your phone's settings, then come back."
         >
-          <PrimaryButton title="Allow camera" onPress={() => void startWarmup()} />
+          <PrimaryButton title="Allow camera" onPress={() => void prepareCheckup()} />
           <SecondaryButton title="Open phone settings" onPress={() => void Linking.openSettings()} />
           <GhostButton title="Not now" onPress={onCancel} />
         </CheckupZeroMessage>
@@ -117,7 +157,7 @@ export function ProgrammeCheckupZeroScreen({
         subtitle="A fixed warm-up, a balance hold, thirty seconds of chair stands, then an optional Everyday Clarity check-in."
         panelText="Your phone measures Strength and Balance without showing your video. Everything stays on this device."
       >
-        <PrimaryButton title="Start with the warm-up" onPress={() => void startWarmup()} />
+        <PrimaryButton title="See the two movements" onPress={() => void prepareCheckup()} />
         <GhostButton title="Not now" onPress={onCancel} />
       </CheckupZeroMessage>
     );
@@ -132,6 +172,52 @@ export function ProgrammeCheckupZeroScreen({
       >
         <GhostButton title="Stop for now" onPress={onCancel} />
       </CheckupZeroMessage>
+    );
+  }
+
+  if (phase === 'guides') {
+    return (
+      <Screen tone="focus" contentStyle={checkupStyles.screen}>
+        <ScreenHeader
+          eyebrow={`${BRAND.appName} check-up`}
+          title="Your two movements"
+          subtitle="Balance comes first, then Strength. Clara will guide the exact setup and timing before each one."
+          prominentTitle
+        />
+        <View style={checkupStyles.guideList}>
+          {CHECKUP_MOVEMENT_GUIDES.map((guide) => (
+            <View key={guide.id} style={checkupStyles.guideCard}>
+              <View style={checkupStyles.guideImageFrame}>
+                <Image
+                  source={guide.image}
+                  style={checkupStyles.guideImage}
+                  accessibilityLabel={guide.accessibilityLabel}
+                  resizeMode="contain"
+                  accessible
+                  accessibilityRole="image"
+                />
+              </View>
+              <View style={checkupStyles.guideCopy}>
+                <View style={checkupStyles.guideMetaRow}>
+                  <Text style={checkupStyles.guideStep}>{guide.step}</Text>
+                  <Text style={checkupStyles.guideDomain}>{guide.domain}</Text>
+                  <Text style={checkupStyles.guidePhoneView}>{guide.phoneView}</Text>
+                </View>
+                <Text style={checkupStyles.guideTitle}>{guide.title}</Text>
+                <Text style={checkupStyles.guideBody}>{guide.body}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        <Text style={checkupStyles.guideNote}>
+          Clara gives the full instructions before each movement. These pictures are a preview,
+          not a form assessment.
+        </Text>
+        <View style={checkupStyles.actions}>
+          <PrimaryButton title="Begin the one-minute warm-up" onPress={() => setPhase('warmup')} />
+          <GhostButton title="Stop for now" onPress={onCancel} />
+        </View>
+      </Screen>
     );
   }
 
@@ -239,6 +325,69 @@ const checkupStyles = StyleSheet.create({
   panelBody: {
     ...type.bodySmall,
     color: colors.textSecondary,
+  },
+  guideCard: {
+    overflow: 'hidden',
+    borderRadius: radius.card,
+    backgroundColor: colors.focusSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  guideList: {
+    gap: spacing.lg,
+  },
+  guideImageFrame: {
+    width: '100%',
+    aspectRatio: 1200 / 659,
+    overflow: 'hidden',
+    backgroundColor: colors.focusSurface,
+  },
+  guideImage: {
+    width: '100%',
+    height: '100%',
+  },
+  guideCopy: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  guideMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  guideStep: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    lineHeight: 16,
+    letterSpacing: 0.8,
+  },
+  guideDomain: {
+    ...type.label,
+    color: colors.accentDeep,
+  },
+  guidePhoneView: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    marginLeft: 'auto',
+    textAlign: 'right',
+  },
+  guideTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 23,
+    lineHeight: 29,
+    color: colors.textPrimary,
+  },
+  guideBody: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+    maxWidth: 520,
+  },
+  guideNote: {
+    ...type.cardCaption,
+    color: colors.textMuted,
+    maxWidth: 540,
   },
   countdownPanel: {
     alignItems: 'center',
