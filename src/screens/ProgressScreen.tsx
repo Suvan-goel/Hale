@@ -89,24 +89,6 @@ function ProgressEmptyState() {
           compare the same check-up at weeks 4, 8 and 12.
         </Text>
       </View>
-
-      <View
-        style={styles.emptyProgressSummary}
-        accessible
-        accessibilityLabel="Strength and Balance results. Available after your check-up."
-      >
-        <Text style={styles.emptyProgressSummaryTitle}>Strength + Balance</Text>
-        <Text style={styles.emptyProgressSummaryMeta}>After your check-up</Text>
-      </View>
-
-      <View style={styles.emptyProgressFooter}>
-        <Text style={styles.emptyProgressHint}>
-          Everyday Clarity is optional and always shown separately.
-        </Text>
-        <Text style={styles.emptyProgressPrivacyText}>
-          Saved privately on this device · Start from Home
-        </Text>
-      </View>
     </View>
   );
 }
@@ -691,6 +673,7 @@ function iconStroke(color: string) {
 
 const styles = StyleSheet.create({
   screenContent: {
+    flexGrow: 1,
     gap: spacing.xxl,
   },
   header: {
@@ -853,8 +836,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  emptyProgress: { gap: spacing.xxl },
-  emptyProgressHero: { gap: spacing.md },
+  emptyProgress: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyProgressHero: {
+    width: '100%',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   emptyProgressEyebrow: {
     ...type.cardCaption,
     color: colors.accentDeep,
@@ -862,6 +853,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 1.5,
+    textAlign: 'center',
   },
   emptyProgressTitle: {
     color: colors.textPrimary,
@@ -870,6 +862,7 @@ const styles = StyleSheet.create({
     lineHeight: 43,
     letterSpacing: -0.45,
     maxWidth: 380,
+    textAlign: 'center',
   },
   emptyProgressBody: {
     color: colors.textSecondary,
@@ -878,43 +871,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     letterSpacing: 0,
     maxWidth: 370,
-  },
-  emptyProgressSummary: {
-    minHeight: 78,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
-    borderBottomColor: colors.borderHairline,
-  },
-  emptyProgressSummaryTitle: {
-    ...type.bodySmall,
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    flex: 1,
-  },
-  emptyProgressSummaryMeta: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-    textAlign: 'right',
-    flexShrink: 1,
-  },
-  emptyProgressFooter: { gap: spacing.md },
-  emptyProgressPrivacyText: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-  },
-  emptyProgressHint: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 15,
-    lineHeight: 22,
-    letterSpacing: 0,
-    maxWidth: 340,
+    textAlign: 'center',
   },
   sectionText: {
     flex: 1,

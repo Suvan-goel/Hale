@@ -12,9 +12,11 @@ describe('Progress UI restoration', () => {
     expect(progress).toContain('if (onStartCheckUp) return <ProgressEmptyState />');
     expect(progress).toContain('Your results will begin here');
     expect(progress).toContain('compare the same check-up at weeks 4, 8 and 12');
-    expect(progress).toContain('Strength + Balance');
-    expect(progress).toContain('Everyday Clarity is optional and always shown separately.');
-    expect(progress).toContain('Saved privately on this device · Start from Home');
+    expect(progress).toContain("alignItems: 'center'");
+    expect(progress).toContain("justifyContent: 'center'");
+    expect(progress).not.toContain('Strength + Balance');
+    expect(progress).not.toContain('Everyday Clarity is optional and always shown separately.');
+    expect(progress).not.toContain('Saved privately on this device · Start from Home');
     expect(progress).not.toContain('<EmptyResultRow');
     expect(progress).not.toContain('Set your starting point');
     expect(progress).not.toContain('Plan preparation steps');
