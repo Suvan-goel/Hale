@@ -95,7 +95,6 @@ export function PlanScreen({
         <PreBaselinePlan
           today={today}
           blockedReason={checkUpBlockedReason}
-          checkUpDraftInProgress={checkUpDraftInProgress}
         />
       )}
     </Screen>
@@ -168,11 +167,9 @@ function ActivePlan({
 function PreBaselinePlan({
   today,
   blockedReason,
-  checkUpDraftInProgress,
 }: {
   today: ProgrammeTodayViewModel;
   blockedReason?: OfficialCheckUpBlockedReason;
-  checkUpDraftInProgress: boolean;
 }) {
   if (blockedReason === 'health_data_consent_required') {
     return (
@@ -194,7 +191,6 @@ function PreBaselinePlan({
     );
   }
 
-  const checkUpState = checkUpDraftInProgress ? 'Continue' : 'About 8 min';
   return (
     <View style={styles.preBaselineSection}>
       <View style={styles.preBaselineHero}>
@@ -205,20 +201,6 @@ function PreBaselinePlan({
           shape your Foundations sessions.
         </Text>
       </View>
-
-      <View
-        style={styles.preBaselineNext}
-        accessible
-        accessibilityLabel={`Next, Movement Check-Up. ${checkUpState}.`}
-      >
-        <View style={styles.preBaselineNextCopy}>
-          <Text style={styles.eyebrow}>NEXT</Text>
-          <Text style={styles.preBaselineNextTitle}>Movement Check-Up</Text>
-        </View>
-        <Text style={styles.preBaselineNextState}>{checkUpState}</Text>
-      </View>
-
-      <Text style={styles.caption}>No camera video shown or saved · Start from Home</Text>
     </View>
   );
 }
@@ -490,7 +472,7 @@ function formatPlanDate(iso: string): string {
 }
 
 const styles = StyleSheet.create({
-  screenContent: { gap: spacing.xl },
+  screenContent: { flexGrow: 1, gap: spacing.xl },
   header: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg },
   title: { fontFamily: fonts.serifRegular, fontSize: 48, lineHeight: 54, letterSpacing: -0.8, color: colors.textPrimary, flexShrink: 1 },
   compactTitle: { fontSize: 42, lineHeight: 48 },
@@ -513,7 +495,6 @@ const styles = StyleSheet.create({
   heroImage: { width: '100%', height: '100%' },
   planTitle: { fontFamily: fonts.serifMedium, fontSize: 26, lineHeight: 32, color: colors.textPrimary },
   body: { ...type.bodySmall, color: colors.textSecondary },
-  caption: { ...type.cardBody, color: colors.textSecondary, flexShrink: 1 },
   summaryRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg, paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderHairline },
   summaryLabel: { ...type.cardBody, color: colors.textSecondary },
   summaryValue: { ...type.cardBody, color: colors.textPrimary, fontFamily: fonts.sansMedium, textAlign: 'right', flexShrink: 1 },
@@ -541,8 +522,16 @@ const styles = StyleSheet.create({
   startButton: { minWidth: 70, minHeight: 48, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.accent },
   startButtonPressed: { backgroundColor: colors.accentHover, transform: [{ scale: 0.98 }] },
   startButtonText: { ...type.cardBody, color: colors.onAccent, fontFamily: fonts.sansMedium },
-  preBaselineSection: { gap: spacing.xxl },
-  preBaselineHero: { gap: spacing.md },
+  preBaselineSection: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  preBaselineHero: {
+    width: '100%',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   preBaselineEyebrow: {
     ...type.cardCaption,
     color: colors.accentDeep,
@@ -550,6 +539,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 1.5,
+    textAlign: 'center',
   },
   preBaselineTitle: {
     color: colors.textPrimary,
@@ -558,37 +548,13 @@ const styles = StyleSheet.create({
     lineHeight: 43,
     letterSpacing: -0.45,
     maxWidth: 390,
+    textAlign: 'center',
   },
   preBaselineBody: {
     ...type.bodySmall,
     color: colors.textSecondary,
     maxWidth: 370,
-  },
-  preBaselineNext: {
-    minHeight: 78,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  preBaselineNextCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
-  preBaselineNextTitle: {
-    ...type.bodySmall,
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-  },
-  preBaselineNextState: {
-    ...type.cardCaption,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 17,
-    textAlign: 'right',
-    flexShrink: 1,
+    textAlign: 'center',
   },
   blockedSection: { gap: spacing.lg },
   nextSessionPreview: { ...type.bodySmall, color: colors.textPrimary, fontFamily: fonts.sansMedium },

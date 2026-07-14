@@ -71,12 +71,14 @@ describe('Home / Plan / Progress information architecture', () => {
     expect(planSource).not.toContain('There is no further check-up');
   });
 
-  it('keeps pre-baseline focused on one clear next step and the camera privacy fact', () => {
+  it('keeps pre-baseline to one centered introduction', () => {
     expect(planSource).toContain('BEFORE WEEK 1');
     expect(planSource).toContain('Start with your Movement Check-Up');
     expect(planSource).toContain('Your eight-minute check-up');
-    expect(planSource).toContain('styles.preBaselineNext');
-    expect(planSource).toContain('No camera video shown or saved · Start from Home');
+    expect(planSource).toContain("alignItems: 'center'");
+    expect(planSource).toContain("justifyContent: 'center'");
+    expect(planSource).not.toContain('styles.preBaselineNext');
+    expect(planSource).not.toContain('No camera video shown or saved · Start from Home');
     expect(planSource).not.toContain('<PrePlanPreview />');
     expect(planSource).not.toContain('<PreparationStep');
   });
