@@ -71,17 +71,14 @@ describe('Home / Plan / Progress information architecture', () => {
     expect(planSource).not.toContain('There is no further check-up');
   });
 
-  it('gives pre-baseline a clear 12-week preview, two required steps and the camera privacy fact', () => {
+  it('keeps pre-baseline focused on one clear next step and the camera privacy fact', () => {
     expect(planSource).toContain('BEFORE WEEK 1');
-    expect(planSource).toContain('Your 12 weeks begin with a clear starting point');
-    expect(planSource).toContain('<PrePlanPreview />');
-    expect(planSource).toContain('YOUR 12-WEEK PATH');
-    expect(planSource).toContain('title="Complete your Movement Check-Up"');
-    expect(planSource).toContain('title="Begin Foundations"');
-    expect(planSource).toContain('state="After check-up"');
-    expect(planSource).not.toContain('title="Starter session"');
-    expect(planSource).toContain('About 8 min · No camera video shown or saved');
-    expect(planSource).not.toContain('title="Phase 1"');
+    expect(planSource).toContain('Start with your Movement Check-Up');
+    expect(planSource).toContain('Your eight-minute check-up');
+    expect(planSource).toContain('styles.preBaselineNext');
+    expect(planSource).toContain('No camera video shown or saved · Start from Home');
+    expect(planSource).not.toContain('<PrePlanPreview />');
+    expect(planSource).not.toContain('<PreparationStep');
   });
 
   it('does not preview a session while health answers and the baseline are outstanding', () => {

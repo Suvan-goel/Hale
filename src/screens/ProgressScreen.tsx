@@ -83,82 +83,30 @@ function ProgressEmptyState() {
     <View style={styles.emptyProgress}>
       <View style={styles.emptyProgressHero}>
         <Text style={styles.emptyProgressEyebrow}>YOUR RESULTS</Text>
-        <Text style={styles.emptyProgressTitle}>A clear record of where you start</Text>
+        <Text style={styles.emptyProgressTitle}>Your results will begin here</Text>
         <Text style={styles.emptyProgressBody}>
-          Your first Movement Check-Up sets a personal baseline for Strength and Balance. The
-          same check-up at weeks 4, 8 and 12 builds a comparable record of your results.
+          Complete your first Movement Check-Up to set your Strength and Balance baseline. You’ll
+          compare the same check-up at weeks 4, 8 and 12.
         </Text>
-        <View style={styles.emptyProgressRule} />
       </View>
 
-      <View style={styles.emptyResultPreview}>
-        <View style={styles.emptyResultPreviewHeader}>
-          <Text style={styles.eyebrow}>WHAT WILL APPEAR HERE</Text>
-          <Text style={styles.emptyResultPreviewMeta}>After your check-up</Text>
-        </View>
-        <View style={styles.emptyResultRows}>
-          <EmptyResultRow
-            index="01"
-            title="Strength"
-            detail="30-second chair stand"
-            mode="Measure"
-          />
-          <EmptyResultRow
-            index="02"
-            title="Balance"
-            detail="One-leg hold"
-            mode="Measure"
-          />
-          <EmptyResultRow
-            index="03"
-            title="Everyday Clarity"
-            detail="Optional check-in · always kept separate"
-            mode="Track"
-            last
-          />
-        </View>
+      <View
+        style={styles.emptyProgressSummary}
+        accessible
+        accessibilityLabel="Strength and Balance results. Available after your check-up."
+      >
+        <Text style={styles.emptyProgressSummaryTitle}>Strength + Balance</Text>
+        <Text style={styles.emptyProgressSummaryMeta}>After your check-up</Text>
       </View>
 
       <View style={styles.emptyProgressFooter}>
-        <View style={styles.emptyProgressPrivacy}>
-          <View style={styles.emptyProgressPrivacyDot} />
-          <Text style={styles.emptyProgressPrivacyText}>Saved privately on this device</Text>
-        </View>
         <Text style={styles.emptyProgressHint}>
-          Your first Movement Check-Up starts from Home.
+          Everyday Clarity is optional and always shown separately.
+        </Text>
+        <Text style={styles.emptyProgressPrivacyText}>
+          Saved privately on this device · Start from Home
         </Text>
       </View>
-    </View>
-  );
-}
-
-function EmptyResultRow({
-  index,
-  title,
-  detail,
-  mode,
-  last = false,
-}: {
-  index: string;
-  title: string;
-  detail: string;
-  mode: 'Measure' | 'Track';
-  last?: boolean;
-}) {
-  return (
-    <View
-      style={[styles.emptyResultRow, last && styles.emptyResultRowLast]}
-      accessible
-      accessibilityLabel={`${title}. ${detail}. ${mode}.`}
-    >
-      <Text style={styles.emptyResultIndex}>{index}</Text>
-      <View style={styles.emptyResultCopy}>
-        <Text style={styles.emptyResultTitle}>{title}</Text>
-        <Text style={styles.emptyResultDetail}>{detail}</Text>
-      </View>
-      <Text style={[styles.emptyResultMode, mode === 'Track' && styles.emptyResultModeTrack]}>
-        {mode}
-      </Text>
     </View>
   );
 }
@@ -905,7 +853,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  emptyProgress: { gap: spacing.xxxl },
+  emptyProgress: { gap: spacing.xxl },
   emptyProgressHero: { gap: spacing.md },
   emptyProgressEyebrow: {
     ...type.cardCaption,
@@ -931,78 +879,38 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     maxWidth: 370,
   },
-  emptyProgressRule: {
-    width: 56,
-    height: 2,
-    marginTop: spacing.xs,
-    backgroundColor: colors.accentDeep,
-  },
-  emptyResultPreview: { gap: spacing.md },
-  emptyResultPreviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  emptyResultPreviewMeta: { ...type.cardCaption, color: colors.textSecondary, flexShrink: 1 },
-  emptyResultRows: { gap: 0 },
-  emptyResultRow: {
+  emptyProgressSummary: {
     minHeight: 78,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    paddingVertical: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
-  },
-  emptyResultRowLast: {
     borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
     borderBottomColor: colors.borderHairline,
   },
-  emptyResultIndex: {
-    width: 30,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 11,
-    lineHeight: 16,
-    letterSpacing: 0.7,
-  },
-  emptyResultCopy: { flex: 1, minWidth: 0, gap: 2 },
-  emptyResultTitle: {
+  emptyProgressSummaryTitle: {
     ...type.bodySmall,
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
+    flex: 1,
   },
-  emptyResultDetail: { ...type.cardBody, color: colors.textSecondary },
-  emptyResultMode: {
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 0.9,
-    textTransform: 'uppercase',
+  emptyProgressSummaryMeta: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
     textAlign: 'right',
+    flexShrink: 1,
   },
-  emptyResultModeTrack: { color: colors.accentGold },
   emptyProgressFooter: { gap: spacing.md },
-  emptyProgressPrivacy: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  emptyProgressPrivacyDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.accentGold,
-  },
   emptyProgressPrivacyText: {
     ...type.cardCaption,
     color: colors.textSecondary,
   },
   emptyProgressHint: {
     color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
+    fontFamily: fonts.sansRegular,
     fontSize: 15,
     lineHeight: 22,
     letterSpacing: 0,
