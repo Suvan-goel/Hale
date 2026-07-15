@@ -48,4 +48,15 @@ describe('unified Movement Check-Up recording shell', () => {
     expect(settings).not.toContain('onStartMovementProfileV2UnifiedInternal');
     expect(settings).not.toContain('Movement Profile V2 unified shell');
   });
+
+  it('clips the native matte figure to the exact shared Fit Frame', () => {
+    const text = source('src/screens/CheckUpRecordingShell.tsx');
+
+    expect(text).toContain('resolveFitFrameRect(');
+    expect(text).toContain('POSE_ESTIMATION_SOURCE_ASPECT');
+    expect(text).toContain('styles.recordingFigureViewport');
+    expect(text).toContain('segmentationMaskFigureEnabled={maskFigureEnabled}');
+    expect(text).toContain('segmentationMaskFigureColor={colors.accentDeep}');
+    expect(text).toContain('canvasColor={colors.focusCanvas}');
+  });
 });

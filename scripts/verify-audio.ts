@@ -391,16 +391,22 @@ function parseGenerationPlanRows(): Array<{
   const lines = fs.readFileSync(planPath, 'utf8').trim().split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) return [];
   const headers = parseCsvLine(lines[0]);
-  return lines.slice(1).map((line) => {
-    const values = parseCsvLine(line);
-    const row = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? '']));
-    return {
-      voiceId: row.voiceId,
-      logicalCueKey: row.logicalCueKey,
-      physicalCueKey: row.physicalCueKey,
-      exactScript: row.exactScript,
-    };
-  });
+  const configuredVoiceIds = new Set(VOICE_OPTIONS.map((voice) => voice.id));
+  return lines
+    .slice(1)
+    .map((line) => {
+      const values = parseCsvLine(line);
+      const row = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? '']));
+      return {
+        voiceId: row.voiceId,
+        logicalCueKey: row.logicalCueKey,
+        physicalCueKey: row.physicalCueKey,
+        exactScript: row.exactScript,
+      };
+    })
+    // Generation plans are retained as historical evidence. Only voices in
+    // the live catalog are required by the current app bundle.
+    .filter((row) => configuredVoiceIds.has(row.voiceId));
 }
 
 function parseCsvLine(line: string): string[] {

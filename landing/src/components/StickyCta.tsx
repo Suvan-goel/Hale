@@ -42,7 +42,7 @@ export function StickyCta({ hidden, onClick }: { hidden: boolean; onClick: () =>
       <button
         onClick={onClick}
         tabIndex={show ? 0 : -1}
-        className="h-13 w-full rounded-full bg-ink text-[15px] font-semibold text-bone shadow-[0_12px_36px_rgba(5,10,8,0.35)]"
+        className="h-13 w-full rounded-2xl bg-pine text-[15px] font-semibold text-white shadow-[0_12px_36px_rgba(124,64,93,0.28)]"
       >
         Join the waitlist
       </button>

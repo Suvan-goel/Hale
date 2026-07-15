@@ -22,7 +22,7 @@ import {
 import Svg, { Path } from 'react-native-svg';
 
 import { AppBackground } from './AppBackground';
-import { HeaderLogo } from './HeaderLogo';
+import { PageHeader } from './PageHeader';
 import { useSystemInsets } from './SystemInsetsProvider';
 import { colors, componentStyles, fonts, minTapTarget, radius, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
@@ -341,22 +341,40 @@ export function ScreenHeader({
   title,
   subtitle,
   progress,
+  prominentTitle = false,
+  onBack,
+  backAccessibilityLabel,
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
   /** Optional "step X of N" indicator shown above the eyebrow (e.g. onboarding). */
   progress?: { step: number; total: number };
+  /**
+   * Keeps a short section label in top navigation and renders the full title
+   * as a wrapping page heading. Used by onboarding questions that must never
+   * shrink into the one-line navigation row.
+   */
+  prominentTitle?: boolean;
+  onBack?: () => void;
+  backAccessibilityLabel?: string;
 }) {
-  const responsive = useResponsiveLayout();
+  const showProminentTitle = prominentTitle && eyebrow !== undefined;
   return (
     <View style={styles.header}>
+      <PageHeader
+        title={showProminentTitle ? eyebrow : title}
+        onBack={onBack}
+        backAccessibilityLabel={backAccessibilityLabel}
+      />
       {progress ? <StepProgress step={progress.step} total={progress.total} /> : null}
-      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-      <View style={styles.headerTitleRow}>
-        <HeaderLogo />
-        <Text style={[styles.headerTitle, responsive.isCompactPhone && compactTypography.pageTitle]}>{title}</Text>
-      </View>
+      {showProminentTitle ? (
+        <Text style={styles.headerProminentTitle} accessibilityRole="header">
+          {title}
+        </Text>
+      ) : eyebrow ? (
+        <Eyebrow>{eyebrow}</Eyebrow>
+      ) : null}
       {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -464,6 +482,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   header: { gap: spacing.sm },
+  headerProminentTitle: { ...type.pageTitle, maxWidth: 560 },
   stepProgress: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -488,13 +507,6 @@ const styles = StyleSheet.create({
     ...type.label,
     color: colors.textSecondary,
   },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minWidth: 0,
-  },
-  headerTitle: { ...type.pageTitle, flexShrink: 1 },
   headerSubtitle: { ...type.pageSubtitle, maxWidth: 460 },
   buttonText: { ...type.button },
   primaryButtonText: { color: colors.buttonText, flexShrink: 1, minWidth: 0 },

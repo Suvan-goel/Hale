@@ -42,12 +42,12 @@ export function WaitlistForm({ onSubmit }: { onSubmit: (email: string) => Promis
           placeholder="Your email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="waitlist-input w-full flex-1 rounded-full border border-bone/25 bg-paper px-5 text-[15px] text-ink placeholder:text-ink/45"
+          className="waitlist-input w-full flex-1 rounded-2xl border border-white/35 bg-paper px-5 text-[15px] text-ink placeholder:text-ink/55"
         />
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="h-13 shrink-0 rounded-full bg-ink px-7 text-[15px] font-semibold text-bone transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="h-13 shrink-0 rounded-2xl bg-paper px-7 text-[15px] font-semibold text-pine shadow-[0_8px_24px_rgba(52,23,37,0.14)] transition-colors hover:bg-elevated disabled:opacity-60"
         >
           {status === "submitting" ? "Joining…" : "Join the waitlist"}
         </button>

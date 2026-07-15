@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors, radius } from '../theme';
+import { colors } from '../theme';
 
 export function BackArrowButton({
   accessibilityLabel = 'Back',
@@ -38,15 +38,11 @@ export function BackArrowButton({
 
 const styles = StyleSheet.create({
   button: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.input,
+    width: 30,
+    height: 30,
     alignSelf: 'flex-start',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
   },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });

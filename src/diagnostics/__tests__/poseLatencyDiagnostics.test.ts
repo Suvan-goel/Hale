@@ -195,6 +195,17 @@ describe('pose latency diagnostics', () => {
         mpImageBuildMs: 1,
         resultFlattenMs: 0.5,
         eventPayloadBuildMs: 0.25,
+        maskFrameId: 1,
+        maskExtractionMs: 0.2,
+        maskRasterMs: 1.8,
+        maskPostprocessMs: 2,
+        maskPublishMs: 916.5,
+        sourceAgeAtMaskPublishMs: 416.5,
+        maskDataType: 'float32',
+        maskSourceWidth: 256,
+        maskSourceHeight: 256,
+        maskRasterWidth: 128,
+        maskRasterHeight: 128,
         modelAsset: 'pose_landmarker_full.task',
         requestedDelegate: 'GPU',
         selectedDelegate: 'CPU',
@@ -224,7 +235,7 @@ describe('pose latency diagnostics', () => {
         mpImageWidth: 512,
         mpImageHeight: 384,
         numPoses: 1,
-        outputSegmentationMasks: false,
+        outputSegmentationMasks: true,
         cameraInputFps: 30,
         acceptedFrameFps: 28,
         submittedInferenceFps: 24,
@@ -300,6 +311,11 @@ describe('pose latency diagnostics', () => {
         mediapipeCallbackMs: 956,
         nativePostprocessEndMs: 957,
         nativeEventEmitMs: 958,
+        maskFrameId: 2,
+        maskExtractionMs: 0.4,
+        maskRasterMs: 2.2,
+        maskPostprocessMs: 2.6,
+        sourceAgeAtMaskPublishMs: 417,
       },
     });
     diagnostics.markJsTransformEnd(second);
@@ -319,6 +335,11 @@ describe('pose latency diagnostics', () => {
     expect(snapshot.nativeBitmapConversionMs.p50).toBe(3);
     expect(snapshot.nativeExplicitRotationMs.p50).toBe(2);
     expect(snapshot.nativeMpImageBuildMs.p50).toBe(1);
+    expect(snapshot.nativeMaskExtractionMs.p50).toBe(0.2);
+    expect(snapshot.nativeMaskRasterMs.p95).toBe(2.2);
+    expect(snapshot.nativeMaskPostprocessMs.p95).toBe(2.6);
+    expect(snapshot.nativeSourceAgeAtMaskPublishMs.p50).toBe(416.5);
+    expect(snapshot.maskFrameMisalignment).toBe(1);
     expect(snapshot.nativeRuntime).toMatchObject({
       modelAsset: 'pose_landmarker_full.task',
       selectedDelegate: 'CPU',
@@ -338,6 +359,9 @@ describe('pose latency diagnostics', () => {
       sensorTimestampComparableToElapsedRealtime: true,
       nativeEventCoalescedCount: 1,
       resultFps: 23,
+      maskDataType: 'float32',
+      maskSourceWidth: 256,
+      maskRasterWidth: 128,
     });
     expect(snapshot.nativeRenderer).toMatchObject({
       backend: 'android-native-canvas',
@@ -354,4 +378,3 @@ describe('pose latency diagnostics', () => {
     expect(snapshot.approxPoseAgeAtReceiptMs.max).toBe(40);
   });
 });
-

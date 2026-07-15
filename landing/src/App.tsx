@@ -32,35 +32,35 @@ function readStoredConsent(): Consent {
 
 function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
   return (
-    <footer className="bg-ink text-bone">
+    <footer className="border-t border-line bg-elevated text-ink">
       <div className="mx-auto max-w-6xl px-5 py-12 md:px-8">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <span className="font-display text-xl font-medium tracking-tight">
-            Pearl<span className="text-brass">.</span>
+            Pearl<span className="text-pine">.</span>
           </span>
-          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-bone/70">
-            <button onClick={() => onNavigate("privacy")} className="hover:text-bone">
+          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-ink/65">
+            <button onClick={() => onNavigate("privacy")} className="hover:text-pine">
               Privacy
             </button>
-            <button onClick={() => onNavigate("terms")} className="hover:text-bone">
+            <button onClick={() => onNavigate("terms")} className="hover:text-pine">
               Terms
             </button>
-            <button onClick={() => onNavigate("delete-account")} className="hover:text-bone">
+            <button onClick={() => onNavigate("delete-account")} className="hover:text-pine">
               Delete account
             </button>
             {CONTACT_EMAIL ? (
-              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-bone">
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-pine hover:text-blush">
                 {CONTACT_EMAIL}
               </a>
             ) : null}
           </nav>
         </div>
-        <p className="mt-8 max-w-2xl text-xs leading-relaxed text-bone/45">
+        <p className="mt-8 max-w-2xl text-xs leading-relaxed text-ink/65">
           Pearl measures functional strength and balance and can track optional Everyday Clarity
           check-ins. It is not medical advice and does not diagnose, treat or prevent any condition.
           Consult a qualified professional before starting a new exercise programme.
         </p>
-        <p className="mt-3 text-xs text-bone/45">© 2026 Pearl</p>
+        <p className="mt-3 text-xs text-ink/60">© 2026 Pearl</p>
       </div>
     </footer>
   );

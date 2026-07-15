@@ -11,13 +11,14 @@ describe('SettingsScreen trainer voice', () => {
     const workoutSectionEnd = text.indexOf("if (openSection === 'account')");
     const workoutSection = text.slice(workoutSectionStart, workoutSectionEnd);
 
-    expect(text).toContain('Tap the speaker to preview. Tap a name to use that voice next time.');
+    expect(text).toContain("Clara is ${BRAND.appName}'s trainer voice. Tap the speaker to hear a preview.");
     expect(text).toContain('Trainer voice');
     expect(text).toContain('selectedVoiceLabel');
     expect(workoutSection).toContain('<VoiceSelectorCard');
     expect(workoutSection).toContain('<SessionFeelPicker');
     expect(workoutSection).not.toContain('Preferred workout days');
     expect(workoutSection).not.toContain('onToggleAvailableEquipment');
+    expect(workoutSection).not.toContain('Marcus');
   });
 
   it('keeps voice selection separate from retired runtime settings', () => {

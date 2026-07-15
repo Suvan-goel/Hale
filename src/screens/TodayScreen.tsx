@@ -1,11 +1,9 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BRAND } from '../brand';
 import { AppBackground } from '../components/AppBackground';
-import { PearlBrandMark } from '../components/PearlBrandMark';
+import { PageHeader } from '../components/PageHeader';
 import { PearlHeroArtwork } from '../components/PearlHeroArtwork';
 import { useScreenScrollClearance } from '../components/ui';
-import { MenuIcon } from '../navigation/icons';
 import type {
   PhysicalTrainingFocus,
   ProgrammeJourneyStatus,
@@ -46,6 +44,7 @@ export function TodayScreen({
   const bottomScrollClearance = useScreenScrollClearance();
   const action = programme.today.primaryAction;
   const checkUpAction = action.type === 'start_baseline_checkup';
+  const reviewHealthAnswersAction = action.type === 'review_health_answers';
   const sessionMinutes = Math.round(programme.today.sessionPreview.estimatedMinutes);
   const copy = todayCopy(programme, sessionMinutes);
   const greetingName = firstName(profile.name);
@@ -74,32 +73,11 @@ export function TodayScreen({
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.wordmark} accessibilityLabel={BRAND.appName}>
-            <PearlBrandMark size={layout.brandMarkSize} />
-            <Text
-              style={[
-                styles.wordmarkText,
-                {
-                  fontSize: layout.wordmarkSize,
-                  lineHeight: layout.wordmarkLineHeight,
-                },
-              ]}
-            >
-              {BRAND.appName.toLowerCase()}
-            </Text>
-          </View>
-          {onOpenSettings ? (
-            <Pressable
-              style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
-              onPress={onOpenSettings}
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-            >
-              <MenuIcon size={24} color={colors.textPrimary} strokeWidth={1.55} />
-            </Pressable>
-          ) : null}
-        </View>
+        <PageHeader
+          title="Home"
+          onOpenSettings={onOpenSettings}
+          brandMarkSize={layout.brandMarkSize}
+        />
 
         <View style={styles.greetingRow}>
           <Text
@@ -145,25 +123,36 @@ export function TodayScreen({
             accessible
             accessibilityLabel={copy.status}
           >
-            <View
-              style={[
-                styles.readinessCheck,
-                {
-                  width: layout.statusIconSize,
-                  height: layout.statusIconSize,
-                  borderRadius: layout.statusIconSize / 2,
-                },
-              ]}
-            >
-              <Text
+            {copy.statusTone === 'complete' ? (
+              <View
                 style={[
-                  styles.readinessCheckText,
-                  { fontSize: layout.statusSize, lineHeight: layout.statusLineHeight },
+                  styles.readinessCheck,
+                  {
+                    width: layout.statusIconSize,
+                    height: layout.statusIconSize,
+                    borderRadius: layout.statusIconSize / 2,
+                  },
                 ]}
               >
-                ✓
-              </Text>
-            </View>
+                <Text
+                  style={[
+                    styles.readinessCheckText,
+                    { fontSize: layout.statusSize, lineHeight: layout.statusLineHeight },
+                  ]}
+                >
+                  ✓
+                </Text>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.readinessDotWell,
+                  { width: layout.statusIconSize, height: layout.statusIconSize },
+                ]}
+              >
+                <View style={styles.readinessDot} />
+              </View>
+            )}
             <Text
               style={[
                 styles.readinessText,
@@ -215,7 +204,7 @@ export function TodayScreen({
                   { fontSize: layout.buttonTextSize, lineHeight: layout.buttonTextLineHeight },
                 ]}
               >
-                {checkUpAction ? action.ctaLabel : 'Start session'}
+                {checkUpAction || reviewHealthAnswersAction ? action.ctaLabel : 'Start session'}
               </Text>
             </Pressable>
           </View>
@@ -242,6 +231,9 @@ type TodayCopy = {
   title: string;
   subtitle: string;
   status: string;
+  /** 'complete' renders the ✓ badge; guidance copy stays a quiet dot so the
+   * check never implies something is done when it is not. */
+  statusTone: 'complete' | 'info';
 };
 
 export function todayCopy(programme: TodayProgrammeMode, sessionMinutes: number): TodayCopy {
@@ -254,6 +246,7 @@ export function todayCopy(programme: TodayProgrammeMode, sessionMinutes: number)
         title: action.title,
         subtitle: today.sessionDetail,
         status: 'Continue with Everyday Clarity, or skip it, to finish',
+        statusTone: 'info',
       };
     }
     const routineCheckUp = today.checkupOffer?.kind === 'routine_due';
@@ -263,6 +256,16 @@ export function todayCopy(programme: TodayProgrammeMode, sessionMinutes: number)
       status: routineCheckUp
         ? 'The same check-up keeps your results comparable'
         : 'A private starting point for Strength and Balance',
+      statusTone: 'info',
+    };
+  }
+
+  if (action.type === 'review_health_answers') {
+    return {
+      title: action.title,
+      subtitle: today.sessionDetail,
+      status: 'Week 1 stays locked until your starting check-up is accepted',
+      statusTone: 'info',
     };
   }
 
@@ -272,6 +275,7 @@ export function todayCopy(programme: TodayProgrammeMode, sessionMinutes: number)
       title: 'Your first session',
       subtitle: `${sessionMinutes} minutes · Starting levels\n${patterns}`,
       status: 'A chair and a little floor space are all you need',
+      statusTone: 'info',
     };
   }
   if (today.state === 'returning_after_break') {
@@ -279,6 +283,7 @@ export function todayCopy(programme: TodayProgrammeMode, sessionMinutes: number)
       title: 'Ease back in today',
       subtitle: `${sessionMinutes} minutes · Exercises eased back one step\n${patterns}`,
       status: 'A gentle return is enough',
+      statusTone: 'info',
     };
   }
 
@@ -290,10 +295,12 @@ export function todayCopy(programme: TodayProgrammeMode, sessionMinutes: number)
     : week.plannedComplete
       ? `${sessionMinutes} minutes · 3 sessions complete this week`
       : `${sessionMinutes} minutes · Session ${week.creditedSessions + 1} of ${week.plannedSessions} this week`;
+  const weekly = weeklyStatus(week, journey.status);
   return {
     title: focusHeadline(journey.physicalFocus),
     subtitle: `${sessionPosition}\n${patterns}`,
-    status: weeklyStatus(week, journey.status),
+    status: weekly.status,
+    statusTone: weekly.tone,
   };
 }
 
@@ -313,15 +320,24 @@ function movementPatternLine(patterns: readonly string[]): string {
 function weeklyStatus(
   week: ProgrammeJourneyWeekSummary | null,
   journeyStatus: ProgrammeJourneyStatus
-): string {
-  if (journeyStatus === 'completed') return 'Your 12-week programme is complete';
-  if (week === null) return 'Continue at your own pace';
-  if (week.plannedComplete) return '3 sessions complete · week complete';
-  if (week.creditedSessions >= week.sufficientSessions) {
-    return `${week.creditedSessions} sessions complete · successful week`;
+): { status: string; tone: TodayCopy['statusTone'] } {
+  if (journeyStatus === 'completed') {
+    return { status: 'Your 12-week programme is complete', tone: 'complete' };
   }
-  if (week.creditedSessions === 1) return '1 session complete this week';
-  return 'Two sessions makes a successful week';
+  if (week === null) return { status: 'Continue at your own pace', tone: 'info' };
+  if (week.plannedComplete) {
+    return { status: '3 sessions complete · week complete', tone: 'complete' };
+  }
+  if (week.creditedSessions >= week.sufficientSessions) {
+    return {
+      status: `${week.creditedSessions} sessions complete · successful week`,
+      tone: 'complete',
+    };
+  }
+  if (week.creditedSessions === 1) {
+    return { status: '1 session complete this week', tone: 'complete' };
+  }
+  return { status: 'Two sessions make a successful week', tone: 'info' };
 }
 
 export type TodayHomeLayoutInput = {
@@ -335,8 +351,6 @@ export type TodayHomeLayout = {
   topPadding: number;
   sectionGap: number;
   brandMarkSize: number;
-  wordmarkSize: number;
-  wordmarkLineHeight: number;
   greetingSize: number;
   greetingLineHeight: number;
   copyGap: number;
@@ -392,8 +406,6 @@ export function todayHomeLayout(input: TodayHomeLayoutInput): TodayHomeLayout {
     topPadding: clamp(Math.round(usableHeight * 0.028), 14, 24),
     sectionGap: clamp(Math.round(18 * scale), 12, 20),
     brandMarkSize: clamp(Math.round(32 * scale), 28, 34),
-    wordmarkSize: clamp(Math.round(21 * scale), 18, 22),
-    wordmarkLineHeight: clamp(Math.round(27 * scale), 23, 28),
     greetingSize: clamp(Math.round(15 * scale), 13, 16),
     greetingLineHeight: clamp(Math.round(21 * scale), 18, 22),
     copyGap: clamp(Math.round(10 * scale), 7, 12),
@@ -439,25 +451,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: spacing.xl,
   },
-  header: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  wordmark: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  wordmarkText: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 22,
-    lineHeight: 28,
-    letterSpacing: 3.2,
-  },
   greetingRow: {
     alignItems: 'flex-start',
     gap: spacing.md,
@@ -472,13 +465,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 2,
     backgroundColor: colors.accentDeep,
-  },
-  settingsButton: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   actionStage: {
     flex: 1,
@@ -530,6 +516,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 19,
   },
+  readinessDotWell: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  readinessDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: colors.accentGold,
+  },
   readinessText: {
     color: colors.accentGold,
     fontFamily: fonts.sansRegular,
@@ -564,8 +560,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: 16,
     lineHeight: 21,
-  },
-  pressed: {
-    opacity: 0.78,
   },
 });

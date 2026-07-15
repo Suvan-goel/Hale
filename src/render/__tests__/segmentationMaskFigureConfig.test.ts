@@ -4,21 +4,22 @@ import {
 } from '../segmentationMaskFigureConfig';
 
 describe('resolveSegmentationMaskFigureEnabled', () => {
-  it('is off by default', () => {
-    expect(resolveSegmentationMaskFigureEnabled(undefined)).toBe(false);
-    expect(resolveSegmentationMaskFigureEnabled('')).toBe(false);
+  it('is on by default', () => {
+    expect(resolveSegmentationMaskFigureEnabled(undefined)).toBe(true);
+    expect(resolveSegmentationMaskFigureEnabled('')).toBe(true);
   });
 
-  it('accepts the repo on-flag spellings', () => {
+  it('accepts the explicit on-flag spellings', () => {
     expect(resolveSegmentationMaskFigureEnabled('1')).toBe(true);
     expect(resolveSegmentationMaskFigureEnabled('on')).toBe(true);
     expect(resolveSegmentationMaskFigureEnabled('true')).toBe(true);
   });
 
-  it('treats anything else as off', () => {
+  it('keeps an explicit diagnostics opt-out', () => {
     expect(resolveSegmentationMaskFigureEnabled('0')).toBe(false);
     expect(resolveSegmentationMaskFigureEnabled('off')).toBe(false);
-    expect(resolveSegmentationMaskFigureEnabled('yes')).toBe(false);
+    expect(resolveSegmentationMaskFigureEnabled('false')).toBe(false);
+    expect(resolveSegmentationMaskFigureEnabled('yes')).toBe(true);
   });
 });
 

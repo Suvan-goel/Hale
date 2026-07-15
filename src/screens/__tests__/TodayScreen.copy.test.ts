@@ -43,7 +43,8 @@ describe('Home programme-aware copy', () => {
     expect(todayCopy(programme(), 24)).toEqual({
       title: 'Build strength today',
       subtitle: '24 minutes · Session 1 of 3 this week\nSquat · push · core',
-      status: 'Two sessions makes a successful week',
+      status: 'Two sessions make a successful week',
+      statusTone: 'info',
     });
   });
 
@@ -59,6 +60,7 @@ describe('Home programme-aware copy', () => {
       title: 'Practise balance today',
       subtitle: '24 minutes · Session 3 of 3 this week\nSquat · push · core',
       status: '2 sessions complete · successful week',
+      statusTone: 'complete',
     });
   });
 
@@ -69,6 +71,20 @@ describe('Home programme-aware copy', () => {
     expect(todayCopy(value, 24)).toMatchObject({
       subtitle: '24 minutes · Follow-on session\nSquat · push · core',
       status: 'Your 12-week programme is complete',
+      statusTone: 'complete',
+    });
+  });
+
+  it('marks the check badge only for real completions, never guidance copy', () => {
+    expect(todayCopy(programme(), 24).statusTone).toBe('info');
+    const oneSession = programme();
+    oneSession.journey.currentWeekSummary = {
+      ...oneSession.journey.currentWeekSummary!,
+      creditedSessions: 1,
+    };
+    expect(todayCopy(oneSession, 24)).toMatchObject({
+      status: '1 session complete this week',
+      statusTone: 'complete',
     });
   });
 
@@ -80,6 +96,27 @@ describe('Home programme-aware copy', () => {
       title: 'Your first session',
       subtitle: '24 minutes · Starting levels\nSquat · push · core',
       status: 'A chair and a little floor space are all you need',
+      statusTone: 'info',
+    });
+  });
+
+  it('does not describe a session when health answers are needed before baseline', () => {
+    const value = programme();
+    value.today.state = 'health_answers_required';
+    value.today.primaryAction = {
+      type: 'review_health_answers',
+      title: 'Health answers needed before your check-up',
+      subtitle: 'Week 1 begins after an accepted starting check-up.',
+      ctaLabel: 'Review health answers',
+      tone: 'default',
+    };
+    value.today.sessionDetail =
+      'The answers stay on this phone and can be removed later in Settings.';
+    expect(todayCopy(value, 24)).toEqual({
+      title: 'Health answers needed before your check-up',
+      subtitle: 'The answers stay on this phone and can be removed later in Settings.',
+      status: 'Week 1 stays locked until your starting check-up is accepted',
+      statusTone: 'info',
     });
   });
 
@@ -94,6 +131,7 @@ describe('Home programme-aware copy', () => {
       title: 'Finish your Movement Check-Up',
       subtitle: 'Your Strength and Balance measurements are already saved.',
       status: 'Continue with Everyday Clarity, or skip it, to finish',
+      statusTone: 'info',
     });
   });
 });

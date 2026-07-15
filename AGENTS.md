@@ -237,9 +237,9 @@ permit it.
 - Rotation-graded movements (except explicitly approved neck-yaw research), floor-pose form
   grading, or any learned form-quality model.
 
-The trainer-voice picker offers **Clara** and **Marcus**. Lines are synthesized once at build
+**Clara is Pearl's sole trainer voice and the default.** Her lines are synthesized once at build
 time with ElevenLabs Multilingual v2 by `scripts/generate-audio.ts` and bundled under
-`assets/audio/voice/<voiceId>/`; runtime sessions never call ElevenLabs or any cloud TTS. The
+`assets/audio/voice/clara/`; runtime sessions never call ElevenLabs or any cloud TTS. The
 generation key is environment-only and never committed.
 
 ## Working agreements

@@ -234,7 +234,7 @@ Object.assign(
 loadRootDotEnv();
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 
-type AudioGroup = 'all' | 'safety' | 'movement_profile_v2' | 'voice_v21' | 'sfx';
+type AudioGroup = 'all' | 'safety' | 'movement_profile_v2' | 'voice_v21' | 'sfx' | 'manifests';
 type VoiceSelector = 'all' | string;
 type AudioAssetStatus = 'valid' | 'missing' | 'stale' | 'zero-byte' | 'forced';
 
@@ -281,8 +281,6 @@ interface FinalCueRegistryRow {
   reuseDecision: string;
   physicalCueKey: string;
   physicalManifestStatus: string;
-  claraExists: string;
-  marcusExists: string;
   semanticMatch: string;
   generationRequiredLater: string;
   retireLater: string;
@@ -461,7 +459,8 @@ function isAudioGroup(value: string | undefined): value is AudioGroup {
     value === 'safety' ||
     value === 'movement_profile_v2' ||
     value === 'voice_v21' ||
-    value === 'sfx'
+    value === 'sfx' ||
+    value === 'manifests'
   );
 }
 
@@ -786,7 +785,7 @@ function loadVoiceV21RefreshRows(): BacklogRow[] {
       category: registry.categories,
       policyId: registry.policyId,
       requiredForVoiceFirst: registry.requiredForVoiceFirst,
-      voiceIdsNeeded: 'clara;marcus',
+      voiceIdsNeeded: VOICE_OPTIONS.map((voice) => voice.id).join(';'),
       currentPhysicalCandidate: registry.physicalCueKey,
       reuseDecision: registry.reuseDecision,
       reasonForGeneration:
@@ -821,8 +820,9 @@ function validateVoiceV21Backlog(rows: readonly BacklogRow[]): void {
       throw new Error(`backlog row has unsafe logical cue key: ${row.logicalCueKey}`);
     }
     const voices = parseVoiceIdsNeeded(row.voiceIdsNeeded);
-    if (voices.length !== 2 || !voices.includes('clara') || !voices.includes('marcus')) {
-      throw new Error(`backlog row does not request exact Clara/Marcus pair: ${row.logicalCueKey}`);
+    const configuredVoiceIds = VOICE_OPTIONS.map((voice) => voice.id);
+    if (!configuredVoiceIds.every((voiceId) => voices.includes(voiceId))) {
+      throw new Error(`backlog row does not request every configured voice: ${row.logicalCueKey}`);
     }
     const existing = byLogical.get(row.logicalCueKey);
     if (existing && existing.exactScript !== row.exactScript) {
@@ -1109,8 +1109,8 @@ function promoteVoiceV21GeneratedPairs(results: readonly VoiceV21JobResult[]): v
   }
   for (const [cueKey, group] of byCue) {
     const completedVoices = new Set(group.filter((item) => item.status !== 'failed').map((item) => item.job.voice.id));
-    if (!completedVoices.has('clara') || !completedVoices.has('marcus')) {
-      throw new Error(`cannot promote incomplete generated pair for ${cueKey}`);
+    if (!VOICE_OPTIONS.every((voice) => completedVoices.has(voice.id))) {
+      throw new Error(`cannot promote incomplete configured voice set for ${cueKey}`);
     }
   }
   for (const result of results) {
@@ -1124,8 +1124,8 @@ function promoteVoiceV21GeneratedPairs(results: readonly VoiceV21JobResult[]): v
 
 function writeVoiceV21Metadata(results: readonly VoiceV21JobResult[], generatedAt: string): void {
   const out: Record<string, Partial<Record<string, VoiceV21AudioAssetMetadata>>> = {};
-  for (const [voiceId, byCue] of Object.entries(VOICE_V2_1_AUDIO_ASSET_METADATA)) {
-    out[voiceId] = { ...(byCue ?? {}) };
+  for (const voice of VOICE_OPTIONS) {
+    out[voice.id] = { ...(VOICE_V2_1_AUDIO_ASSET_METADATA[voice.id] ?? {}) };
   }
   for (const result of results) {
     if (!result.probe) continue;
@@ -1268,14 +1268,16 @@ function writeVoiceV21ManifestChanges(results: readonly VoiceV21JobResult[]): vo
     const refresh = !result.job.willCreateNew;
     rows.push({
       changeId: `manifest-change-${String(index++).padStart(3, '0')}`,
-      changeType: refresh ? 'refresh_generated_voice_v21_pair' : 'add_generated_voice_v21_pair',
+      changeType: refresh ? 'refresh_generated_voice_v21_assets' : 'add_generated_voice_v21_assets',
       filePath: 'src/audio/manifest.ts',
       logicalCueKey: result.job.logicalCueKey,
       physicalCueKey: result.job.physicalCueKey,
-      voiceId: 'clara;marcus',
+      voiceId: VOICE_OPTIONS.map((voice) => voice.id).join(';'),
       beforeStatus: refresh ? 'static_require_registered' : 'not_manifested',
       afterStatus: 'static_require_registered',
-      staticRequirePath: `assets/audio/voice/{clara,marcus}/${result.job.physicalCueKey}.mp3`,
+      staticRequirePath: VOICE_OPTIONS
+        .map((voice) => `assets/audio/voice/${voice.id}/${result.job.physicalCueKey}.mp3`)
+        .join(';'),
       verifyAudioImpact: 'covered_by_verify_audio_voice_v21_backlog',
       featureGateImpact: 'none_feature_defaults_remain_closed',
       reason: result.job.reasonForGeneration,
@@ -1680,6 +1682,19 @@ async function main(): Promise<void> {
   const voices = selectVoices(options.voice);
   fs.mkdirSync(VOICE_DIR, { recursive: true });
   fs.mkdirSync(SFX_DIR, { recursive: true });
+
+  if (options.group === 'manifests') {
+    if (options.dryRun) {
+      console.log(`Manifest sync voices=${VOICE_OPTIONS.map((voice) => voice.id).join(',')}`);
+      return;
+    }
+    writeManifestFromDisk();
+    writeSafetyMetadata(new Set());
+    writeMovementProfileV2Metadata(new Set());
+    writeVoiceV21Metadata([], new Date().toISOString());
+    console.log(`\nAudio manifests synced for ${VOICE_OPTIONS.map((voice) => voice.id).join(', ')}`);
+    return;
+  }
 
   if (options.fromBacklog !== null) {
     const backlog = loadVoiceV21Backlog(options.fromBacklog);

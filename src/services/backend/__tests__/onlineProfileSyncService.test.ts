@@ -80,7 +80,7 @@ function onlinePreferences(name: string): Preferences {
     },
     settings: {
       ...defaults.settings,
-      voiceId: name === 'Remote' ? 'clara' : 'marcus',
+      voiceId: 'clara',
       comparisonOptIn: name === 'Remote',
     },
   };

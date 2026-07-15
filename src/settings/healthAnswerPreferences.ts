@@ -1,4 +1,4 @@
-import type { AssessmentStatus, JointFlag } from '../programme';
+import type { AssessmentStatus, HeartSafetyAnswer, JointFlag } from '../programme';
 
 /**
  * The small, local-only projection Settings is allowed to edit. Raw health
@@ -7,12 +7,14 @@ import type { AssessmentStatus, JointFlag } from '../programme';
  */
 export interface SettingsSafetyPreferences {
   balanceSupportDefault: boolean;
+  balanceSupportPreference: boolean | null;
   balanceSupportRequired: boolean;
   lowImpact: boolean;
   quietMode: boolean;
   hasStairs: boolean | null;
   consentHealthData: boolean;
   gentleStartActive: boolean;
+  heartSafetyAnswer: HeartSafetyAnswer | null;
   gpConfirmed: boolean;
   jointFlags: readonly JointFlag[];
 }
@@ -33,6 +35,7 @@ export function saveHealthAnswers(
     ...current,
     consentHealthData: true,
     gentleStartActive,
+    heartSafetyAnswer: draft.heartAnswer,
     // Preserve a completed safety step only while the same Gentle Start
     // condition remains selected. A newly selected flag must be reviewed.
     gpConfirmed:
@@ -42,6 +45,7 @@ export function saveHealthAnswers(
     balanceSupportDefault: current.balanceSupportRequired
       ? true
       : draft.balanceSupport,
+    balanceSupportPreference: draft.balanceSupport,
   };
 }
 
@@ -52,13 +56,14 @@ export function removeHealthAnswers(
     ...current,
     consentHealthData: false,
     gentleStartActive: false,
+    heartSafetyAnswer: null,
     gpConfirmed: false,
     jointFlags: [],
     lowImpact: false,
-    // Support remains conservative. A measurement-required protection is
-    // never cleared by deleting health answers.
-    balanceSupportDefault:
-      current.balanceSupportRequired || current.balanceSupportDefault,
+    // Removing answers clears the voluntary health-derived choice and returns
+    // to temporary safe support. A measurement requirement is never weakened.
+    balanceSupportDefault: true,
+    balanceSupportPreference: null,
   };
 }
 

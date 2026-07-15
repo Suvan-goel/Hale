@@ -16,7 +16,7 @@ import type {
 interface PhysicalCandidate {
   readonly key: string;
   readonly script: string;
-  readonly existsForBothVoices: boolean;
+  readonly existsForRequiredVoices: boolean;
   readonly semanticMatch: boolean;
 }
 
@@ -84,7 +84,7 @@ const SAFETY_FAMILY_BY_LOGICAL_CUE_KEY: Readonly<Record<string, TrainingVoiceSaf
   'equip-floor-transition-v21': 'floor_eligible_user',
 };
 
-const REQUIRED_GENERATED_VOICE_IDS = ['clara', 'marcus'] as const;
+const REQUIRED_GENERATED_VOICE_IDS = ['clara'] as const;
 
 export function listTrainingVoiceAssetRequirementsV21(): TrainingVoiceAssetRequirementV21[] {
   const usage = cueUsage();
@@ -126,8 +126,7 @@ function assetRequirementFor(
     sideVariant: usage?.sideVariants.join(';') ?? '',
     currentCandidateKey: candidate?.key ?? null,
     currentCandidateScript: candidate?.script ?? null,
-    claraStatus: candidate?.existsForBothVoices ? 'exists' : 'missing',
-    marcusStatus: candidate?.existsForBothVoices ? 'exists' : 'missing',
+    claraStatus: candidate?.existsForRequiredVoices ? 'exists' : 'missing',
     semanticMatch: candidate?.semanticMatch ?? false,
     reuseDecision:
       status === 'exact_existing_pair'
@@ -142,7 +141,7 @@ function assetRequirementFor(
     status,
     notes:
       status === 'exact_existing_pair'
-        ? 'Exact Clara/Marcus pair exists in the current physical manifest.'
+        ? 'The exact Clara asset exists in the current physical manifest.'
         : candidate
           ? 'A physical candidate exists, but V2.1 requires a separate exact logical cue.'
           : 'No current physical pair exists for this logical Training Voice V2.1 cue.',
@@ -248,11 +247,11 @@ function assetStatusFor(candidate: PhysicalCandidate | null): TrainingVoiceAsset
 }
 
 function exact(key: string, script: string): PhysicalCandidate {
-  return { key, script, existsForBothVoices: true, semanticMatch: true };
+  return { key, script, existsForRequiredVoices: true, semanticMatch: true };
 }
 
 function mismatch(key: string, script: string): PhysicalCandidate {
-  return { key, script, existsForBothVoices: true, semanticMatch: false };
+  return { key, script, existsForRequiredVoices: true, semanticMatch: false };
 }
 
 function generatedExactCandidate(key: string, script: string): PhysicalCandidate | null {

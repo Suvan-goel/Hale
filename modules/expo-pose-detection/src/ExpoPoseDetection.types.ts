@@ -48,6 +48,19 @@ export type PoseLatencyNativeDiagnostics = {
   mpImageBuildMs?: number;
   resultFlattenMs?: number;
   eventPayloadBuildMs?: number;
+  /** Frame whose segmentation mask was published with this landmark event. */
+  maskFrameId?: number;
+  maskExtractionMs?: number;
+  maskRasterMs?: number;
+  maskPostprocessMs?: number;
+  /** Native monotonic time when the mask reached the native renderer. */
+  maskPublishMs?: number;
+  sourceAgeAtMaskPublishMs?: number;
+  maskDataType?: string;
+  maskSourceWidth?: number;
+  maskSourceHeight?: number;
+  maskRasterWidth?: number;
+  maskRasterHeight?: number;
   modelAsset?: string;
   requestedDelegate?: string;
   selectedDelegate?: string;
@@ -172,7 +185,7 @@ export type PoseDetectionViewProps = {
    * figure (the user's true contour — never camera pixels). Enabling this
    * recreates the landmarker with segmentation output on, which costs
    * inference time; check latency diagnostics before defaulting it anywhere.
-   * Android-only for now; iOS accepts and ignores it.
+   * Implemented natively on Android and iOS.
    */
   segmentationMaskFigureEnabled?: boolean;
   /** RGB tint for the mask figure. Alpha is managed natively. */

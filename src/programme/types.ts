@@ -174,6 +174,7 @@ export interface AdaptationBranch {
 export type AssessmentStatus = 'done' | 'deferred' | 'skipped' | 'bypassed_b1';
 export type PelvicRouting = 'none' | 'low_impact';
 export type JointFlag = 'knee' | 'hip' | 'shoulder' | 'wrist' | 'low_back';
+export type HeartSafetyAnswer = 'yes' | 'no' | 'prefer_not_to_say';
 export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
 export interface ProgrammeProfile {
@@ -187,6 +188,8 @@ export interface ProgrammeProfile {
   activityLevel: ActivityLevel | null;
   /** B1 heart flag: Gentle Start preset until gpConfirmed. */
   gentleStartActive: boolean;
+  /** Exact B1 answer, retained so Settings never reconstructs a disclosure. */
+  heartSafetyAnswer: HeartSafetyAnswer | null;
   gpConfirmed: boolean;
   /** B4 pelvic-floor routing (soft): quiet finisher variants + content unlock. */
   pelvicRouting: PelvicRouting;
@@ -196,6 +199,11 @@ export interface ProgrammeProfile {
   jointFlags: readonly JointFlag[];
   /** B5 falls/balance worry (or T1 < 10 s): support sub-variants default on. */
   balanceSupportDefault: boolean;
+  /**
+   * Explicit voluntary support choice. Null means Pearl is using a temporary
+   * conservative default that an accepted balance check-up may resolve.
+   */
+  balanceSupportPreference: boolean | null;
   /**
    * True only when the latest accepted camera check-up requires supported
    * balance variations. Settings may change a voluntary support preference,

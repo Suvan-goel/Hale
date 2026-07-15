@@ -17,8 +17,8 @@ import type {
   LandmarksEventPayload,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
-import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
+import { PageHeader } from '../components/PageHeader';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
 import {
   CameraUnavailableNotice,
@@ -26,9 +26,15 @@ import {
   type CameraAvailability,
 } from '../components/SafePoseDetectionView';
 import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
+import { resolveFitFrameRect } from '../render/fitFramePoseTraceGeometry';
+import { resolveSegmentationMaskFigureEnabled } from '../render/segmentationMaskFigureConfig';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
-import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
+import {
+  POSE_ESTIMATION_SOURCE_ASPECT,
+  poseEstimationWindowSize,
+  recordingCameraViewportSize,
+} from './recordingViewport';
 
 import { BRAND } from '../brand';
 const IOS_RECORDING_TOP_CLEARANCE = 44;
@@ -145,7 +151,10 @@ export function CheckUpRecordingShell({
   const systemInsets = useSystemInsets();
   const recordingTopPadding = recordingScreenTopPadding();
   const sessionNoticeAction = sessionNotice?.action ?? null;
-  const viewportWidth = Math.max(1, Math.min(windowSize.width - spacing.md * 2, spacing.pageMaxWidth));
+  const viewportWidth = Math.max(
+    1,
+    Math.min(windowSize.width, spacing.pageMaxWidth) - responsive.horizontalPadding * 2
+  );
   const cameraViewport = React.useMemo(
     () => recordingCameraViewportSize(viewportWidth, windowSize.height, setupIssue || modalMode !== null),
     [modalMode, setupIssue, viewportWidth, windowSize.height]
@@ -154,6 +163,17 @@ export function CheckUpRecordingShell({
     () => poseEstimationWindowSize(cameraViewport.width, cameraViewport.height),
     [cameraViewport.height, cameraViewport.width]
   );
+  const fitFrame = React.useMemo(
+    () =>
+      resolveFitFrameRect(
+        cameraViewport.width,
+        cameraViewport.height,
+        POSE_ESTIMATION_SOURCE_ASPECT,
+        poseWindow
+      ),
+    [cameraViewport.height, cameraViewport.width, poseWindow]
+  );
+  const maskFigureEnabled = resolveSegmentationMaskFigureEnabled();
   const recordingFooterFrame = React.useMemo(
     () => ({
       top: poseWindow.top + poseWindow.height,
@@ -164,41 +184,56 @@ export function CheckUpRecordingShell({
 
   return (
     <View style={styles.container}>
-      <SafePoseDetectionView
-        active={cameraActive}
-        modelVariant="full"
-        {...ANDROID_VIDEO_ROT_640_POSE_PROFILE}
-        latencyDiagnosticsEnabled={latencyDiagnosticsEnabled}
-        style={StyleSheet.absoluteFill}
-        onLandmarks={onLandmarks}
-        onPoseError={onPoseError}
-        onAvailabilityChange={onAvailabilityChange}
-      />
       <ScrollView
         style={styles.layout}
         contentContainerStyle={[
           styles.layoutContent,
-          responsive.isCompactPhone && styles.compactScreenPadding,
-          { paddingTop: recordingTopPadding, paddingBottom: spacing.xl + systemInsets.bottom },
+          {
+            paddingHorizontal: responsive.horizontalPadding,
+            paddingTop: recordingTopPadding,
+            paddingBottom: spacing.xl + systemInsets.bottom,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
         <View style={styles.topBar}>
-          {onRequestBack ? (
-            <BackArrowButton
-              accessibilityLabel={backAccessibilityLabel}
-              onPress={onRequestBack}
-              style={styles.topBarBackButton}
-            />
-          ) : null}
-          <Text style={styles.topBarTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
-            {title}
-          </Text>
+          <PageHeader
+            title={title}
+            onBack={onRequestBack}
+            backAccessibilityLabel={backAccessibilityLabel}
+          />
         </View>
 
         <View style={styles.recordingSlot}>
           <View style={[styles.recordingViewport, cameraViewport]}>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.recordingFigureViewport,
+                {
+                  left: fitFrame.x,
+                  top: fitFrame.y,
+                  width: fitFrame.width,
+                  height: fitFrame.height,
+                  borderRadius: fitFrame.rx,
+                },
+              ]}
+            >
+              <SafePoseDetectionView
+                active={cameraActive}
+                modelVariant="full"
+                {...ANDROID_VIDEO_ROT_640_POSE_PROFILE}
+                latencyDiagnosticsEnabled={latencyDiagnosticsEnabled}
+                segmentationMaskFigureEnabled={maskFigureEnabled}
+                segmentationMaskFigureColor={colors.accentDeep}
+                canvasColor={colors.focusCanvas}
+                style={StyleSheet.absoluteFill}
+                onLandmarks={onLandmarks}
+                onPoseError={onPoseError}
+                onAvailabilityChange={onAvailabilityChange}
+              />
+            </View>
             <View pointerEvents="box-none" style={styles.recordingChrome}>
               <HeaderLogo size={34} style={styles.recordingLogo} />
               <RecordingSetupNotice
@@ -600,13 +635,9 @@ const styles = StyleSheet.create({
   },
   layoutContent: {
     minHeight: '100%',
-    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
     gap: spacing.md,
     alignItems: 'center',
-  },
-  compactScreenPadding: {
-    paddingHorizontal: 16,
   },
   compactCardPadding: {
     paddingHorizontal: 14,
@@ -618,23 +649,8 @@ const styles = StyleSheet.create({
   topBar: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     paddingHorizontal: spacing.xs,
-  },
-  topBarBackButton: {
-    marginBottom: 0,
-    alignSelf: 'center',
-    flexShrink: 0,
-  },
-  topBarTitle: {
-    ...type.pageTitle,
-    fontSize: 22,
-    lineHeight: 28,
-    flex: 1,
-    color: colors.textPrimary,
   },
   recordingSlot: {
     width: '100%',
@@ -650,6 +666,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
     ...shadow.card,
+  },
+  recordingFigureViewport: {
+    position: 'absolute',
+    overflow: 'hidden',
   },
   recordingCameraUnavailableNotice: {
     backgroundColor: 'transparent',

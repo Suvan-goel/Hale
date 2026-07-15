@@ -465,10 +465,10 @@ describe('MovementProfileV2VoiceRuntime', () => {
     ]);
   });
 
-  it('switches mounted voices immediately at safe boundaries and ignores old callbacks', async () => {
+  it('normalizes retired voice ids to the sole bundled voice', async () => {
     const createdVoiceIds: string[] = [];
     const runtime = createRuntime({
-      voiceId: 'clara',
+      voiceId: 'retired-voice',
       createVoiceChannel: (id) => {
         createdVoiceIds.push(id);
         return new VoiceChannel(id);
@@ -479,47 +479,11 @@ describe('MovementProfileV2VoiceRuntime', () => {
     expect(createdVoiceIds).toEqual(['clara']);
     expect(players).toHaveLength(1);
 
-    runtime.setDesiredVoiceId('marcus', setup);
-    expect(createdVoiceIds).toEqual(['clara', 'marcus']);
-    expect(runtime.state).toMatchObject({
-      desiredVoiceId: 'marcus',
-      activeVoiceId: 'marcus',
-      pendingVoiceId: null,
-    });
-
-    players[0].finish();
-    await flushAsync();
-    expect(runtimeActions).toEqual([]);
-    expect(runtime.state.diagnostics.some((entry) => entry.event === 'voice_change_applied_immediately')).toBe(true);
-  });
-
-  it('defers mounted voice switching during active measurement until the next safe boundary', () => {
-    const createdVoiceIds: string[] = [];
-    const runtime = createRuntime({
-      voiceId: 'clara',
-      createVoiceChannel: (id) => {
-        createdVoiceIds.push(id);
-        return new VoiceChannel(id);
-      },
-    });
-
-    runtime.setDesiredVoiceId('marcus', snapshot('chair_active'));
+    runtime.setDesiredVoiceId('another-retired-voice', setup);
     expect(createdVoiceIds).toEqual(['clara']);
     expect(runtime.state).toMatchObject({
-      desiredVoiceId: 'marcus',
+      desiredVoiceId: 'clara',
       activeVoiceId: 'clara',
-      pendingVoiceId: 'marcus',
-    });
-
-    runtime.setDesiredVoiceId('clara', snapshot('chair_active'));
-    expect(runtime.state.pendingVoiceId).toBeNull();
-
-    runtime.setDesiredVoiceId('marcus', snapshot('chair_active'));
-    runtime.sync(snapshot('balance_setup'));
-    expect(createdVoiceIds).toEqual(['clara', 'marcus']);
-    expect(runtime.state).toMatchObject({
-      desiredVoiceId: 'marcus',
-      activeVoiceId: 'marcus',
       pendingVoiceId: null,
     });
   });

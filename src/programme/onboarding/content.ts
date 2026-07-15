@@ -1,22 +1,23 @@
 /**
  * Onboarding field content — onboarding-spec v0.2 §2–§3 under the 2026-07-06
- * rulings and the seven-screen MVP consolidation (2026-07-10). Safety-field
- * wording stays centralized here for clinical review; grouped-screen framing
- * and CTA copy live with the presentation that composes these fields.
+ * rulings and the four-surface MVP consolidation (2026-07-13). Safety-field
+ * wording stays centralized here for clinical review; screen framing and CTA
+ * copy live with the presentation that composes these fields.
  *
- * Structure: A1 uses the existing LifeGoal question (C8); B2 remains
- * deferred; B1/B3/B4/B5 retain their safety effects; preferred days are no
- * longer collected before scheduling exists. Every route reaches one final
- * start surface, which conditionally offers the check-up.
+ * Structure: onboarding asks for one retention anchor, the heart answer needed
+ * for check-up access, and one concise joint-comfort answer that protects
+ * placement. The first health question carries the required local-use
+ * disclosure; choosing an answer is the affirmative action. Balance starts
+ * with temporary support until the baseline check-up resolves it. Everything
+ * else is deferred. Every route reaches one final start surface.
  *
  * Claims discipline: nothing here may use fracture/osteoporosis/bone-density
  * language or any banned claim shape — pinned by content.test.ts with the
  * same regexes as copyGuardrails.
  */
 
-import type { LifeGoalCategory, ActivityLevel } from '../../adherence';
+import { LIFE_GOAL_PRESETS } from '../../adherence';
 import { BRAND } from '../../brand';
-import type { MenopauseStage } from '../../profile';
 import type { JointFlag } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -25,15 +26,8 @@ import type { JointFlag } from '../types';
 
 export const ONBOARDING_QUESTION_STEPS = [
   'a1_life_goal',
-  'a2_menopause_journey',
-  'a3_activity',
-  'consent_health',
   'b1_heart',
   'b3_joints',
-  'b4_pelvic',
-  'b5_balance',
-  'c1_stairs',
-  'c2_quiet',
   'assessment_offer',
 ] as const;
 export type OnboardingQuestionStepId = (typeof ONBOARDING_QUESTION_STEPS)[number];
@@ -85,8 +79,6 @@ export interface OnboardingMessageContent {
   body: readonly string[];
   continueLabel: string;
   secondaryLabel?: string;
-  /** Small fact tiles (welcome screen), old-design SummaryMetric pattern. */
-  facts?: readonly { value: string; detail: string }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -96,77 +88,31 @@ export interface OnboardingMessageContent {
 const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   a1_life_goal: {
     id: 'a1_life_goal',
-    eyebrow: 'About you',
-    question: 'What do you most want your strength for?',
-    whyWeAsk: 'So your progress is framed around what actually matters to you.',
-    options: [
-      { value: 'stairs_walks', label: 'Stairs and long walks feeling easy' },
-      { value: 'grandchildren', label: 'Keeping up with the grandchildren' },
-      { value: 'bend_reach_carry', label: 'Bending, reaching and carrying without a second thought' },
-      { value: 'independence', label: 'Staying strong and independent for years to come' },
-    ] satisfies readonly { value: LifeGoalCategory; label: string }[],
+    eyebrow: 'Your strength now',
+    question: 'What would feeling stronger in the menopause years mean to you?',
+    whyWeAsk: `Choose what feels most useful right now. ${BRAND.appName} uses it to keep your 12 weeks relevant to you.`,
+    options: LIFE_GOAL_PRESETS.map(({ category, label }) => ({ value: category, label })),
     skippable: true,
     skipLabel: 'I’ll decide later',
   },
-  a2_menopause_journey: {
-    id: 'a2_menopause_journey',
-    eyebrow: 'About you',
-    question: 'Where are you on the menopause journey?',
-    whyWeAsk: 'It shapes what we explain and when — never your results.',
-    options: [
-      { value: 'perimenopausal', label: 'Perimenopause' },
-      { value: 'menopausal', label: 'Menopause' },
-      { value: 'postmenopausal', label: 'Post-menopause' },
-      { value: 'surgical_medical', label: 'Menopause after surgery or medical treatment' },
-      { value: 'neither_or_unsure', label: 'Not sure' },
-      { value: 'prefer_not_to_say', label: 'Prefer not to say' },
-    ] satisfies readonly { value: MenopauseStage; label: string }[],
-  },
-  a3_activity: {
-    id: 'a3_activity',
-    eyebrow: 'About you',
-    question: 'How active are you these days?',
-    whyWeAsk: 'It sets how gently your first weeks start.',
-    options: [
-      { value: 'very_inactive', label: 'Mostly sitting' },
-      { value: 'lightly_active', label: 'On my feet a lot, but no real exercise' },
-      { value: 'moderately_active', label: 'I exercise now and then' },
-      { value: 'very_active', label: 'I exercise regularly' },
-    ] satisfies readonly { value: ActivityLevel; label: string }[],
-    skippable: true,
-    skipLabel: 'Prefer not to say',
-  },
-  consent_health: {
-    id: 'consent_health',
-    eyebrow: 'Health check',
-    question: 'The next few questions touch on your health. OK to use your answers?',
-    whyWeAsk: 'They tailor your programme — nothing else.',
-    note:
-      'Your answers stay on your phone. They are never uploaded, never sold, never shared. You can change or delete them any time in Settings.',
-    options: [
-      { value: 'agree', label: 'Yes, use my answers' },
-      { value: 'decline', label: 'Skip the health questions' },
-    ],
-  },
   b1_heart: {
     id: 'b1_heart',
-    eyebrow: 'Health check',
+    eyebrow: 'Safety check · 1 of 2',
     question:
-      'Has a doctor ever told you that you have a heart condition — or do you get chest pain or serious dizziness when you’re active?',
-    whyWeAsk: 'If so, we start extra gently while you check in with your GP.',
+      'Has a doctor told you that you have a heart condition, or do you get chest pain or serious dizziness when active?',
+    whyWeAsk: 'This decides whether you need to complete a safety step before your starting Movement Check-Up.',
+    note:
+      `By choosing an answer, you agree to ${BRAND.appName} using this and your next joint-comfort answer on this phone to tailor your start. They are never uploaded, sold or shared, and can be reviewed or removed in Settings.`,
     options: [
       { value: 'yes', label: 'Yes' },
       { value: 'no', label: 'No' },
     ],
-    skippable: true,
-    skipLabel: 'Prefer not to say',
   },
   b3_joints: {
     id: 'b3_joints',
-    eyebrow: 'Health check',
+    eyebrow: 'Safety check · 2 of 2',
     question: 'Any areas that regularly hurt or feel unreliable?',
-    whyWeAsk:
-      'We’ll start the related movements at their gentlest level. You can still stop or skip any move.',
+    whyWeAsk: 'We keep the related movements at their gentlest level after your check-up.',
     multiSelect: true,
     noneValue: 'none',
     options: [
@@ -177,66 +123,18 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
       { value: 'low_back', label: 'Lower back' },
       { value: 'none', label: 'None of these' },
     ] satisfies readonly { value: JointFlag | 'none'; label: string }[],
-  },
-  b4_pelvic: {
-    id: 'b4_pelvic',
-    eyebrow: 'Health check',
-    question:
-      'Do you ever leak a little when you cough, sneeze, laugh or jump — or feel a heaviness in your pelvic area?',
-    whyWeAsk: 'We’ll leave out the stomping finisher and keep your start low impact.',
-    note: 'About half of women at this stage do — nothing to be embarrassed about.',
-    options: [
-      { value: 'often', label: 'Often' },
-      { value: 'sometimes', label: 'Sometimes' },
-      { value: 'never', label: 'Never' },
-      { value: 'prefer_not_to_say', label: 'Prefer not to say' },
-    ],
-  },
-  b5_balance: {
-    id: 'b5_balance',
-    eyebrow: 'Health check',
-    question: 'Have you had a fall in the last year, or do you worry about your balance?',
-    whyWeAsk: 'If so, single-leg moves keep a hand’s reach of support by default.',
-    options: [
-      { value: 'yes', label: 'Yes' },
-      { value: 'no', label: 'No' },
-    ],
     skippable: true,
     skipLabel: 'Prefer not to say',
-  },
-  c1_stairs: {
-    id: 'c1_stairs',
-    eyebrow: 'Your setup',
-    question: 'Do you have a low, stable bottom step with fixed support nearby?',
-    whyWeAsk: 'We’ll use step exercises only when that setup is available; otherwise we swap them.',
-    options: [
-      { value: 'yes', label: 'Yes' },
-      { value: 'no', label: 'No' },
-    ],
-    skippable: true,
-    skipLabel: 'Not sure yet',
-  },
-  c2_quiet: {
-    id: 'c2_quiet',
-    eyebrow: 'Your setup',
-    question: 'Would you like to avoid stomping or impact sounds?',
-    whyWeAsk: 'If so, we leave the stomping finisher out of your sessions.',
-    options: [
-      { value: 'yes', label: 'Yes, avoid stomping' },
-      { value: 'no', label: 'No, moderate sound is fine' },
-    ],
-    skippable: true,
-    skipLabel: 'Not sure yet',
   },
   assessment_offer: {
     id: 'assessment_offer',
     eyebrow: 'Your start',
-    question: 'How would you like to begin?',
-    whyWeAsk: 'Choose the start that feels right. You can stop or change your mind at any time.',
-    note: 'No one sees this but you. It’s processed on your phone and never leaves it.',
+    question: 'Your starting check-up is next',
+    whyWeAsk: `Measure Strength and Balance before Week 1, so ${BRAND.appName} can choose your starting focus.`,
+    note: 'The session preview is not a workout and adds nothing to your programme history.',
     options: [
-      { value: 'now', label: 'Let’s do it' },
-      { value: 'after_first_workout', label: 'After one starter session' },
+      { value: 'now', label: 'Do my starting check-up' },
+      { value: 'preview', label: 'See how a session works' },
     ],
   },
 };
@@ -249,27 +147,23 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
   welcome: {
     id: 'welcome',
     eyebrow: `Welcome to ${BRAND.appName}`,
-    title: 'Strength that fits your life',
+    title: 'Strength for the menopause years',
     body: [
-      'Voice-guided strength workouts for the menopause years — 20 to 25 minutes, at home, no equipment to start.',
-      'A few short questions and your first session is ready.',
+      'A private 12-week programme with voice-guided sessions at home.',
+      'Repeat the same Movement Check-Up at weeks 4, 8 and 12 to see how your own Strength and Balance results change.',
+      'Choose what matters to you, take a short safety check, and your first step is ready.',
     ],
     continueLabel: 'Let’s get started',
-    facts: [
-      { value: '15 min', detail: 'First session' },
-      { value: '3 planned', detail: '2 is enough' },
-      { value: '8 min', detail: 'Movement check' },
-    ],
   },
   b1_advisory: {
     id: 'b1_advisory',
     eyebrow: 'Health check',
-    title: 'We’ll begin very gently',
+    title: 'Complete this safety step first',
     body: [
-      'Worth a quick chat with your GP before ramping up — meanwhile we’ll begin very gently.',
-      'The effort-based Movement Check-Up stays off while Gentle Start is active. Your gentle workouts remain available.',
+      'Before an effort-based Movement Check-Up, speak with your GP or another appropriate clinician about taking part.',
+      'Return when you have done that. Your starting Movement Check-Up will still come before Week 1.',
     ],
-    continueLabel: 'Got it — start gently',
+    continueLabel: 'I’ve completed the safety step',
   },
 };
 
@@ -304,7 +198,6 @@ export function allOnboardingCopyStrings(): string[] {
   for (const message of Object.values(MESSAGES)) {
     out.push(message.eyebrow, message.title, ...message.body, message.continueLabel);
     if (message.secondaryLabel) out.push(message.secondaryLabel);
-    for (const fact of message.facts ?? []) out.push(fact.value, fact.detail);
   }
   return out;
 }

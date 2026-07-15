@@ -3,6 +3,7 @@ import type {
   MovementProfileV2ResultsViewModel,
 } from '../movementProfileV2/viewModel';
 import type {
+  UnifiedCheckUpMilestone,
   UnifiedCheckUpResultsPresentation,
   UnifiedDomainResultCard,
   UnifiedResultDomainId,
@@ -10,13 +11,14 @@ import type {
 
 /**
  * Fresh check-ups use one concise completion presentation; saved history keeps
- * the detailed read-only breakdown. Progress owns Clarity and change over time,
+ * the same calm read-only hierarchy. Progress owns Clarity and change over time,
  * while Settings owns the optional published-value comparison preference. The
  * adapter stays downstream of the frozen view model only (architecture pin).
  */
 export function buildMovementProfileV2UnifiedResultsPresentation(input: {
   viewModel: MovementProfileV2ResultsViewModel;
   variant?: 'standard' | 'onboarding' | 'history';
+  milestone?: UnifiedCheckUpMilestone | null;
 }): UnifiedCheckUpResultsPresentation {
   // A saved profile opened later from Progress uses honest read-only copy and
   // the shell's detailed history layout.
@@ -34,7 +36,10 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
     variant: input.variant ?? 'standard',
     header: {
       eyebrow: historyMode ? 'Saved check-up' : 'Movement Check-Up',
-      title: historyMode ? 'Your Movement Check-Up' : 'Check-up complete',
+      title: historyMode ? 'Check-up results' : 'Check-up complete',
+      ...(input.milestone
+        ? { milestoneLabel: checkUpMilestoneLabel(input.milestone) }
+        : {}),
       completedAtLabel: input.viewModel.dateLabel,
       subtitle: historyMode
         ? 'A saved check-up from your history. Opening it does not change your plan.'
@@ -64,6 +69,19 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
       screenSummary: 'Movement Check-Up results',
     },
   };
+}
+
+export function checkUpMilestoneLabel(milestone: UnifiedCheckUpMilestone): string {
+  switch (milestone) {
+    case 'baseline':
+      return 'Baseline check-up';
+    case 'week4':
+      return 'Week 4 check-up';
+    case 'week8':
+      return 'Week 8 check-up';
+    case 'week12':
+      return 'Week 12 check-up';
+  }
 }
 
 function domainCardToPresentation(

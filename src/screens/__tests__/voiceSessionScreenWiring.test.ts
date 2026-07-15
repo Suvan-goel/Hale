@@ -59,14 +59,19 @@ describe('VoiceSessionScreen side-contract wiring', () => {
 
   it('stop intent surfaces the end confirm, never silent termination', () => {
     expect(screenSource).toContain('snapshot.stopRequested');
-    expect(screenSource).toContain('End this workout?');
+    expect(screenSource).toContain('End this session?');
   });
 
-  it('keeps pain visible while lower-frequency controls are disclosed', () => {
+  it('keeps every available session control visible without disclosure menus', () => {
     expect(screenSource).toContain('title="Something hurts"');
-    expect(screenSource).toContain('title="Adjust last set"');
-    expect(screenSource).toContain('title="More options"');
-    expect(screenSource).toContain('accessibilityState={{ expanded: open }}');
+    expect(screenSource).toContain('title="Repeat instructions"');
+    expect(screenSource).toContain('title="Skip exercise"');
+    expect(screenSource).toContain('ADJUST LAST SET');
+    expect(screenSource).toContain('Other controls');
+    expect(screenSource).toContain('<SessionControlButton');
+    expect(screenSource).not.toContain('SessionDisclosure');
+    expect(screenSource).not.toContain('title="More options"');
+    expect(screenSource).not.toContain('accessibilityState={{ expanded: open }}');
     expect(screenSource).not.toContain('bonusOfferPending');
     expect(screenSource).not.toContain('title="One more set"');
     expect(screenSource).not.toContain("'No thanks — move on'");
@@ -90,6 +95,22 @@ describe('v2 shell session-mode wiring', () => {
   it('voiceSetup prefs persist through the profile store', () => {
     expect(shellSource).toContain('voiceSetup={voiceSetup}');
     expect(shellSource).toMatch(/settings: \{ \.\.\.current\.settings, voiceSetup: next \}/);
+  });
+
+  it('uses the real voice-paced player for a non-persistent onboarding preview', () => {
+    expect(shellSource).toContain("experience=\"preview\"");
+    expect(shellSource).toContain('exerciseIds={[PROGRAMME_PREP_ITEM_ID]}');
+    expect(shellSource).toContain('secondsPerSet: 30');
+    expect(screenSource).toContain('isPreview ? createMemoryFs() : createExpoSessionFunnelFs({ userId })');
+    expect(screenSource).toContain("? ({ kind: 'tap_only' } as const)");
+    expect(screenSource).toContain('Nothing was added to your programme');
+
+    const preview = shellSource.slice(
+      shellSource.indexOf('function ProgrammeSessionPreview'),
+      shellSource.indexOf('function ProgrammeVoiceSession')
+    );
+    expect(preview).not.toContain('markFirstSessionStarted');
+    expect(preview).not.toContain('programmeResultsFromVoiceSession');
   });
 
   it('returns routine completion Home and interrupts only for a technique gateway', () => {

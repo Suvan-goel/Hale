@@ -35,7 +35,7 @@ import {
   completeTrainingVoiceSessionEntrySafetyV21,
   normalizeTrainingVoiceSafetySessionMemoryV21,
 } from './safetyPolicy';
-import { DEFAULT_VOICE_ID } from '../../profile/voices';
+import { DEFAULT_VOICE_ID, getVoice } from '../../profile/voices';
 
 const COUNTDOWN_CUES: readonly VoiceCueKey[] = ['countdown-three', 'countdown-two', 'countdown-one', 'go'];
 
@@ -87,7 +87,7 @@ export class TrainingVoiceRuntimeV21 {
     this.voiceChannel = options.voiceChannel;
     this.scopePrefix = options.scopePrefix ?? 'training-v21';
     this.sessionId = options.sessionId ?? 'training-session';
-    this.activeVoiceId = options.voiceId ?? DEFAULT_VOICE_ID;
+    this.activeVoiceId = getVoice(options.voiceId ?? DEFAULT_VOICE_ID).id;
     if (options.restored) this.restoreRuntime(options.restored);
   }
 
@@ -350,17 +350,18 @@ export class TrainingVoiceRuntimeV21 {
     readonly applied: boolean;
     readonly restartRequiredSequence: boolean;
   } {
-    if (input.desiredVoiceId === this.activeVoiceId) return { applied: false, restartRequiredSequence: false };
-    this.pendingVoiceId = input.desiredVoiceId;
+    const desiredVoiceId = getVoice(input.desiredVoiceId).id;
+    if (desiredVoiceId === this.activeVoiceId) return { applied: false, restartRequiredSequence: false };
+    this.pendingVoiceId = desiredVoiceId;
     this.recordEvent('voice_changed', input.requestedAtMs, {
-      desiredVoiceId: input.desiredVoiceId,
+      desiredVoiceId,
       phase: this.phase,
     });
     if (this.phase === 'active') {
       return { applied: false, restartRequiredSequence: false };
     }
     this.voiceGeneration += 1;
-    this.activeVoiceId = input.desiredVoiceId;
+    this.activeVoiceId = desiredVoiceId;
     this.pendingVoiceId = null;
     if (this.phase === 'countdown') {
       this.voiceChannel.cancelActive('voice_changed');
@@ -424,8 +425,9 @@ export class TrainingVoiceRuntimeV21 {
     this.pausedOrigin = value.pausedOrigin;
     this.completedTransitionIds = new Set(value.completedTransitionIds);
     this.firedProgressEventIds = new Set(value.firedProgressEventIds);
-    this.activeVoiceId = value.activeVoiceId;
-    this.pendingVoiceId = value.pendingVoiceId;
+    this.activeVoiceId = getVoice(value.activeVoiceId).id;
+    const restoredPendingVoiceId = value.pendingVoiceId ? getVoice(value.pendingVoiceId).id : null;
+    this.pendingVoiceId = restoredPendingVoiceId === this.activeVoiceId ? null : restoredPendingVoiceId;
     this.planFingerprint = value.planFingerprint;
     this.recoveryEpisode = null;
     this.activeScopeId = null;

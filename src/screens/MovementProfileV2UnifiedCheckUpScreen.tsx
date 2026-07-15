@@ -616,7 +616,7 @@ function movementProfileV2ShellControls({
       return [
         {
           id: 'confirm-chair',
-          title: 'Use setup fallback',
+          title: "I'm in position",
           onPress: () => runLiveAction({ type: 'confirm_chair_setup' }),
           disabled: actionDisabled({ type: 'confirm_chair_setup' }),
           primary: true,
@@ -716,7 +716,7 @@ function movementProfileV2ShellControls({
       return [
         {
           id: 'start-shoulder',
-          title: 'Use reach fallback',
+          title: 'Start the reach',
           onPress: () => runLiveAction({ type: 'start_shoulder_capture' }),
           disabled: actionDisabled({ type: 'start_shoulder_capture' }),
           primary: true,
@@ -738,7 +738,7 @@ function movementProfileV2ShellControls({
       return [
         {
           id: 'start-hinge',
-          title: 'Use capture fallback',
+          title: 'Start the reach',
           onPress: () => runLiveAction({ type: 'start_hinge_capture' }),
           disabled: actionDisabled({ type: 'start_hinge_capture' }),
           primary: true,
@@ -981,10 +981,11 @@ function movementProfileV2StageDisplay(
     return { mode: 'metric', label: 'Best', value: `${Math.round(live.balanceBestHoldSec)}s` };
   }
   if ((live.stage === 'shoulder_ready' || live.stage === 'shoulder_retry_ready') && live.shoulderPeakDeg !== null) {
-    return { mode: 'metric', label: 'Peak', value: `${Math.round(live.shoulderPeakDeg)} deg` };
+    return { mode: 'metric', label: 'Peak', value: `${Math.round(live.shoulderPeakDeg)}°` };
   }
   if (live.stage === 'hinge_setup' && live.hingeReachBu !== null) {
-    return { mode: 'metric', label: 'Reach', value: `${live.hingeReachBu.toFixed(2)} BU` };
+    // Body units are an internal scale; show the number without leaking "BU".
+    return { mode: 'metric', label: 'Reach', value: live.hingeReachBu.toFixed(2) };
   }
   return null;
 }

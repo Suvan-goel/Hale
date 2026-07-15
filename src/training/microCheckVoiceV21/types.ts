@@ -208,7 +208,6 @@ export interface MicroCheckVoiceAssetRequirementV21 {
   readonly currentCandidateKey: string | null;
   readonly currentCandidateScript: string | null;
   readonly claraExists: boolean;
-  readonly marcusExists: boolean;
   readonly semanticMatch: boolean;
   readonly reuseDecision: MicroCheckVoiceAssetReuseDecisionV21;
   readonly generationRequiredLater: boolean;

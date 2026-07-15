@@ -38,11 +38,11 @@ export function getBlockPurposeCopy(block: MovementBlock, lifeGoal?: LifeGoal | 
     case 'stairs_walks':
       return `This 4-week block focuses on ${domain} so stairs and walks feel steadier.`;
     case 'grandchildren':
-      return 'You said you want to keep up with your children or grandchildren. This block builds the strength and mobility that support that.';
+      return 'This block builds the strength used for lowering, rising, and moving with confidence.';
     case 'bend_reach_carry':
       return `This block supports the ${domain} you use for bending, reaching, and carrying.`;
     case 'independence':
-      return `This block builds ${domain} to support the independence you care about.`;
+      return `This block builds ${domain} to support confidence in what your body can do now.`;
   }
 }
 
@@ -140,7 +140,7 @@ function goalTitleFragment(goal: LifeGoal): string | null {
     case 'bend_reach_carry':
       return 'everyday-strength';
     case 'independence':
-      return 'stay-capable';
+      return 'all-round-strength';
     default:
       return null;
   }

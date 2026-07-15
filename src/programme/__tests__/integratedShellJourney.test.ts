@@ -11,6 +11,7 @@ import {
   acknowledgeOnboardingStep,
   applyInactivityRegressionIfDue,
   applyProgrammeSessionResults,
+  baselineCheckupRequiredBeforeTraining,
   checkupOfferFor,
   completeOnboarding,
   currentOnboardingStep,
@@ -39,15 +40,8 @@ const dayIso = (day: number) => new Date(START + day * DAY_MS).toISOString();
 
 const BASE_ANSWERS: OnboardingAnswerValue[] = [
   { step: 'a1_life_goal', value: 'independence' },
-  { step: 'a2_menopause_journey', value: 'postmenopausal' },
-  { step: 'a3_activity', value: 'lightly_active' },
-  { step: 'consent_health', value: 'agree' },
   { step: 'b1_heart', value: 'no' },
   { step: 'b3_joints', value: [] },
-  { step: 'b4_pelvic', value: 'never' },
-  { step: 'b5_balance', value: 'no' },
-  { step: 'c1_stairs', value: 'yes' },
-  { step: 'c2_quiet', value: 'no' },
   { step: 'assessment_offer', value: 'skip' },
 ];
 
@@ -162,87 +156,51 @@ describe("the 'now' assessment path (fixed intent contract)", () => {
   });
 });
 
-describe('the deferred path', () => {
-  function deferredAfterFirstSession() {
-    const completion = runOnboarding(
-      [{ step: 'assessment_offer', value: 'after_first_workout' }],
-      dayIso(0)
-    );
-    expect(onboardingCompletionRoute(completion, 'schedule')).toEqual({
-      assessmentFirst: false,
-      startFirstSession: false,
-    });
-    let state = completion.programmeState;
-    expect(state.profile.assessmentStatus).toBe('deferred');
-    // Nothing on home before the first session (re-offer waits for one).
-    expect(checkupOfferFor(state, dayIso(0))).toBeNull();
-    const { state: after, decisions } = runSession(state, dayIso(0), 'a_few');
-    return { state: after, decisions };
-  }
+describe('the eligible baseline gate', () => {
+  it.each(['after_first_workout', 'skip'] as const)(
+    'routes the retained legacy %s choice to the baseline before training',
+    (choice) => {
+      const completion = runOnboarding(
+        [{ step: 'assessment_offer', value: choice }],
+        dayIso(0)
+      );
+      expect(onboardingCompletionRoute(completion, 'start_first_session')).toEqual({
+        assessmentFirst: true,
+        startFirstSession: true,
+      });
+      expect(completion.programmeState.profile.assessmentStatus).toBeNull();
+      expect(baselineCheckupRequiredBeforeTraining(completion.programmeState)).toBe(true);
 
-  it('returns directly Home, where accepting the standing check-up clears the offer', () => {
-    const { state, decisions } = deferredAfterFirstSession();
-    const outcome = resolvePostSession(state, decisions);
-    expect(outcome.surfacesSeen).toEqual([]);
-    expect(checkupOfferFor(outcome.state, dayIso(1))?.kind).toBe('standing_entry');
-    const assessed = applyAssessmentPlacement(
-      outcome.state,
-      { t3: { reps: 16, handsUsed: false }, t1: { worseSideSeconds: 24 } },
-      { deferred: true, completedAtIso: dayIso(1) }
-    );
-    expect(assessed.profile.assessmentStatus).toBe('done');
-    expect(checkupOfferFor(assessed, dayIso(2))).toBeNull();
-  });
-
-  it('keeps the standing entry on Home across further sessions', () => {
-    const { state, decisions } = deferredAfterFirstSession();
-    const outcome = resolvePostSession(state, decisions);
-    expect(checkupOfferFor(outcome.state, dayIso(1))?.kind).toBe('standing_entry');
-    const again = runSession(outcome.state, dayIso(2), 'a_few');
-    const completedAgain = resolvePostSession(again.state, again.decisions);
-    expect(completedAgain.surfacesSeen).toEqual([]);
-    expect(checkupOfferFor(completedAgain.state, dayIso(3))?.kind).toBe('standing_entry');
-  });
+      const assessed = applyAssessmentPlacement(
+        completion.programmeState,
+        { t3: { reps: 16, handsUsed: false }, t1: { worseSideSeconds: 24 } },
+        { deferred: false, completedAtIso: dayIso(0) }
+      );
+      expect(assessed.profile.assessmentStatus).toBe('done');
+      expect(baselineCheckupRequiredBeforeTraining(assessed)).toBe(false);
+    }
+  );
 });
 
-describe('the skipped path', () => {
-  it('keeps the standing check-up entry on Home without a post-session reminder', () => {
-    const completion = runOnboarding([{ step: 'assessment_offer', value: 'skip' }], dayIso(0));
-    let state = completion.programmeState;
-    expect(state.profile.assessmentStatus).toBe('skipped');
-
-    let decisions: Partial<Record<ProgrammePattern, PromotionDecision>>;
-    ({ state, decisions } = runSession(state, dayIso(0), 'a_few'));
-    ({ state, decisions } = runSession(state, dayIso(2), 'a_few'));
-    const first = resolvePostSession(state, decisions);
-    expect(first.surfacesSeen).toEqual([]);
-    expect(checkupOfferFor(first.state, dayIso(3))?.kind).toBe('standing_entry');
-    const third = runSession(first.state, dayIso(4), 'a_few');
-    const after = resolvePostSession(third.state, third.decisions);
-    expect(after.surfacesSeen).toEqual([]);
-    expect(checkupOfferFor(after.state, dayIso(5))?.kind).toBe('standing_entry');
-  });
-});
-
-describe('the B1 gentle-start journey', () => {
-  it('no check-up surface exists anywhere across four training weeks', () => {
+describe('the B1 safety-confirmation journey', () => {
+  it('still routes the accepted starting check-up before any programme session', () => {
     const completion = runOnboarding([{ step: 'b1_heart', value: 'yes' }], dayIso(0));
     expect(
       onboardingCompletionRoute(completion, 'start_first_session').assessmentFirst
-    ).toBe(false);
-    let state = completion.programmeState;
-    expect(state.profile.assessmentStatus).toBe('bypassed_b1');
+    ).toBe(true);
+    expect(completion.programmeState.profile.gpConfirmed).toBe(true);
+    expect(completion.programmeState.profile.gentleStartActive).toBe(false);
+    expect(completion.programmeState.profile.assessmentStatus).toBeNull();
+    expect(baselineCheckupRequiredBeforeTraining(completion.programmeState)).toBe(true);
 
-    for (let session = 0; session < 12; session++) {
-      const nowIso = dayIso(Math.floor(session / 3) * 7 + (session % 3) * 2);
-      expect(checkupOfferFor(state, nowIso)).toBeNull();
-      const run = runSession(state, nowIso, 'a_few');
-      const outcome = resolvePostSession(run.state, run.decisions);
-      // Conformance Q1: no assessment surface until gp_confirmed.
-      expect(outcome.surfacesSeen).toEqual([]);
-      state = outcome.state;
-    }
-    expect(checkupOfferFor(state, dayIso(60))).toBeNull();
+    const assessed = applyAssessmentPlacement(
+      completion.programmeState,
+      { t3: { reps: 12, handsUsed: false }, t1: { worseSideSeconds: 18 } },
+      { deferred: false, completedAtIso: dayIso(0) }
+    );
+    expect(programmeTodayViewModel(assessed, dayIso(0)).state).toBe(
+      'first_session_ready'
+    );
   });
 });
 

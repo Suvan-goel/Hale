@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.os.SystemClock
 import com.google.mediapipe.framework.image.ByteBufferExtractor
 import com.google.mediapipe.framework.image.MPImage
 import java.nio.ByteOrder
@@ -14,8 +15,28 @@ private const val MASK_VISIBLE_START = 0.30f
 private const val MASK_VISIBLE_FULL = 0.75f
 private const val MASK_ATTACK_ALPHA = 0.5f
 private const val MASK_RELEASE_ALPHA = 0.3f
-private const val MASK_MAX_ALPHA = 230
+// A translucent matte reads as a designed figure rather than a mirror. The
+// person contour remains clear while skin, clothing, and room pixels never
+// appear.
+private const val MASK_MAX_ALPHA = 82
 private const val MAX_EXTRACTION_FAILURES = 3
+
+internal data class SegmentationMaskFrameDiagnostics(
+  val extractionMs: Double = 0.0,
+  val rasterMs: Double = 0.0,
+  val postprocessMs: Double = 0.0,
+  val publishMs: Double = 0.0,
+  val dataType: String = "none",
+  val sourceWidth: Int = 0,
+  val sourceHeight: Int = 0,
+  val rasterWidth: Int = 0,
+  val rasterHeight: Int = 0,
+) {
+  companion object {
+    val NOT_COLLECTED = SegmentationMaskFrameDiagnostics(dataType = "not-collected")
+    val DISABLED = SegmentationMaskFrameDiagnostics(dataType = "disabled")
+  }
+}
 
 /**
  * Renders the MediaPipe person segmentation mask as a matte tinted figure:
@@ -45,7 +66,7 @@ internal class SegmentationMaskFigureRenderer(
   private var visible = false
   private var extractionFailures = 0
   private var extractionUnavailableReported = false
-  private var tintRgb = 0xCBA89D
+  private var tintRgb = 0x8E3158
   private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
   private val dstRect = RectF()
 
@@ -60,17 +81,29 @@ internal class SegmentationMaskFigureRenderer(
    * live-stream callback) thread; must finish before the caller releases the
    * result. The bitmap is stored upright so [draw] never needs rotation.
    */
-  fun submitMask(mask: MPImage, rotationDegrees: Int, uprightWidth: Int, uprightHeight: Int) {
-    if (extractionFailures >= MAX_EXTRACTION_FAILURES) return
+  fun submitMask(
+    mask: MPImage,
+    rotationDegrees: Int,
+    uprightWidth: Int,
+    uprightHeight: Int,
+    collectDiagnostics: Boolean,
+  ): SegmentationMaskFrameDiagnostics {
+    if (extractionFailures >= MAX_EXTRACTION_FAILURES) {
+      return SegmentationMaskFrameDiagnostics.DISABLED
+    }
     val srcWidth = mask.width
     val srcHeight = mask.height
-    if (srcWidth <= 0 || srcHeight <= 0) return
+    if (srcWidth <= 0 || srcHeight <= 0) return SegmentationMaskFrameDiagnostics()
     val rotation = normalizeRotationDegrees(rotationDegrees)
     val swapped = rotation == 90 || rotation == 270
     val uprightMaskWidth = if (swapped) srcHeight else srcWidth
     val uprightMaskHeight = if (swapped) srcWidth else srcHeight
     val downWidth = maxOf(1, uprightMaskWidth / MASK_DOWNSAMPLE_STRIDE)
     val downHeight = maxOf(1, uprightMaskHeight / MASK_DOWNSAMPLE_STRIDE)
+    val postprocessStartMs = if (collectDiagnostics) nowMs() else 0.0
+    var extractionEndMs = postprocessStartMs
+    var extractionCompleted = false
+    var dataType = "unknown"
 
     try {
       val byteBuffer = ByteBufferExtractor.extract(mask)
@@ -88,6 +121,9 @@ internal class SegmentationMaskFigureRenderer(
       } else {
         null
       }
+      dataType = if (isFloatMask) "float32" else "uint8"
+      extractionEndMs = if (collectDiagnostics) nowMs() else 0.0
+      extractionCompleted = true
 
       synchronized(lock) {
         ensureBuffers(downWidth, downHeight)
@@ -126,13 +162,27 @@ internal class SegmentationMaskFigureRenderer(
             index++
           }
         }
-        val target = backBitmap ?: return
+        val target = checkNotNull(backBitmap)
         target.setPixels(pixels, 0, downWidth, 0, 0, downWidth, downHeight)
         backBitmap = frontBitmap
         frontBitmap = target
         visible = anyVisible
       }
+      extractionFailures = 0
       requestDraw()
+      if (!collectDiagnostics) return SegmentationMaskFrameDiagnostics.NOT_COLLECTED
+      val publishMs = if (collectDiagnostics) nowMs() else 0.0
+      return SegmentationMaskFrameDiagnostics(
+        extractionMs = if (collectDiagnostics) extractionEndMs - postprocessStartMs else 0.0,
+        rasterMs = if (collectDiagnostics) publishMs - extractionEndMs else 0.0,
+        postprocessMs = if (collectDiagnostics) publishMs - postprocessStartMs else 0.0,
+        publishMs = publishMs,
+        dataType = dataType,
+        sourceWidth = srcWidth,
+        sourceHeight = srcHeight,
+        rasterWidth = downWidth,
+        rasterHeight = downHeight,
+      )
     } catch (t: Throwable) {
       extractionFailures += 1
       if (extractionFailures >= MAX_EXTRACTION_FAILURES && !extractionUnavailableReported) {
@@ -141,11 +191,37 @@ internal class SegmentationMaskFigureRenderer(
         requestDraw()
         onExtractionUnavailable?.invoke("segmentation-mask-extract-failed: ${t.message}")
       }
+      if (!collectDiagnostics) return SegmentationMaskFrameDiagnostics.NOT_COLLECTED
+      val failureEndMs = if (collectDiagnostics) nowMs() else 0.0
+      return SegmentationMaskFrameDiagnostics(
+        extractionMs = if (collectDiagnostics) {
+          ((if (extractionCompleted) extractionEndMs else failureEndMs) - postprocessStartMs)
+            .coerceAtLeast(0.0)
+        } else {
+          0.0
+        },
+        rasterMs = if (collectDiagnostics) {
+          (if (extractionCompleted) failureEndMs - extractionEndMs else 0.0).coerceAtLeast(0.0)
+        } else {
+          0.0
+        },
+        postprocessMs = if (collectDiagnostics) {
+          (failureEndMs - postprocessStartMs).coerceAtLeast(0.0)
+        } else {
+          0.0
+        },
+        publishMs = failureEndMs,
+        dataType = "error:$dataType",
+        sourceWidth = srcWidth,
+        sourceHeight = srcHeight,
+        rasterWidth = downWidth,
+        rasterHeight = downHeight,
+      )
     }
   }
 
   /** Subject gone: hide immediately so no ghost figure lingers (re-entry lesson). */
-  fun submitNoSubject() {
+  fun submitNoSubject(collectDiagnostics: Boolean): SegmentationMaskFrameDiagnostics {
     var changed = false
     synchronized(lock) {
       if (visible) {
@@ -155,6 +231,11 @@ internal class SegmentationMaskFigureRenderer(
       smoothed.fill(0f)
     }
     if (changed) requestDraw()
+    if (!collectDiagnostics) return SegmentationMaskFrameDiagnostics.NOT_COLLECTED
+    return SegmentationMaskFrameDiagnostics(
+      publishMs = if (collectDiagnostics) nowMs() else 0.0,
+      dataType = "no-subject",
+    )
   }
 
   fun clear() {
@@ -204,6 +285,8 @@ internal class SegmentationMaskFigureRenderer(
     backBitmap = Bitmap.createBitmap(downWidth, downHeight, Bitmap.Config.ARGB_8888)
     visible = false
   }
+
+  private fun nowMs(): Double = SystemClock.elapsedRealtimeNanos() / 1_000_000.0
 }
 
 /**

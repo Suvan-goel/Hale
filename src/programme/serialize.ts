@@ -44,6 +44,7 @@ import {
   type EffortAnswer,
   type FinisherState,
   type GatewayProgress,
+  type HeartSafetyAnswer,
   type JointFlag,
   type PatternLadderState,
   type PelvicRouting,
@@ -53,7 +54,7 @@ import {
   type Weekday,
 } from './types';
 
-export const PROGRAMME_STATE_SCHEMA_VERSION = 2;
+export const PROGRAMME_STATE_SCHEMA_VERSION = 3;
 
 const ACTIVITY_LEVELS: readonly ActivityLevel[] = [
   'very_inactive',
@@ -64,6 +65,11 @@ const ACTIVITY_LEVELS: readonly ActivityLevel[] = [
 const ASSESSMENT_STATUSES: readonly AssessmentStatus[] = ['done', 'deferred', 'skipped', 'bypassed_b1'];
 const EFFORT_ANSWERS: readonly EffortAnswer[] = ['none', 'a_few', 'lots'];
 const JOINT_FLAGS: readonly JointFlag[] = ['knee', 'hip', 'shoulder', 'wrist', 'low_back'];
+const HEART_SAFETY_ANSWERS: readonly HeartSafetyAnswer[] = [
+  'yes',
+  'no',
+  'prefer_not_to_say',
+];
 const WEEKDAYS: readonly Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const JOURNEY_STATUSES: readonly ProgrammeJourneyStatus[] = [
   'awaiting_baseline',
@@ -101,11 +107,13 @@ export function defaultProgrammeProfile(): ProgrammeProfile {
     consentHealthData: false,
     activityLevel: null,
     gentleStartActive: false,
+    heartSafetyAnswer: null,
     gpConfirmed: false,
     pelvicRouting: 'none',
     quietMode: false,
     jointFlags: [],
     balanceSupportDefault: false,
+    balanceSupportPreference: null,
     balanceSupportRequired: false,
     hasStairs: null,
     hasBand: null,
@@ -154,7 +162,7 @@ export function deserializeProgrammeState(json: string): ProgrammeState | null {
   // v1 had no journey field. Unknown/future top-level schemas retain the
   // independently parseable programme data but never import journey state.
   const journey =
-    obj.schemaVersion === PROGRAMME_STATE_SCHEMA_VERSION
+    obj.schemaVersion === 2 || obj.schemaVersion === PROGRAMME_STATE_SCHEMA_VERSION
       ? validProgrammeJourney(obj.journey) ?? createEmptyProgrammeJourneyState()
       : createEmptyProgrammeJourneyState();
   return {
@@ -178,22 +186,28 @@ function validProfile(v: unknown): ProgrammeProfile {
   const def = defaultProgrammeProfile();
   if (typeof v !== 'object' || v === null) return def;
   const p = v as Partial<ProgrammeProfile>;
+  const balanceSupportPreference =
+    typeof p.balanceSupportPreference === 'boolean' ? p.balanceSupportPreference : null;
+  // Older records did not retain provenance. Treat an existing enabled
+  // support default as required rather than weakening a safety decision.
+  const balanceSupportRequired =
+    typeof p.balanceSupportRequired === 'boolean'
+      ? p.balanceSupportRequired
+      : p.balanceSupportDefault === true;
   return {
     consentHealthData: p.consentHealthData === true,
     activityLevel: oneOf(p.activityLevel, ACTIVITY_LEVELS) ?? null,
     gentleStartActive: p.gentleStartActive === true,
+    heartSafetyAnswer: oneOf(p.heartSafetyAnswer, HEART_SAFETY_ANSWERS) ?? null,
     gpConfirmed: p.gpConfirmed === true,
     pelvicRouting: (oneOf(p.pelvicRouting, ['none', 'low_impact'] as const) ??
       'none') as PelvicRouting,
     quietMode: p.quietMode === true,
     jointFlags: stringSubset(p.jointFlags, JOINT_FLAGS),
-    balanceSupportDefault: p.balanceSupportDefault === true,
-    // Older records did not retain provenance. Treat an existing enabled
-    // support default as required rather than weakening a safety decision.
-    balanceSupportRequired:
-      typeof p.balanceSupportRequired === 'boolean'
-        ? p.balanceSupportRequired
-        : p.balanceSupportDefault === true,
+    balanceSupportDefault:
+      balanceSupportRequired || balanceSupportPreference === true || p.balanceSupportDefault === true,
+    balanceSupportPreference,
+    balanceSupportRequired,
     hasStairs: typeof p.hasStairs === 'boolean' ? p.hasStairs : null,
     hasBand: typeof p.hasBand === 'boolean' ? p.hasBand : null,
     diastasisFlag: p.diastasisFlag === true,

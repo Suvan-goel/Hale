@@ -6,10 +6,8 @@
  * ElevenLabs voice used at *generation* time only; nothing in the app ever
  * calls ElevenLabs at runtime.
  *
- * V1 ships two voices — one female (Clara), one male (Marcus). `available`
- * gates the Settings picker: a voice is offered only once its bundled set
- * exists. Until `npm run audio` is run with an API key + voice ids, the default
- * voice falls back to the previously-bundled set so the app still speaks.
+ * Pearl ships Clara as its sole trainer voice. `available` gates the Settings
+ * preview: a voice is exposed only once its bundled set exists.
  */
 
 export interface VoiceOption {
@@ -19,8 +17,6 @@ export interface VoiceOption {
   label: string;
   /** Short character description for the picker. */
   description: string;
-  /** Perceived voice gender — purely descriptive for the picker. */
-  gender: 'female' | 'male';
   /**
    * ElevenLabs voice id used to synthesize this voice's bundled lines. Used by
    * scripts/generate-audio.ts at build time only (never at runtime). Empty
@@ -36,21 +32,12 @@ export const VOICE_OPTIONS: VoiceOption[] = [
     id: 'clara',
     label: 'Clara',
     description: 'Warm and reassuring',
-    gender: 'female',
     elevenLabsVoiceId: 'rfkTsdZrVWEVhDycUYn9',
-    available: true,
-  },
-  {
-    id: 'marcus',
-    label: 'Marcus',
-    description: 'Steady and clear',
-    gender: 'male',
-    elevenLabsVoiceId: 'lUTamkMw7gOzZbFIwmq4',
     available: true,
   },
 ];
 
-export const DEFAULT_VOICE_ID = 'marcus';
+export const DEFAULT_VOICE_ID = 'clara';
 
 export function getVoice(id: string): VoiceOption {
   return (

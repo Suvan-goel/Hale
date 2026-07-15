@@ -162,7 +162,7 @@ describe('life goal relevance', () => {
 
   it('maps life goals to training domains and display copy', () => {
     const goal = createLifeGoal({ category: 'stairs_walks', nowIso: START });
-    expect(getLifeGoalDisplayText(goal)).toBe('Climb stairs and keep up on walks');
+    expect(getLifeGoalDisplayText(goal)).toBe('Feel stronger and steadier on stairs and walks');
     expect(getLifeGoalTrainingRelevance(goal).primaryDomains).toEqual(['strength_power', 'balance']);
     expect(getLifeGoalWorkoutBias(goal).preferredLadderIds.slice(0, 3)).toEqual([
       'step-up',
@@ -172,7 +172,7 @@ describe('life goal relevance', () => {
   });
 
   it('keeps the no-goal fallback neutral so the check-up leads', () => {
-    expect(getLifeGoalDisplayText(null)).toBe('Stay capable for the life you want to keep living');
+    expect(getLifeGoalDisplayText(null)).toBe('Build strength for where you are now');
     expect(getLifeGoalWorkoutBias(null).preferredLadderIds).toEqual([]);
     expect(getLifeGoalWorkoutBias(null).preferredSlotTypes).toEqual([]);
     expect(getLifeGoalTrainingRelevance(null).primaryDomains).toEqual(['strength_power', 'balance', 'mobility']);
@@ -395,7 +395,7 @@ describe('milestones and copy safety', () => {
     const goal = createLifeGoal({ category: 'independence', nowIso: START });
 
     expect(getProtectionCopy({ lifeGoal: goal, focusDomain: 'strength_power', adherenceState: 'on_track' })).toBe(
-      'Today supports the goal you chose: Feel strong and stay independent.'
+      'Today supports the goal you chose: Build confidence in what my body can do now.'
     );
   });
 });

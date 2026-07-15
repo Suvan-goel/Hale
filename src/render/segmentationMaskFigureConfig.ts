@@ -2,9 +2,9 @@
  * Segmentation-mask figure: renders the user's true contour as a native
  * tinted matte (never camera pixels) behind the fit-frame pose trace.
  *
- * Experimental, Android-only, default OFF. The go/no-go gates are on-device:
- * inference fps with masks enabled (latency diagnostics) and mask edge
- * quality in dim evening light at ~3 m. See docs/decisions.md (2026-07-03).
+ * The matte is the production recording figure. It is on by default, with an
+ * explicit environment opt-out retained for real-device diagnostics. The mask
+ * never crosses the native bridge and never contains camera pixels.
  */
 
 export const SEGMENTATION_MASK_FIGURE_ENV = 'EXPO_PUBLIC_SEGMENTATION_MASK_FIGURE';
@@ -12,7 +12,7 @@ export const SEGMENTATION_MASK_FIGURE_ENV = 'EXPO_PUBLIC_SEGMENTATION_MASK_FIGUR
 export function resolveSegmentationMaskFigureEnabled(
   value: string | undefined = process.env[SEGMENTATION_MASK_FIGURE_ENV]
 ): boolean {
-  return value === '1' || value === 'on' || value === 'true';
+  return value !== '0' && value !== 'off' && value !== 'false';
 }
 
 /**

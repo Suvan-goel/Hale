@@ -210,7 +210,14 @@ describe('preferences serialize', () => {
     const parsed = deserializePreferences(
       JSON.stringify({ settings: { voiceId: 'does-not-exist', remindersEnabled: false } })
     );
-    expect(parsed?.settings.voiceId).toBe('marcus');
+    expect(parsed?.settings.voiceId).toBe('clara');
+  });
+
+  it('migrates the retired trainer voice to Clara', () => {
+    const parsed = deserializePreferences(
+      JSON.stringify({ settings: { voiceId: 'marcus', remindersEnabled: false } })
+    );
+    expect(parsed?.settings.voiceId).toBe('clara');
   });
 
   it('backfills newer local settings for older records', () => {

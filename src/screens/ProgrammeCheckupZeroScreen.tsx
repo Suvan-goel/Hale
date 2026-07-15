@@ -41,6 +41,18 @@ import { ClarityCheckInScreen } from './ClarityCheckInScreen';
 
 const WARM_UP_SECONDS = 60;
 
+/**
+ * The setup a check-up actually needs, stated at the moment of commitment so
+ * she can pick her moment instead of discovering the requirements mid-flow
+ * (2026-07-14 onboarding review). Leaving here is penalty-free by design.
+ */
+const CHECKUP_SETUP_CHECKLIST: readonly string[] = [
+  'A sturdy chair',
+  'A couple of steps of clear space',
+  'The main light on',
+  'Somewhere to prop your phone at about hip height',
+];
+
 const CHECKUP_MOVEMENT_GUIDES: readonly Readonly<{
   id: 'balance' | 'chair_rise';
   image: ImageSourcePropType;
@@ -155,10 +167,11 @@ export function ProgrammeCheckupZeroScreen({
       <CheckupZeroMessage
         title="About eight minutes, at your pace"
         subtitle="A fixed warm-up, a balance hold, thirty seconds of chair stands, then an optional Everyday Clarity check-in."
+        checklist={CHECKUP_SETUP_CHECKLIST}
         panelText="Your phone measures Strength and Balance without showing your video. Everything stays on this device."
       >
         <PrimaryButton title="See the two movements" onPress={() => void prepareCheckup()} />
-        <GhostButton title="Not now" onPress={onCancel} />
+        <GhostButton title="I’ll set up and come back" onPress={onCancel} />
       </CheckupZeroMessage>
     );
   }
@@ -181,7 +194,7 @@ export function ProgrammeCheckupZeroScreen({
         <ScreenHeader
           eyebrow={`${BRAND.appName} check-up`}
           title="Your two movements"
-          subtitle="Balance comes first, then Strength. Clara will guide the exact setup and timing before each one."
+          subtitle="Balance comes first, then Strength. Clara, your voice guide, will explain the exact setup and timing before each one."
           prominentTitle
         />
         <View style={checkupStyles.guideList}>
@@ -268,12 +281,15 @@ function CheckupZeroMessage({
   title,
   subtitle,
   panelText,
+  checklist,
   countdownSeconds,
   children,
 }: {
   title: string;
   subtitle: string;
   panelText?: string;
+  /** One-glance setup rows shown above the panel text. */
+  checklist?: readonly string[];
   countdownSeconds?: number;
   children: React.ReactNode;
 }) {
@@ -290,6 +306,20 @@ function CheckupZeroMessage({
             {countdownSeconds}
             <Text style={checkupStyles.countdownUnit}>s</Text>
           </Text>
+        </View>
+      ) : null}
+      {checklist ? (
+        <View
+          style={[checkupStyles.panel, responsive.isCompactPhone && checkupStyles.compactCardPadding]}
+          accessibilityRole="list"
+        >
+          <Text style={checkupStyles.checklistTitle}>Have ready</Text>
+          {checklist.map((item) => (
+            <View key={item} style={checkupStyles.checklistRow}>
+              <View style={checkupStyles.checklistDot} />
+              <Text style={checkupStyles.checklistText}>{item}</Text>
+            </View>
+          ))}
         </View>
       ) : null}
       {panelText ? (
@@ -388,6 +418,26 @@ const checkupStyles = StyleSheet.create({
     ...type.cardCaption,
     color: colors.textMuted,
     maxWidth: 540,
+  },
+  checklistTitle: {
+    ...type.label,
+    color: colors.accentDeep,
+  },
+  checklistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  checklistDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.accentDeep,
+  },
+  checklistText: {
+    ...type.bodySmall,
+    flex: 1,
+    color: colors.textPrimary,
   },
   countdownPanel: {
     alignItems: 'center',

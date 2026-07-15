@@ -31,6 +31,7 @@ import { VoiceChannel } from '../audio/voicePlayer';
 import { BRAND } from '../brand';
 import { ExerciseDemoGraphic } from '../components/ExerciseDemoGraphic';
 import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
+import { createMemoryFs } from '../history/store';
 import { addBreadcrumb, captureError } from '../services/observability/sentry';
 import { SessionFunnelStore } from '../telemetry/sessionFunnelStore';
 import { createExpoSessionFunnelFs } from '../telemetry/fsAdapter';
@@ -71,6 +72,7 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
 }
 
 export function VoiceSessionScreen({
+  experience = 'session',
   exerciseIds,
   sessionTitle,
   onComplete,
@@ -85,6 +87,8 @@ export function VoiceSessionScreen({
   voiceSetup,
   onVoiceSetupChange,
 }: {
+  /** Preview uses the real voice-paced player but persists no workout or funnel record. */
+  experience?: 'session' | 'preview';
   exerciseIds: string[];
   sessionTitle?: string;
   onComplete: (result: TrainingSessionResult) => void;
@@ -103,6 +107,7 @@ export function VoiceSessionScreen({
   voiceSetup: VoiceSetupPrefs;
   onVoiceSetupChange: (next: VoiceSetupPrefs) => void;
 }) {
+  const isPreview = experience === 'preview';
   const [sessionStartedAtIso] = React.useState(() => new Date().toISOString());
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const completedRef = React.useRef(false);
@@ -115,7 +120,9 @@ export function VoiceSessionScreen({
         resolveExercise,
         resolveSafetyProfile,
         firstSessionStarted,
-        funnelStore: new SessionFunnelStore(createExpoSessionFunnelFs({ userId })),
+        funnelStore: new SessionFunnelStore(
+          isPreview ? createMemoryFs() : createExpoSessionFunnelFs({ userId })
+        ),
         onComplete: (result) => {
           completedRef.current = true;
           onComplete(result);
@@ -139,11 +146,13 @@ export function VoiceSessionScreen({
   const [availability, setAvailability] = React.useState<OnDeviceAvailability | null>(null);
   const [listening, setListening] = React.useState(false);
   const [confirmEnd, setConfirmEnd] = React.useState(false);
-  const [adjustOpen, setAdjustOpen] = React.useState(false);
-  const [moreOptionsOpen, setMoreOptionsOpen] = React.useState(false);
   const safetyLineShownThisSession = React.useRef(false);
 
-  const gate = decideVoiceGate({ prefs: voiceSetup, permission, availability });
+  // The preview demonstrates voice pacing without asking for microphone
+  // access or changing the one-time voice-control permission state.
+  const gate = isPreview
+    ? ({ kind: 'tap_only' } as const)
+    : decideVoiceGate({ prefs: voiceSetup, permission, availability });
 
   // Tick loop — the controller is the machine; React only mirrors it.
   React.useEffect(() => {
@@ -164,17 +173,12 @@ export function VoiceSessionScreen({
     return () => clearInterval(id);
   }, [controller, voice]);
 
-  // Low-frequency controls collapse again at each meaningful session boundary.
-  React.useEffect(() => {
-    setAdjustOpen(false);
-    setMoreOptionsOpen(false);
-  }, [snapshot.exerciseId, snapshot.phase]);
-
   // Permission + availability (module fallback reports unavailable → tap mode).
   React.useEffect(() => {
+    if (isPreview) return;
     getVoicePermissionsAsync().then(setPermission);
     getOnDeviceAvailabilityAsync('en-GB').then(setAvailability);
-  }, []);
+  }, [isPreview]);
 
   // Listening lifecycle + transcript → intent (engine-agnostic seam).
   React.useEffect(() => {
@@ -259,13 +263,15 @@ export function VoiceSessionScreen({
       <ScreenHeader
         title={sessionTitle ?? 'Your session'}
         onBack={onCancel ? () => setConfirmEnd(true) : undefined}
-        backAccessibilityLabel="Leave session"
+        backAccessibilityLabel={isPreview ? 'Leave preview' : 'Leave session'}
       />
 
       <View style={styles.sessionModeRow} accessible>
         <View style={[styles.sessionModeDot, listening && styles.sessionModeDotActive]} />
         <Text style={styles.sessionModeText}>
-          {listening
+          {isPreview
+            ? 'Voice-paced preview · nothing is added to your programme'
+            : listening
             ? 'Voice controls on · processed on this phone'
             : 'Tap controls are available throughout'}
         </Text>
@@ -340,16 +346,32 @@ export function VoiceSessionScreen({
           </View>
         ) : snapshot.phase === 'intro' ? (
           <View style={styles.openingStage}>
-            <Text style={styles.openingEyebrow}>VOICE-PACED SESSION</Text>
-            <Text style={styles.openingTitle}>Take a moment to settle in</Text>
-            <Text style={styles.openingBody}>{BRAND.appName} will wait before the first movement begins.</Text>
+            <Text style={styles.openingEyebrow}>
+              {isPreview ? 'SESSION PREVIEW' : 'VOICE-PACED SESSION'}
+            </Text>
+            <Text style={styles.openingTitle}>
+              {isPreview ? 'Try one gentle warm-up together' : 'Take a moment to settle in'}
+            </Text>
+            <Text style={styles.openingBody}>
+              Clara, your voice guide, will lead you through and wait until you are ready.
+            </Text>
             <View style={styles.openingRule} />
           </View>
         ) : snapshot.phase === 'complete' || snapshot.phase === 'done' ? (
           <View style={styles.openingStage}>
-            <Text style={styles.openingEyebrow}>SESSION COMPLETE</Text>
-            <Text style={styles.openingTitle}>That is enough for today</Text>
-            <Text style={styles.openingBody}>Your finished work has been saved.</Text>
+            <Text style={styles.openingEyebrow}>
+              {isPreview ? 'PREVIEW COMPLETE' : 'SESSION COMPLETE'}
+            </Text>
+            <Text style={styles.openingTitle}>
+              {isPreview
+                ? `That is how a ${BRAND.appName} session feels`
+                : 'That is enough for today'}
+            </Text>
+            <Text style={styles.openingBody}>
+              {isPreview
+                ? 'Nothing was added to your programme. Your starting check-up still comes first.'
+                : 'Your finished work has been saved.'}
+            </Text>
             <View style={styles.openingRule} />
           </View>
         ) : null}
@@ -363,18 +385,11 @@ export function VoiceSessionScreen({
             />
           ) : null}
           {snapshot.phase === 'set' ? (
-            <>
-              <PrimaryButton
-                style={styles.primaryAction}
-                title="Done"
-                onPress={() => controller.handleTap('done', Date.now())}
-              />
-              <SecondaryButton
-                style={styles.secondaryAction}
-                title="Pause"
-                onPress={() => controller.handleTap('pause', Date.now())}
-              />
-            </>
+            <PrimaryButton
+              style={styles.primaryAction}
+              title="Done"
+              onPress={() => controller.handleTap('done', Date.now())}
+            />
           ) : null}
           {snapshot.phase === 'rest' ? (
             <>
@@ -383,15 +398,11 @@ export function VoiceSessionScreen({
                 title="Skip rest"
                 onPress={() => controller.handleTap('skip_rest', Date.now())}
               />
-              <SessionDisclosure
-                title="Adjust last set"
-                open={adjustOpen}
-                onToggle={() => {
-                  setAdjustOpen((current) => !current);
-                  setMoreOptionsOpen(false);
-                }}
-              >
-                <Text style={styles.disclosureHelp}>Correct the reps you just completed.</Text>
+              <View style={styles.adjustPanel}>
+                <View style={styles.adjustCopy}>
+                  <Text style={styles.adjustEyebrow}>ADJUST LAST SET</Text>
+                  <Text style={styles.adjustHelp}>Correct the reps you just completed.</Text>
+                </View>
                 <View style={styles.adjustRow}>
                   <SecondaryButton
                     style={[styles.secondaryAction, styles.adjustButton]}
@@ -404,7 +415,7 @@ export function VoiceSessionScreen({
                     onPress={() => controller.handleTap('adjust_reps_up')}
                   />
                 </View>
-              </SessionDisclosure>
+              </View>
             </>
           ) : null}
           {snapshot.phase === 'voice_paused' ? (
@@ -414,40 +425,51 @@ export function VoiceSessionScreen({
               onPress={() => controller.handleTap('resume', Date.now())}
             />
           ) : null}
-          {snapshot.phase !== 'complete' && snapshot.phase !== 'done' ? (
-            <>
-              <SessionUtilityAction
-                title="Something hurts"
-                detail="Stop this movement and move on"
-                onPress={() => controller.handleTap('pain', Date.now())}
-              />
-              <SessionDisclosure
-                title="More options"
-                open={moreOptionsOpen}
-                onToggle={() => {
-                  setMoreOptionsOpen((current) => !current);
-                  setAdjustOpen(false);
-                }}
-              >
+          {snapshot.exerciseId &&
+          snapshot.phase !== 'complete' &&
+          snapshot.phase !== 'done' ? (
+            <View style={styles.controlPanel}>
+              <Text style={styles.controlPanelLabel}>Other controls</Text>
+              <View style={styles.controlGrid}>
+                {snapshot.phase === 'set' ? (
+                  <SessionControlButton
+                    title="Pause"
+                    detail="Take a moment"
+                    onPress={() => controller.handleTap('pause', Date.now())}
+                  />
+                ) : null}
                 {snapshot.phase === 'waiting_ready' ? (
-                  <SecondaryButton
-                    style={styles.secondaryAction}
+                  <SessionControlButton
                     title="Repeat instructions"
+                    detail="Hear Clara again"
                     onPress={() => controller.handleTap('repeat', Date.now())}
                   />
                 ) : null}
-                <SecondaryButton
-                  style={styles.secondaryAction}
+                <SessionControlButton
                   title="Skip exercise"
+                  detail="Move to the next one"
                   onPress={() => controller.handleTap('skip', Date.now())}
                 />
-                <SecondaryButton
-                  style={styles.secondaryAction}
-                  title={snapshot.phase === 'voice_paused' ? 'End workout' : 'Leave session'}
+                <SessionControlButton
+                  title="Something hurts"
+                  detail="Stop this movement"
+                  tone="safety"
+                  onPress={() => controller.handleTap('pain', Date.now())}
+                />
+                <SessionControlButton
+                  title={
+                    isPreview
+                      ? 'Leave preview'
+                      : snapshot.phase === 'voice_paused'
+                        ? 'End session'
+                        : 'Leave session'
+                  }
+                  detail={isPreview ? 'Nothing will be saved' : 'Finished work is saved'}
+                  tone="quiet"
                   onPress={() => setConfirmEnd(true)}
                 />
-              </SessionDisclosure>
-            </>
+              </View>
+            </View>
           ) : null}
         </View>
       </View>
@@ -456,9 +478,19 @@ export function VoiceSessionScreen({
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalAccent} />
-            <Text style={styles.modalTitle}>End this workout?</Text>
-            <Text style={styles.modalBody}>Everything you've finished so far is saved.</Text>
-            <PrimaryButton style={styles.primaryAction} title="End workout" onPress={endSession} />
+            <Text style={styles.modalTitle}>
+              {isPreview ? 'Leave this preview?' : 'End this session?'}
+            </Text>
+            <Text style={styles.modalBody}>
+              {isPreview
+                ? 'Nothing from the preview will be added to your programme.'
+                : "Everything you've finished so far is saved."}
+            </Text>
+            <PrimaryButton
+              style={styles.primaryAction}
+              title={isPreview ? 'Leave preview' : 'End session'}
+              onPress={endSession}
+            />
             <Pressable
               accessibilityRole="button"
               onPress={() => {
@@ -518,13 +550,15 @@ function SessionProgress({
   );
 }
 
-function SessionUtilityAction({
+function SessionControlButton({
   title,
   detail,
+  tone = 'default',
   onPress,
 }: {
   title: string;
   detail: string;
+  tone?: 'default' | 'safety' | 'quiet';
   onPress: () => void;
 }) {
   return (
@@ -532,13 +566,23 @@ function SessionUtilityAction({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${detail}`}
-      style={({ pressed }) => [styles.utilityAction, pressed && styles.disclosurePressed]}
+      style={({ pressed }) => [
+        styles.controlTile,
+        pressed && styles.controlPressed,
+      ]}
     >
-      <View style={styles.utilityCopy}>
-        <Text style={styles.utilityTitle}>{title}</Text>
-        <Text style={styles.utilityDetail}>{detail}</Text>
+      <View style={styles.controlTileCopy}>
+        <Text
+          style={[
+            styles.controlTileTitle,
+            tone === 'safety' && styles.controlTileTitleSafety,
+            tone === 'quiet' && styles.controlTileTitleQuiet,
+          ]}
+        >
+          {title}
+        </Text>
+        <Text style={styles.controlTileDetail}>{detail}</Text>
       </View>
-      <Text style={styles.utilityChevron}>›</Text>
     </Pressable>
   );
 }
@@ -555,34 +599,6 @@ function sessionPaceCopy(phase: TrainingPhase): string {
   if (phase === 'set') return 'Move at the guided pace';
   if (phase === 'voice_paused') return 'Take the time you need';
   return 'Listen for the next cue';
-}
-
-function SessionDisclosure({
-  title,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.disclosureCard}>
-      <Pressable
-        onPress={onToggle}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        accessibilityLabel={`${open ? 'Hide' : 'Show'} ${title.toLowerCase()}`}
-        style={({ pressed }) => [styles.disclosureHeader, pressed && styles.disclosurePressed]}
-      >
-        <Text style={styles.disclosureTitle}>{title}</Text>
-        <Text style={styles.disclosureChevron}>{open ? '−' : '+'}</Text>
-      </Pressable>
-      {open ? <View style={styles.disclosureBody}>{children}</View> : null}
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({
@@ -769,70 +785,56 @@ const styles = StyleSheet.create({
   openingBody: { ...type.body, color: colors.textSecondary, maxWidth: 340 },
   openingRule: { width: 56, height: 2, marginTop: spacing.sm, backgroundColor: colors.accentDeep },
   controls: {
-    gap: spacing.sm,
+    gap: spacing.md,
     paddingTop: spacing.sm,
   },
-  utilityAction: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
+  controlPanel: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  controlPanelLabel: {
+    ...type.cardCaption,
+    color: colors.textMuted,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  controlGrid: {
+    width: '100%',
+  },
+  controlTile: {
+    width: '100%',
+    minHeight: 70,
+    justifyContent: 'center',
     paddingVertical: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.borderHairline,
   },
-  utilityCopy: { flex: 1, minWidth: 0, gap: 2 },
-  utilityTitle: { ...type.bodySmall, color: colors.textPrimary, fontFamily: fonts.sansMedium },
-  utilityDetail: { ...type.cardCaption, color: colors.textSecondary },
-  utilityChevron: { ...type.h3, color: colors.accentDeep },
-  disclosureCard: {
-    overflow: 'hidden',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    backgroundColor: 'transparent',
-  },
-  disclosureHeader: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  disclosureTitle: {
+  controlTileCopy: { gap: 2 },
+  controlTileTitle: {
     ...type.bodySmall,
     fontFamily: fonts.sansMedium,
     color: colors.textPrimary,
   },
-  disclosureChevron: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: colors.accentSoft,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansRegular,
-    fontSize: 20,
-    lineHeight: 27,
-    textAlign: 'center',
-  },
-  disclosureBody: {
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
-  },
-  disclosureHelp: {
+  controlTileTitleSafety: { color: colors.accentDeep },
+  controlTileTitleQuiet: { color: colors.textMuted },
+  controlTileDetail: {
     ...type.caption,
     color: colors.textSecondary,
-    paddingBottom: spacing.xs,
   },
-  disclosurePressed: {
-    opacity: 0.82,
+  controlPressed: {
+    opacity: 0.62,
   },
+  adjustPanel: {
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  adjustCopy: { gap: 3 },
+  adjustEyebrow: { ...type.cardCaption, color: colors.textMuted },
+  adjustHelp: { ...type.caption, color: colors.textSecondary },
   adjustRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   adjustButton: { flex: 1, minWidth: 0, paddingHorizontal: spacing.sm },
   modalBackdrop: {

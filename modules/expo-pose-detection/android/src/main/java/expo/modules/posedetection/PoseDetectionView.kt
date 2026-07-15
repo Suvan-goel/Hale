@@ -46,7 +46,7 @@ private const val LANDMARK_COUNT = 33
 private const val LANDMARK_STRIDE = 5
 private const val DEFAULT_SKELETON_CONFIDENCE = 0.35
 private const val NUM_POSES = 1
-private const val DEFAULT_MASK_FIGURE_COLOR = "#CBA89D"
+private const val DEFAULT_MASK_FIGURE_COLOR = "#8E3158"
 private const val DEFAULT_MODEL_VARIANT = "full"
 private const val DEFAULT_MODEL_ASSET = "pose_landmarker_full.task"
 private const val DEFAULT_PIPELINE_MODE = "full-video-sync"
@@ -107,6 +107,16 @@ private data class PoseLatencyDiagnostics(
   val mpImageBuildMs: Double = 0.0,
   val resultFlattenMs: Double = 0.0,
   val eventPayloadBuildMs: Double = 0.0,
+  val maskFrameId: Long = 0L,
+  val maskExtractionMs: Double = 0.0,
+  val maskRasterMs: Double = 0.0,
+  val maskPostprocessMs: Double = 0.0,
+  val maskPublishMs: Double = 0.0,
+  val maskDataType: String = "disabled",
+  val maskSourceWidth: Int = 0,
+  val maskSourceHeight: Int = 0,
+  val maskRasterWidth: Int = 0,
+  val maskRasterHeight: Int = 0,
   val modelAsset: String,
   val requestedDelegate: String,
   val selectedDelegate: String,
@@ -823,28 +833,25 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       }
     }
     val flattenEndMs = if (diagnostics != null) nativeNowMs() else 0.0
-    val nativePostprocessEndMs = if (diagnostics != null) flattenEndMs else 0.0
-    if (diagnostics != null) Trace.endSection()
-    val latency = diagnostics?.copy(
-      nativePostprocessEndMs = nativePostprocessEndMs,
-      resultFlattenMs = flattenEndMs - flattenStartMs,
-    )
-    if (segmentationMaskFigureEnabled) {
+    val maskDiagnostics = if (segmentationMaskFigureEnabled) {
       // Extract synchronously: in live-stream mode the mask images are only
       // valid inside the result callback. The result owns the mask MPImages;
       // they are ByteBuffer-backed and GC-managed, so they are not closed here.
       val masks = result.segmentationMasks()
       val maskList = if (masks.isPresent) masks.get() else null
       if (flat.isEmpty() || maskList.isNullOrEmpty()) {
-        segmentationMaskFigureRenderer.submitNoSubject()
+        segmentationMaskFigureRenderer.submitNoSubject(diagnostics != null)
       } else {
         segmentationMaskFigureRenderer.submitMask(
           mask = maskList[0],
           rotationDegrees = landmarkRotationDegrees,
           uprightWidth = width,
           uprightHeight = height,
+          collectDiagnostics = diagnostics != null,
         )
       }
+    } else {
+      SegmentationMaskFrameDiagnostics.DISABLED
     }
     constellationV2OverlayRenderer.submitPose(
       frameId = frameId,
@@ -852,6 +859,22 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       sourceWidth = width,
       sourceHeight = height,
       landmarks = flat,
+    )
+    val nativePostprocessEndMs = if (diagnostics != null) nativeNowMs() else 0.0
+    if (diagnostics != null) Trace.endSection()
+    val latency = diagnostics?.copy(
+      nativePostprocessEndMs = nativePostprocessEndMs,
+      resultFlattenMs = flattenEndMs - flattenStartMs,
+      maskFrameId = frameId,
+      maskExtractionMs = maskDiagnostics.extractionMs,
+      maskRasterMs = maskDiagnostics.rasterMs,
+      maskPostprocessMs = maskDiagnostics.postprocessMs,
+      maskPublishMs = maskDiagnostics.publishMs,
+      maskDataType = maskDiagnostics.dataType,
+      maskSourceWidth = maskDiagnostics.sourceWidth,
+      maskSourceHeight = maskDiagnostics.sourceHeight,
+      maskRasterWidth = maskDiagnostics.rasterWidth,
+      maskRasterHeight = maskDiagnostics.rasterHeight,
     )
     nativeEventScheduler.submit(
       NativePoseEvent(
@@ -986,6 +1009,15 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       "mpImageBuildMs" to latency.mpImageBuildMs,
       "resultFlattenMs" to latency.resultFlattenMs,
       "eventPayloadBuildMs" to latency.eventPayloadBuildMs,
+      "maskFrameId" to latency.maskFrameId.toDouble(),
+      "maskExtractionMs" to latency.maskExtractionMs,
+      "maskRasterMs" to latency.maskRasterMs,
+      "maskPostprocessMs" to latency.maskPostprocessMs,
+      "maskDataType" to latency.maskDataType,
+      "maskSourceWidth" to latency.maskSourceWidth,
+      "maskSourceHeight" to latency.maskSourceHeight,
+      "maskRasterWidth" to latency.maskRasterWidth,
+      "maskRasterHeight" to latency.maskRasterHeight,
       "modelAsset" to latency.modelAsset,
       "requestedDelegate" to latency.requestedDelegate,
       "selectedDelegate" to latency.selectedDelegate,
@@ -1027,6 +1059,10 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       "nativeEventRejectedCount" to latency.nativeEventRejectedCount.toDouble(),
       "nativeEventEmittedCount" to latency.nativeEventEmittedCount.toDouble(),
     )
+    if (latency.outputSegmentationMasks && latency.maskPublishMs > 0.0) {
+      payload["maskPublishMs"] = latency.maskPublishMs
+      payload["sourceAgeAtMaskPublishMs"] = latency.maskPublishMs - latency.sourceTimestampMs
+    }
     val nativeRenderer = constellationV2OverlayRenderer.diagnosticsPayload()
     if (nativeRenderer != null) payload["nativeRenderer"] = nativeRenderer
     return payload

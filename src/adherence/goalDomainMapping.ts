@@ -13,23 +13,23 @@ import { BRAND } from '../brand';
 export const LIFE_GOAL_PRESETS: { category: LifeGoalCategory; label: string; hint: string }[] = [
   {
     category: 'stairs_walks',
-    label: 'Climb stairs and keep up on walks',
+    label: 'Feel stronger and steadier on stairs and walks',
     hint: 'Build leg strength and steadiness for steps and walking.',
   },
   {
     category: 'grandchildren',
-    label: 'Play with children or grandchildren',
-    hint: 'Practice getting down low, standing back up, and keeping pace.',
+    label: 'Get down low and stand back up with confidence',
+    hint: 'Build strength for lowering, rising, and moving comfortably.',
   },
   {
     category: 'bend_reach_carry',
-    label: 'Bend, reach, and carry with ease',
+    label: 'Make everyday lifting, reaching, and carrying feel easier',
     hint: 'Support easier bending, reaching, and everyday carrying.',
   },
   {
     category: 'independence',
-    label: 'Feel strong and stay independent',
-    hint: 'Keep strength, balance, and mobility working together.',
+    label: 'Build confidence in what my body can do now',
+    hint: 'Build an all-round routine with strength and balance working together.',
   },
 ];
 
@@ -57,8 +57,8 @@ export function createLifeGoal({
 }
 
 export function getLifeGoalDisplayText(goal: LifeGoal | null | undefined): string {
-  if (!goal) return 'Stay capable for the life you want to keep living';
-  return LIFE_GOAL_PRESETS.find((p) => p.category === goal.category)?.label ?? 'Stay capable';
+  if (!goal) return 'Build strength for where you are now';
+  return LIFE_GOAL_PRESETS.find((p) => p.category === goal.category)?.label ?? 'Build strength for now';
 }
 
 export function normalizeLifeGoalDisplayText(value: string | null | undefined): string {
@@ -87,7 +87,7 @@ export function getLifeGoalTrainingRelevance(goal: LifeGoal | null | undefined):
     },
     grandchildren: {
       primaryDomains: ['strength_power', 'mobility'],
-      copy: 'Strength and mobility help with getting down low, standing up, and keeping pace.',
+      copy: 'Strength supports lowering, rising, and moving with confidence.',
     },
     bend_reach_carry: {
       primaryDomains: ['mobility', 'strength_power'],
@@ -95,7 +95,7 @@ export function getLifeGoalTrainingRelevance(goal: LifeGoal | null | undefined):
     },
     independence: {
       primaryDomains: ['strength_power', 'balance', 'mobility'],
-      copy: 'Staying independent is supported by all three domains working together.',
+      copy: 'Confidence grows from strength and balance working together.',
     },
   };
   return map[goal.category];
@@ -122,7 +122,7 @@ export function getLifeGoalWorkoutBias(goal: LifeGoal | null | undefined): LifeG
       preferredDomains: ['strength_power', 'mobility', 'balance'],
       preferredLadderIds: ['sit-to-stand', 'squat', 'hinge-glutes', 'mobility-flexibility', 'balance'],
       preferredSlotTypes: ['lower_body_strength', 'posterior_chain', 'hip_mobility', 'trunk_mobility', 'mobility', 'balance'],
-      copy: 'Prefer chair-rise, squat, hip, and floor-transfer support when the check-up focus leaves room.',
+      copy: 'Prefer chair-rise, squat, hip, and lowering-and-rising support when the check-up focus leaves room.',
     },
     bend_reach_carry: {
       preferredDomains: ['mobility', 'strength_power', 'balance'],
@@ -134,7 +134,7 @@ export function getLifeGoalWorkoutBias(goal: LifeGoal | null | undefined): LifeG
       preferredDomains: ['strength_power', 'balance', 'mobility'],
       preferredLadderIds: ['sit-to-stand', 'balance', 'mobility-flexibility', 'heel-toe-raise', 'hinge-glutes', 'lateral-stability'],
       preferredSlotTypes: ['lower_body_strength', 'balance', 'mobility', 'ankle', 'hip_mobility', 'lateral_stability'],
-      copy: 'Keep support balanced across strength, balance, and mobility.',
+      copy: 'Keep the routine balanced across strength and balance work.',
     },
   };
   return map[goal.category];

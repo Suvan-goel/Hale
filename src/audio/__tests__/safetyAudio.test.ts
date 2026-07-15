@@ -43,7 +43,7 @@ describe('safety audio metadata helpers', () => {
     expect(
       safetyAudioFingerprint({
         cueId: 'tracking_pause_and_reset',
-        voiceId: 'marcus',
+        voiceId: 'another-voice',
         providerVoiceId: 'voice-a',
       })
     ).not.toBe(base);

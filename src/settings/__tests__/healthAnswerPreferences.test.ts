@@ -11,12 +11,14 @@ function preferences(
 ): SettingsSafetyPreferences {
   return {
     balanceSupportDefault: false,
+    balanceSupportPreference: null,
     balanceSupportRequired: false,
     lowImpact: false,
     quietMode: true,
     hasStairs: false,
     consentHealthData: false,
     gentleStartActive: false,
+    heartSafetyAnswer: null,
     gpConfirmed: false,
     jointFlags: [],
     ...overrides,
@@ -35,10 +37,12 @@ describe('Settings health-answer preferences', () => {
     expect(next).toMatchObject({
       consentHealthData: true,
       gentleStartActive: true,
+      heartSafetyAnswer: 'prefer_not_to_say',
       gpConfirmed: false,
       jointFlags: ['knee', 'wrist'],
       lowImpact: true,
       balanceSupportDefault: true,
+      balanceSupportPreference: true,
     });
   });
 
@@ -75,6 +79,8 @@ describe('Settings health-answer preferences', () => {
       jointFlags: [],
       lowImpact: false,
       balanceSupportDefault: true,
+      balanceSupportPreference: null,
+      heartSafetyAnswer: null,
     });
   });
 

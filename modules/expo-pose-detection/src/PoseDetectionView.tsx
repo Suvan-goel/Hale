@@ -22,7 +22,7 @@ export default function PoseDetectionView(props: PoseDetectionViewProps) {
       minPresenceConfidence={props.minPresenceConfidence ?? 0.35}
       latencyDiagnosticsEnabled={props.latencyDiagnosticsEnabled ?? false}
       segmentationMaskFigureEnabled={props.segmentationMaskFigureEnabled ?? false}
-      segmentationMaskFigureColor={props.segmentationMaskFigureColor ?? '#CBA89D'}
+      segmentationMaskFigureColor={props.segmentationMaskFigureColor ?? '#8E3158'}
       androidPipelineMode={props.androidPipelineMode ?? 'full-video-sync'}
       androidRotationMode={props.androidRotationMode ?? 'rotated-bitmap'}
       androidAnalysisResolution={props.androidAnalysisResolution ?? '640x480'}

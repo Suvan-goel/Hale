@@ -489,7 +489,6 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
     expect(rows.find((row) => row.logicalCueKey === 'ex-squat-free-first-v21')).toMatchObject({
       currentCandidateKey: 'ex-squat-free-first-v21',
       claraStatus: 'exists',
-      marcusStatus: 'exists',
       semanticMatch: true,
       generationRequiredLater: false,
     });

@@ -1,14 +1,11 @@
-import { MENOPAUSE_STAGE_OPTIONS } from '../../../profile';
 import {
   allOnboardingCopyStrings,
   ONBOARDING_QUESTION_STEPS,
+  onboardingMessageContent,
   onboardingQuestionContent,
 } from '../content';
 
 describe('claims discipline (same red lines as copyGuardrails)', () => {
-  // B2 and the Impact track are deferred (C1/C2): the flow must contain no
-  // bone-screening or claim-shaped language. Regexes mirror the enforced
-  // guardrails; the flow's copy is scanned in full.
   const MENOPAUSE_CLAIM_COPY =
     /fracture risk|osteoporosis|osteopenia|hormone replacement|\bHRT\b|bone density (score|test|result|reading)|(?<!not |never )(measures?|estimates?|tracks?|predicts?) (your )?(bone density|hormones?)|(treats?|relieves?|cures?|reverses?) (your )?menopause|menopause (treatment|therapy|cure)/i;
   const MEDICAL_CLAIM_COPY = /diagnos|fall[- ]risk|medical[- ]grade|prescri\w+ by/i;
@@ -19,15 +16,19 @@ describe('claims discipline (same red lines as copyGuardrails)', () => {
       expect({ copy, banned: MEDICAL_CLAIM_COPY.test(copy) }).toEqual({ copy, banned: false });
     }
   });
-
-  it('does not collect preferred days before scheduling exists', () => {
-    expect(ONBOARDING_QUESTION_STEPS).not.toContain('d1_days');
-    expect(allOnboardingCopyStrings().join(' ')).not.toMatch(/which days usually suit/i);
-  });
 });
 
-describe('content structure', () => {
-  it('gives every question a one-line why-we-ask and at least two options', () => {
+describe('four-surface content', () => {
+  it('contains only the goal, two safety answers, and start choice', () => {
+    expect(ONBOARDING_QUESTION_STEPS).toEqual([
+      'a1_life_goal',
+      'b1_heart',
+      'b3_joints',
+      'assessment_offer',
+    ]);
+  });
+
+  it('gives every retained machine question clear supporting copy and choices', () => {
     for (const id of ONBOARDING_QUESTION_STEPS) {
       const question = onboardingQuestionContent(id);
       expect(question.whyWeAsk.length).toBeGreaterThan(0);
@@ -35,38 +36,84 @@ describe('content structure', () => {
     }
   });
 
-  it('A2 options are exactly the profile stage taxonomy (C6 reconciliation)', () => {
-    const a2 = onboardingQuestionContent('a2_menopause_journey');
-    expect(a2.options.map((o) => o.value)).toEqual(MENOPAUSE_STAGE_OPTIONS.map((o) => o.value));
+  it('keeps one optional retention anchor', () => {
+    const goal = onboardingQuestionContent('a1_life_goal');
+    expect(goal.options).toHaveLength(4);
+    expect(goal.skippable).toBe(true);
+    expect(goal.eyebrow).toBe('Your strength now');
+    expect(goal.question).toMatch(/menopause years/i);
+    expect(goal.options.map((option) => option.label)).toEqual([
+      'Feel stronger and steadier on stairs and walks',
+      'Get down low and stand back up with confidence',
+      'Make everyday lifting, reaching, and carrying feel easier',
+      'Build confidence in what my body can do now',
+    ]);
+    expect(goal.options.map((option) => option.label).join(' ')).not.toMatch(
+      /grandchildren|independent|years to come/i
+    );
   });
 
-  it('retains the four safety inputs while grouping related answers on screen', () => {
-    for (const id of ['b1_heart', 'b3_joints', 'b4_pelvic', 'b5_balance'] as const) {
-      expect(ONBOARDING_QUESTION_STEPS).toContain(id);
-    }
-    const allCopy = allOnboardingCopyStrings().join(' ');
-    expect(allCopy).not.toMatch(/\bbones?\b/i); // no bone question survives the deferral
+  it('sets the repeated 12-week measurement expectation without adding a question', () => {
+    const welcome = onboardingMessageContent('welcome');
+    const copy = welcome.body.join(' ');
+    expect(copy).toMatch(/12-week programme/i);
+    expect(copy).toMatch(/weeks 4, 8 and 12/i);
+    expect(copy).toMatch(/same Movement Check-Up/i);
+    expect(copy).toMatch(/Strength and Balance results/i);
   });
 
-  it('B4 carries the normalising microcopy and a prefer-not option', () => {
-    const b4 = onboardingQuestionContent('b4_pelvic');
-    expect(b4.note).toMatch(/nothing to be embarrassed about/i);
-    expect(b4.options.map((o) => o.value)).toContain('prefer_not_to_say');
+  it('puts the explicit on-device disclosure on the first required health question', () => {
+    const heart = onboardingQuestionContent('b1_heart');
+    expect(heart.note).toMatch(/by choosing an answer, you agree/i);
+    expect(heart.note).toMatch(/joint-comfort answer/i);
+    expect(heart.note).toMatch(/on this phone/i);
+    expect(heart.note).toMatch(/never uploaded, sold or shared/i);
+    expect(heart.note).toMatch(/removed in Settings/i);
+    expect(ONBOARDING_QUESTION_STEPS).not.toContain('consent_health');
   });
 
-  it('the assessment offer keeps all three first-class options and the on-device promise', () => {
-    const offer = onboardingQuestionContent('assessment_offer');
-    expect(offer.options.map((o) => o.value)).toEqual(['now', 'after_first_workout']);
-    expect(offer.note).toMatch(/never leaves/i);
-  });
-
-  it('makes the retained setup promises match their implemented effects', () => {
-    const stairs = onboardingQuestionContent('c1_stairs');
-    const quiet = onboardingQuestionContent('c2_quiet');
+  it('retains B1 for check-up access and B3 for joint-sensitive placement', () => {
+    const heart = onboardingQuestionContent('b1_heart');
+    expect(heart.question).toMatch(/heart condition/i);
+    expect(heart.question).toMatch(/chest pain/i);
+    expect(heart.question).toMatch(/serious dizziness/i);
+    expect(heart.skippable).not.toBe(true);
     const joints = onboardingQuestionContent('b3_joints');
-    expect(stairs.question).toMatch(/low, stable bottom step/i);
-    expect(stairs.question).toMatch(/support nearby/i);
-    expect(quiet.whyWeAsk).toMatch(/stomping finisher/i);
+    expect(joints.multiSelect).toBe(true);
+    expect(joints.options.map((option) => option.value)).toEqual([
+      'knee',
+      'hip',
+      'shoulder',
+      'wrist',
+      'low_back',
+      'none',
+    ]);
     expect(joints.whyWeAsk).toMatch(/gentlest level/i);
+  });
+
+  it('keeps a positive heart answer inside onboarding until the safety step is confirmed', () => {
+    const advisory = onboardingMessageContent('b1_advisory');
+    expect(advisory.title).toMatch(/safety step/i);
+    expect(advisory.body.join(' ')).toMatch(/before an effort-based Movement Check-Up/i);
+    expect(advisory.body.join(' ')).toMatch(/before Week 1/i);
+    expect(advisory.continueLabel).toBe('I’ve completed the safety step');
+  });
+
+  it('defers setup and extra profile questions instead of hiding them behind more screens', () => {
+    const allCopy = allOnboardingCopyStrings().join(' ');
+    expect(allCopy).not.toMatch(/which days usually suit/i);
+    expect(allCopy).not.toMatch(/stable bottom step/i);
+    expect(allCopy).not.toMatch(/where are you on the menopause journey/i);
+  });
+
+  it('offers exactly the starting check-up or a non-counted session preview', () => {
+    const offer = onboardingQuestionContent('assessment_offer');
+    expect(offer.options.map((option) => option.value)).toEqual(['now', 'preview']);
+    expect(offer.options.map((option) => option.label)).toEqual([
+      'Do my starting check-up',
+      'See how a session works',
+    ]);
+    expect(offer.note).toMatch(/not a workout/i);
+    expect(offer.note).toMatch(/nothing to your programme history/i);
   });
 });

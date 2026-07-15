@@ -8,7 +8,7 @@ import {
   type VoicePlaybackResult,
 } from '../audio/voicePlayer';
 import { BodySide } from '../checkup/protocolSetup';
-import { DEFAULT_VOICE_ID } from '../profile/voices';
+import { DEFAULT_VOICE_ID, getVoice } from '../profile/voices';
 import { movementProfileV2InstructionCueIdsForStage } from '../training/instructionProfiles';
 import { movementProfileV2FlowBatterySequence } from './internalCheckupFlow';
 import { MPV2_CHAIR_COUNTDOWN_CADENCE_MS } from './liveCoordinator';
@@ -138,7 +138,7 @@ export class MovementProfileV2VoiceRuntime {
 
   constructor(options: MovementProfileV2VoiceRuntimeOptions) {
     this.createVoiceChannel = options.createVoiceChannel ?? ((voiceId) => new VoiceChannel(voiceId));
-    this.desiredVoiceId = options.voiceId || DEFAULT_VOICE_ID;
+    this.desiredVoiceId = getVoice(options.voiceId || DEFAULT_VOICE_ID).id;
     this.activeVoiceId = this.desiredVoiceId;
     this.voice = options.voice ?? this.createVoiceChannel(this.activeVoiceId);
     this.nowMs = options.nowMs;
@@ -156,7 +156,7 @@ export class MovementProfileV2VoiceRuntime {
   }
 
   setDesiredVoiceId(voiceId: string | null | undefined, snapshot: MovementProfileV2LiveSnapshot): void {
-    const nextVoiceId = voiceId || DEFAULT_VOICE_ID;
+    const nextVoiceId = getVoice(voiceId || DEFAULT_VOICE_ID).id;
     this.desiredVoiceId = nextVoiceId;
     if (nextVoiceId === this.activeVoiceId) {
       this.pendingVoiceId = null;

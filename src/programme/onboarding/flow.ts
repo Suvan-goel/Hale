@@ -4,25 +4,23 @@
  * this machine says is current, from the content layer.
  *
  * Rules encoded here (the gate table, B2 row deferred):
- * - Consent declined → Stage B never shown; §4 decline row applies (placement
- *   capped L2, conservative finisher routing, no assessment offer bypass —
- *   but explicitly NOT Gentle Start: a privacy choice is never a health flag).
- * - B1 yes → advisory with required acknowledgement, Gentle Start preset,
- *   movement assessment BYPASSED (the final screen explains that it stays
- *   off; re-offered once gp_confirmed). B1 skipped → conservative: same preset and bypass, no
- *   GP advisory (nothing was disclosed); B1 is re-asked at the first check-up
- *   (§8 re-asks unanswered Stage B items) and answering No lifts the preset.
- * - Every skip routes to the CONSERVATIVE default (non-negotiable):
- *   B5 skip → support variants on; C1 skip → treated as no stairs;
- *   C2 skip → quiet mode on; A3 skip → activity prior 0.
- * - Related answers share one visual screen: About You, Movement Comfort,
- *   and Setup. Preferred days are no longer collected here because the app
- *   does not schedule around them.
- * - Nothing in onboarding ever blocks access to the app.
+ * - B1 yes → a required safety-step confirmation before onboarding can
+ *   finish. Once confirmed, the starting Movement Check-Up remains the first
+ *   programme action. There is no workout-first Gentle Start branch.
+ * - Onboarding collects a life goal plus B1 heart safety and B3 joint comfort.
+ *   Activity, pelvic, balance preference, stairs, noise, and menopause-stage
+ *   details do not delay first value. Their day-one state is explicit and
+ *   conservative: L1 placement, temporary support on, quiet on, no stair.
+ * - B1 and B3 are progressively disclosed inside one user-visible Health &
+ *   Privacy stage. The required local-use disclosure appears with B1, and
+ *   choosing any B1 answer is the affirmative action before data is stored.
+ * - Eligible users complete an accepted baseline before Week 1. The retained
+ *   `after_first_workout` token is read-compatible only; current onboarding
+ *   treats it as a baseline-first choice. Every user who completes current
+ *   onboarding is eligible for the starting check-up.
  */
 
-import type { ActivityLevel, LifeGoalCategory } from '../../adherence';
-import type { MenopauseStage } from '../../profile';
+import type { LifeGoalCategory } from '../../adherence';
 import { placementForOnboarding, type AssessmentInputs } from '../placement';
 import { freshPatternLadderState } from '../promotion';
 import { programmePolicyFingerprint } from '../policy';
@@ -50,31 +48,18 @@ export type Skipped = typeof SKIPPED;
 
 export interface OnboardingAnswers {
   lifeGoal: LifeGoalCategory | Skipped | null;
-  menopauseStage: MenopauseStage | null;
-  activityLevel: ActivityLevel | Skipped | null;
-  consent: 'agree' | 'decline' | null;
-  b1Heart: 'yes' | 'no' | Skipped | null;
-  /** Empty array = explicit "none of these". */
-  b3Joints: readonly JointFlag[] | null;
-  b4Pelvic: 'often' | 'sometimes' | 'never' | 'prefer_not_to_say' | null;
-  b5Balance: 'yes' | 'no' | Skipped | null;
-  c1Stairs: 'yes' | 'no' | Skipped | null;
-  c2Quiet: 'yes' | 'no' | Skipped | null;
+  b1Heart: 'yes' | 'no' | null;
+  /** Empty array = explicit "none of these"; SKIPPED is non-disclosure. */
+  b3Joints: readonly JointFlag[] | Skipped | null;
+  /** `after_first_workout` is retained only for interrupted legacy flows. */
   assessmentChoice: 'now' | 'after_first_workout' | 'skip' | null;
 }
 
 export function emptyOnboardingAnswers(): OnboardingAnswers {
   return {
     lifeGoal: null,
-    menopauseStage: null,
-    activityLevel: null,
-    consent: null,
     b1Heart: null,
     b3Joints: null,
-    b4Pelvic: null,
-    b5Balance: null,
-    c1Stairs: null,
-    c2Quiet: null,
     assessmentChoice: null,
   };
 }
@@ -89,63 +74,36 @@ export function initialOnboardingFlowState(): ProgrammeOnboardingFlowState {
   return { answers: emptyOnboardingAnswers(), acknowledged: [] };
 }
 
-/** Gentle Start preset applies on B1 yes AND on B1 skip (conservative). */
-export function gentleStartFromAnswers(answers: OnboardingAnswers): boolean {
-  return answers.consent === 'agree' && (answers.b1Heart === 'yes' || answers.b1Heart === SKIPPED);
-}
-
 // ---------------------------------------------------------------------------
 // Step sequence
 // ---------------------------------------------------------------------------
 
 export function visibleOnboardingSteps(answers: OnboardingAnswers): OnboardingStepId[] {
-  const steps: OnboardingStepId[] = ['welcome', 'a1_life_goal', 'a2_menopause_journey', 'a3_activity', 'consent_health'];
-  if (answers.consent === 'agree' || answers.consent === null) {
-    // Until consent is answered we optimistically include the safety screens;
-    // a decline removes them (§4 decline row, normal tone).
-    steps.push('b1_heart');
-    if (answers.b1Heart === 'yes') steps.push('b1_advisory');
-    steps.push('b3_joints', 'b4_pelvic', 'b5_balance');
-  }
-  // Everyone reaches one final start screen. That screen offers the check-up
-  // only when consent + B1 policy allow it; Gentle Start / consent-declined
-  // paths record a conservative skip before completing.
-  steps.push('c1_stairs', 'c2_quiet', 'assessment_offer');
+  const steps: OnboardingStepId[] = ['welcome', 'a1_life_goal', 'b1_heart', 'b3_joints'];
+  if (answers.b1Heart === 'yes') steps.push('b1_advisory');
+  steps.push('assessment_offer');
   return steps;
 }
 
 export type OnboardingScreenId =
   | 'welcome'
-  | 'about_you'
-  | 'health_consent'
-  | 'heart_safety'
+  | 'goal'
+  | 'health_safety'
   | 'heart_advisory'
-  | 'movement_comfort'
-  | 'setup'
   | 'finish';
 
-/** Maps machine-level answer steps onto the seven core user-visible screens. */
+/** Maps machine-level answer steps onto the four core user-visible surfaces. */
 export function onboardingScreenForStep(step: OnboardingStepId): OnboardingScreenId {
   switch (step) {
     case 'welcome':
       return 'welcome';
     case 'a1_life_goal':
-    case 'a2_menopause_journey':
-    case 'a3_activity':
-      return 'about_you';
-    case 'consent_health':
-      return 'health_consent';
+      return 'goal';
     case 'b1_heart':
-      return 'heart_safety';
+    case 'b3_joints':
+      return 'health_safety';
     case 'b1_advisory':
       return 'heart_advisory';
-    case 'b3_joints':
-    case 'b4_pelvic':
-    case 'b5_balance':
-      return 'movement_comfort';
-    case 'c1_stairs':
-    case 'c2_quiet':
-      return 'setup';
     case 'assessment_offer':
       return 'finish';
   }
@@ -164,24 +122,10 @@ function stepAnswered(answers: OnboardingAnswers, step: OnboardingQuestionStepId
   switch (step) {
     case 'a1_life_goal':
       return answers.lifeGoal !== null;
-    case 'a2_menopause_journey':
-      return answers.menopauseStage !== null;
-    case 'a3_activity':
-      return answers.activityLevel !== null;
-    case 'consent_health':
-      return answers.consent !== null;
     case 'b1_heart':
       return answers.b1Heart !== null;
     case 'b3_joints':
       return answers.b3Joints !== null;
-    case 'b4_pelvic':
-      return answers.b4Pelvic !== null;
-    case 'b5_balance':
-      return answers.b5Balance !== null;
-    case 'c1_stairs':
-      return answers.c1Stairs !== null;
-    case 'c2_quiet':
-      return answers.c2Quiet !== null;
     case 'assessment_offer':
       return answers.assessmentChoice !== null;
   }
@@ -208,57 +152,45 @@ export function acknowledgeOnboardingStep(
 }
 
 /**
- * Step-wise back (promotion integration Phase 2): clears the most recent
- * answered/acknowledged step so `currentOnboardingStep` returns to it. The
- * Back navigation follows user-visible screens rather than individual fields
- * inside a grouped screen. It clears the previous screen's answers so the
- * machine returns to that screen in one tap. No-op at Welcome.
+ * Clears the immediately preceding progressive panel. The two short health
+ * questions share one top-level stage, but Back still behaves like a normal
+ * form: B3 → B1 → Goal. No-op at Welcome.
  */
 export function undoLastOnboardingStep(
   state: ProgrammeOnboardingFlowState
 ): ProgrammeOnboardingFlowState {
   const current = currentOnboardingStep(state);
-  const screens = visibleOnboardingScreens(state.answers);
-  const currentScreen = current === 'complete' ? null : onboardingScreenForStep(current);
-  const currentIndex = currentScreen === null ? screens.length : screens.indexOf(currentScreen);
+  const steps = visibleOnboardingSteps(state.answers);
+  const currentIndex = current === 'complete' ? steps.length : steps.indexOf(current);
   if (currentIndex <= 0) return state;
-  return clearOnboardingScreen(state, screens[currentIndex - 1]);
+  return clearOnboardingStep(state, steps[currentIndex - 1]);
 }
 
-function clearOnboardingScreen(
+function clearOnboardingStep(
   state: ProgrammeOnboardingFlowState,
-  screen: OnboardingScreenId
+  step: OnboardingStepId
 ): ProgrammeOnboardingFlowState {
   const answers = { ...state.answers };
   let acknowledged = state.acknowledged;
-  switch (screen) {
+  switch (step) {
     case 'welcome':
       acknowledged = acknowledged.filter((step) => step !== 'welcome');
       break;
-    case 'about_you':
+    case 'a1_life_goal':
       answers.lifeGoal = null;
-      answers.menopauseStage = null;
-      answers.activityLevel = null;
       break;
-    case 'health_consent':
-      answers.consent = null;
-      break;
-    case 'heart_safety':
+    case 'b1_heart':
       answers.b1Heart = null;
-      break;
-    case 'heart_advisory':
+      answers.b3Joints = null;
       acknowledged = acknowledged.filter((step) => step !== 'b1_advisory');
       break;
-    case 'movement_comfort':
+    case 'b1_advisory':
+      acknowledged = acknowledged.filter((step) => step !== 'b1_advisory');
+      break;
+    case 'b3_joints':
       answers.b3Joints = null;
-      answers.b4Pelvic = null;
-      answers.b5Balance = null;
       break;
-    case 'setup':
-      answers.c1Stairs = null;
-      answers.c2Quiet = null;
-      break;
-    case 'finish':
+    case 'assessment_offer':
       answers.assessmentChoice = null;
       break;
   }
@@ -267,15 +199,8 @@ function clearOnboardingScreen(
 
 export type OnboardingAnswerValue =
   | { step: 'a1_life_goal'; value: LifeGoalCategory | Skipped }
-  | { step: 'a2_menopause_journey'; value: MenopauseStage }
-  | { step: 'a3_activity'; value: ActivityLevel | Skipped }
-  | { step: 'consent_health'; value: 'agree' | 'decline' }
-  | { step: 'b1_heart'; value: 'yes' | 'no' | Skipped }
-  | { step: 'b3_joints'; value: readonly JointFlag[] }
-  | { step: 'b4_pelvic'; value: 'often' | 'sometimes' | 'never' | 'prefer_not_to_say' }
-  | { step: 'b5_balance'; value: 'yes' | 'no' | Skipped }
-  | { step: 'c1_stairs'; value: 'yes' | 'no' | Skipped }
-  | { step: 'c2_quiet'; value: 'yes' | 'no' | Skipped }
+  | { step: 'b1_heart'; value: 'yes' | 'no' }
+  | { step: 'b3_joints'; value: readonly JointFlag[] | Skipped }
   | { step: 'assessment_offer'; value: 'now' | 'after_first_workout' | 'skip' };
 
 export function recordOnboardingAnswer(
@@ -287,32 +212,11 @@ export function recordOnboardingAnswer(
     case 'a1_life_goal':
       answers.lifeGoal = answer.value;
       break;
-    case 'a2_menopause_journey':
-      answers.menopauseStage = answer.value;
-      break;
-    case 'a3_activity':
-      answers.activityLevel = answer.value;
-      break;
-    case 'consent_health':
-      answers.consent = answer.value;
-      break;
     case 'b1_heart':
       answers.b1Heart = answer.value;
       break;
     case 'b3_joints':
-      answers.b3Joints = [...answer.value];
-      break;
-    case 'b4_pelvic':
-      answers.b4Pelvic = answer.value;
-      break;
-    case 'b5_balance':
-      answers.b5Balance = answer.value;
-      break;
-    case 'c1_stairs':
-      answers.c1Stairs = answer.value;
-      break;
-    case 'c2_quiet':
-      answers.c2Quiet = answer.value;
+      answers.b3Joints = answer.value === SKIPPED ? SKIPPED : [...answer.value];
       break;
     case 'assessment_offer':
       answers.assessmentChoice = answer.value;
@@ -327,8 +231,6 @@ export function recordOnboardingAnswer(
 
 export interface OnboardingCompletion {
   programmeState: ProgrammeState;
-  /** Written to the EXISTING preferences profile by the app layer (C6). */
-  menopauseStage: MenopauseStage | null;
   /** Written to the EXISTING LifeGoal surface by the app layer (C8). */
   lifeGoalCategory: LifeGoalCategory | null;
   /** 'start_now' → the app launches Check-up #0; placement then re-derives. */
@@ -340,59 +242,63 @@ export function completeOnboarding(
   options: { completedAtIso?: string } = {}
 ): OnboardingCompletion {
   const answers = state.answers;
-  const consentDeclined = answers.consent === 'decline';
-  const gentleStart = gentleStartFromAnswers(answers);
+  const healthAnswersComplete = answers.b1Heart !== null && answers.b3Joints !== null;
+  const safetyStepConfirmed =
+    answers.b1Heart === 'no' ||
+    (answers.b1Heart === 'yes' && state.acknowledged.includes('b1_advisory'));
+  const readyForStartingCheckUp = healthAnswersComplete && safetyStepConfirmed;
+  const gentleStart = healthAnswersComplete && !safetyStepConfirmed;
 
   const placementResult = placementForOnboarding({
     // The 'now' assessment runs AFTER onboarding; conservative placement
     // stands until its results re-derive placement via
     // applyAssessmentPlacement below.
     assessment: null,
-    activityLevel: answers.activityLevel === SKIPPED ? null : answers.activityLevel,
-    consentDeclined,
+    activityLevel: null,
+    consentDeclined: !healthAnswersComplete,
     gentleStart,
   });
 
-  const jointFlags = answers.consent === 'agree' ? (answers.b3Joints ?? []) : [];
+  const jointFlags: readonly JointFlag[] =
+    healthAnswersComplete && Array.isArray(answers.b3Joints)
+      ? answers.b3Joints
+      : [];
   const startingPlacement = jointSensitiveStartingPlacement(
     placementResult.placement,
     jointFlags
   );
 
   const profile: ProgrammeProfile = {
-    consentHealthData: answers.consent === 'agree',
-    activityLevel: answers.activityLevel === SKIPPED ? null : answers.activityLevel,
+    consentHealthData: healthAnswersComplete,
+    activityLevel: null,
     gentleStartActive: gentleStart,
-    gpConfirmed: false,
-    // Conservative default: any pelvic answer other than an explicit "never"
-    // routes low-impact (spec B4); consent-declined stays 'none' — the §4
-    // decline row applies conservative routing WITHOUT the health-content
-    // unlock (a privacy choice is not a symptom report).
-    pelvicRouting:
-      answers.consent === 'agree' && answers.b4Pelvic !== null && answers.b4Pelvic !== 'never'
-        ? 'low_impact'
-        : 'none',
-    quietMode: answers.c2Quiet === 'yes' || answers.c2Quiet === SKIPPED,
-    // Consent-gated like every Stage B mapping: with back-navigation a user
-    // can answer B3 and THEN retract consent — stale special-category answers
-    // must never be used (§4 decline row).
+    heartSafetyAnswer:
+      !healthAnswersComplete || answers.b1Heart === null
+        ? null
+        : answers.b1Heart,
+    gpConfirmed: answers.b1Heart === 'yes' && safetyStepConfirmed,
+    // No symptom disclosure is inferred. Universal quiet mode below removes
+    // the stomping item without unlocking pelvic-health content.
+    pelvicRouting: 'none',
+    // Quiet, supported and stair-free are preference/safety defaults, not
+    // inferred health disclosures. They can be changed later in Settings.
+    quietMode: true,
     jointFlags,
-    balanceSupportDefault:
-      answers.consent === 'agree' && (answers.b5Balance === 'yes' || answers.b5Balance === SKIPPED),
-    // Onboarding can express a preference for support, but only an accepted
-    // camera check-up can make that protection measurement-required.
+    // Support is initially conservative, not a claimed user preference. An
+    // accepted baseline balance result can resolve this temporary default.
+    balanceSupportDefault: true,
+    balanceSupportPreference: null,
+    // Only an accepted camera check-up can make this protection required.
     balanceSupportRequired: false,
-    hasStairs: answers.c1Stairs === 'yes' ? true : answers.c1Stairs === 'no' ? false : null,
+    hasStairs: null,
     hasBand: null,
     diastasisFlag: false,
     placement: startingPlacement,
     assessmentStatus: gentleStart
       ? 'bypassed_b1'
-      : answers.assessmentChoice === 'after_first_workout'
-        ? 'deferred'
-        : answers.assessmentChoice === 'skip' || consentDeclined
-          ? 'skipped'
-          : null, // 'now' → set to 'done' when Check-up #0 completes
+      : !healthAnswersComplete
+        ? 'skipped'
+        : null, // eligible starts, including legacy choices, require Check-up #0
     lastAssessmentAtIso: null,
     chosenDays: [],
     firstSessionStarted: false,
@@ -419,12 +325,9 @@ export function completeOnboarding(
 
   return {
     programmeState,
-    menopauseStage: answers.menopauseStage,
     lifeGoalCategory: answers.lifeGoal === SKIPPED ? null : answers.lifeGoal,
     assessmentIntent:
-      answers.consent === 'agree' && !gentleStart && answers.assessmentChoice === 'now'
-        ? 'start_now'
-        : null,
+      readyForStartingCheckUp ? 'start_now' : null,
   };
 }
 
@@ -466,11 +369,78 @@ function jointSensitiveStartingPlacement(
 }
 
 /**
+ * Applies a newly saved joint-comfort choice immediately. Adding a flag may
+ * lower a related ladder to L1; removing one never auto-promotes it. This
+ * keeps the Settings promise aligned with the same protection used during
+ * baseline placement.
+ */
+export function applyJointComfortFlags(
+  state: ProgrammeState,
+  flags: readonly JointFlag[]
+): ProgrammeState {
+  const currentLevels = {} as Record<ProgrammePattern, number>;
+  const placementLevels = {} as Record<ProgrammePattern, number>;
+  for (const pattern of PROGRAMME_PATTERNS) {
+    currentLevels[pattern] = state.ladders[pattern].currentLevel;
+    placementLevels[pattern] = state.profile.placement[pattern] ?? currentLevels[pattern];
+  }
+  const cappedLevels = jointSensitiveStartingPlacement(currentLevels, flags);
+  const cappedPlacement = jointSensitiveStartingPlacement(placementLevels, flags);
+  const ladders = { ...state.ladders };
+  for (const pattern of PROGRAMME_PATTERNS) {
+    if (cappedLevels[pattern] >= ladders[pattern].currentLevel) continue;
+    ladders[pattern] = {
+      ...ladders[pattern],
+      currentLevel: cappedLevels[pattern],
+      consecutiveTopSessions: 0,
+      consecutiveBottomNoneSessions: 0,
+      currentRepTarget: null,
+    };
+  }
+  return {
+    ...state,
+    ladders,
+    profile: {
+      ...state.profile,
+      jointFlags: [...flags],
+      placement: cappedPlacement,
+    },
+  };
+}
+
+function profileAfterBalanceAssessment(
+  profile: ProgrammeProfile,
+  balanceSupportRequired: boolean | null
+): ProgrammeProfile {
+  if (balanceSupportRequired === null) return profile;
+  return {
+    ...profile,
+    balanceSupportDefault:
+      balanceSupportRequired || profile.balanceSupportPreference === true,
+    balanceSupportRequired,
+  };
+}
+
+/** Updates balance protection from an accepted check-up without re-placing ladders. */
+export function applyAssessmentSafety(
+  state: ProgrammeState,
+  assessment: AssessmentInputs
+): ProgrammeState {
+  if (!assessment.t1) return state;
+  const profile = profileAfterBalanceAssessment(
+    state.profile,
+    assessment.t1.worseSideSeconds < 10
+  );
+  return profile === state.profile ? state : { ...state, profile };
+}
+
+/**
  * Applies a completed Check-up #0 to an onboarded state. The immediate 'now'
  * path derives fresh placement (nothing trained yet to protect), then keeps
  * any disclosed joint-sensitive starts at L1; the deferred path re-places
- * UPWARD ONLY (spec §6) within the same safety constraint. T1 under 10 s
- * forces balance-support-default on even when B5 said No — never the reverse.
+ * UPWARD ONLY (spec §6) within the same safety constraint. A valid T1 resolves
+ * the temporary support default; a short hold requires support, while an
+ * explicit voluntary Settings preference remains enabled after a strong hold.
  */
 export function applyAssessmentPlacement(
   state: ProgrammeState,
@@ -504,19 +474,13 @@ export function applyAssessmentPlacement(
   return {
     ...state,
     ladders,
-    profile: {
+    profile: profileAfterBalanceAssessment({
       ...state.profile,
       placement: targetPlacement,
       assessmentStatus: 'done',
       // Starts (and restarts) the routine check-up cadence clock.
       lastAssessmentAtIso: options.completedAtIso ?? new Date().toISOString(),
-      balanceSupportDefault:
-        result.balanceSupportRequired === true ? true : state.profile.balanceSupportDefault,
-      balanceSupportRequired:
-        result.balanceSupportRequired === null
-          ? state.profile.balanceSupportRequired
-          : result.balanceSupportRequired,
-    },
+    }, result.balanceSupportRequired),
   };
 }
 

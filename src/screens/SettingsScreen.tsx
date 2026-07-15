@@ -16,11 +16,10 @@ import {
 } from '../adherence/goalDomainMapping';
 import type { ActivityLevel, LifeGoal, LifeGoalCategory } from '../adherence/types';
 import { VoiceChannel } from '../audio/voicePlayer';
-import { BackArrowButton } from '../components/BackArrowButton';
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { isOnlineProfilesEnabled } from '../config/onlineProfiles';
 import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
-import { HeaderLogo } from '../components/HeaderLogo';
+import { PageHeader } from '../components/PageHeader';
 import { Button, Screen, ToggleRow } from '../components/ui';
 import {
   AppSettings,
@@ -40,7 +39,7 @@ import {
   getVoice,
 } from '../profile';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
-import { compactTypography, useResponsiveLayout } from '../theme/responsive';
+import { useResponsiveLayout } from '../theme/responsive';
 import type { JointFlag } from '../programme';
 import type {
   OnlineProfileConflictResolution,
@@ -85,7 +84,7 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
     subtitle: 'Review the safety step that keeps your Movement Check-Up unavailable.',
   },
   workout: {
-    title: 'Workout & voice',
+    title: 'Sessions & voice',
     subtitle: 'Choose your starting effort and trainer voice.',
   },
   account: {
@@ -119,6 +118,8 @@ type SettingsScreenProps = {
   onResolveOnlineProfileConflict: (
     resolution: Exclude<OnlineProfileConflictResolution, 'automatic'>
   ) => void;
+  /** Opens a specific Settings editor when another surface has one required fix. */
+  initialSection?: ProfileSection;
   onBack?: () => void;
   /** DEV-only (gated on `__DEV__` by the caller): seed a mock multi-session,
    * multi-check-up journey so the screens can be viewed populated. */
@@ -126,6 +127,8 @@ type SettingsScreenProps = {
   /** DEV-only: clear check-up history and reset the programme to a fresh,
    * still-onboarded state. */
   onResetSampleData?: () => void;
+  /** DEV-only: preview onboarding again without changing saved programme data. */
+  onReplayOnboarding?: () => void;
 };
 
 export function SettingsScreen(props: SettingsScreenProps) {
@@ -149,12 +152,15 @@ function SettingsScreenContent({
   onlineProfileSyncState,
   onRetryOnlineProfileSync,
   onResolveOnlineProfileConflict,
+  initialSection,
   onBack,
   onFillSampleData,
   onResetSampleData,
+  onReplayOnboarding,
 }: SettingsScreenProps) {
-  const responsive = useResponsiveLayout();
-  const [openSection, setOpenSection] = React.useState<ProfileSection | null>(null);
+  const [openSection, setOpenSection] = React.useState<ProfileSection | null>(
+    initialSection ?? null
+  );
   const [name, setName] = React.useState(profile.name);
   const [dateOfBirthText, setDateOfBirthText] = React.useState(
     dateOfBirthInputLabel(profile.dateOfBirth)
@@ -343,7 +349,7 @@ function SettingsScreenContent({
           </PreferenceCard>
 
           <VoiceSelectorCard
-            selectedVoiceId={settings.voiceId}
+            selectedVoiceId={getVoice(settings.voiceId).id}
             onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
             onPreviewVoice={previewVoice}
           />
@@ -407,21 +413,13 @@ function SettingsScreenContent({
 
     return (
       <>
-        <Screen
-          contentStyle={[
-            styles.screenContent,
-            { paddingHorizontal: responsive.isCompactWidth ? spacing.xl : spacing.xxl },
-          ]}
-        >
-          <View style={styles.detailBackRow}>
-            <BackArrowButton
-              accessibilityLabel="Back to settings"
-              onPress={closeSection}
+        <Screen contentStyle={styles.screenContent}>
+          <View style={styles.detailNavigation}>
+            <PageHeader
+              title={copy.title}
+              onBack={closeSection}
+              backAccessibilityLabel="Back to settings"
             />
-          </View>
-          <View style={styles.detailHeader}>
-            <Text style={styles.detailEyebrow}>SETTINGS</Text>
-            <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>{copy.title}</Text>
             <Text style={styles.detailSubtitle}>{copy.subtitle}</Text>
           </View>
           {renderSectionContent()}
@@ -439,99 +437,83 @@ function SettingsScreenContent({
   }
 
   return (
-    <Screen
-      contentStyle={[
-        styles.screenContent,
-        { paddingHorizontal: responsive.isCompactWidth ? spacing.xl : spacing.xxl },
-      ]}
-    >
-      {onBack ? <BackArrowButton accessibilityLabel="Back" onPress={onBack} /> : null}
-      <View style={styles.headerRow}>
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerEyebrow}>YOUR PEARL</Text>
-          <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Settings</Text>
-          <Text style={styles.headerSubtitle}>Make your programme feel right for you.</Text>
-        </View>
-        <View style={styles.headerMark}>
-          <HeaderLogo size={42} />
-        </View>
-      </View>
+    <Screen contentStyle={styles.screenContent}>
+      <PageHeader title="Settings" onBack={onBack} backAccessibilityLabel="Back" />
 
       <Pressable
         style={({ pressed }) => [
           styles.profileCard,
-          responsive.isCompactPhone && styles.compactCardPadding,
           pressed && styles.pressed,
         ]}
         onPress={() => openProfileSection('details')}
         accessibilityRole="button"
         accessibilityLabel="Edit personal details"
       >
-        <View style={styles.profileHaloLarge} />
-        <View style={styles.profileHaloSmall} />
         <View style={styles.avatar}>
           <ProfileDetailsGlyph />
         </View>
         <View style={styles.profileCopy}>
-          <Text style={styles.profileEyebrow}>YOUR PROFILE</Text>
           <Text style={styles.profileName} numberOfLines={1}>
             {displayName}
           </Text>
           <Text style={styles.profileSummary} numberOfLines={2}>{profileSummary}</Text>
         </View>
-        <View style={styles.profileEditPill}>
+        <View style={styles.profileEditAction}>
           <Text style={styles.profileEditText}>Edit</Text>
-          <Text style={styles.profileEditChevron}>{'›'}</Text>
+          <ForwardChevron color={colors.accentDeep} />
         </View>
       </Pressable>
 
-      <SettingsSection title="Preferences" subtitle="Training, guidance, and support">
+      <SettingsSection title="Preferences">
         <ProfileMenuRow
           title={SECTION_COPY.workout.title}
           subtitle={`Starting effort: ${effortLabel} · Voice: ${selectedVoiceLabel}`}
           icon="sliders"
-          tone="accent"
           onPress={() => openProfileSection('workout')}
-          showDivider
         />
         <ProfileMenuRow
           title={SECTION_COPY.safety.title}
           subtitle={`${safetyPreferences.consentHealthData ? 'Health answers on' : 'Health answers off'} · ${safetyPreferences.quietMode ? 'Quiet sessions on' : 'Standard sound'}`}
           icon="shield"
-          tone="sage"
           onPress={() => openProfileSection('safety')}
         />
       </SettingsSection>
 
-      <SettingsSection title="Account & data" subtitle="Private by default, always under your control">
+      <SettingsSection title="Account & data">
         {showOnlineProfile ? (
           <ProfileMenuRow
             title={SECTION_COPY.account.title}
             subtitle={onlineProfileSummary(onlineProfileSyncState)}
             icon="account"
-            tone="gold"
             onPress={() => openProfileSection('account')}
-            showDivider
           />
         ) : null}
         <ProfileMenuRow
           title={SECTION_COPY.privacy.title}
           subtitle="Local storage, comparisons, and delete data."
           icon="lock"
-          tone="neutral"
           onPress={() => openProfileSection('privacy')}
         />
       </SettingsSection>
 
-      {__DEV__ && onFillSampleData ? (
+      {__DEV__ && (onFillSampleData || onResetSampleData || onReplayOnboarding) ? (
         <SettingsSection title="Developer">
-          <ProfileMenuRow
-            title="Fill with sample data"
-            subtitle="Seed months of sessions and check-ups to preview every screen."
-            icon="sliders"
-            onPress={onFillSampleData}
-            showDivider={!!onResetSampleData}
-          />
+          {onReplayOnboarding ? (
+            <ProfileMenuRow
+              title="Replay onboarding"
+              subtitle="Return to Welcome; any starting check-up is a dry run and saves nothing."
+              icon="account"
+              onPress={onReplayOnboarding}
+            />
+          ) : null}
+          {onFillSampleData ? (
+            <ProfileMenuRow
+              title="Fill with sample data"
+              subtitle="Seed months of sessions and check-ups to preview every screen."
+              icon="sliders"
+              onPress={onFillSampleData}
+            />
+          ) : null}
           {onResetSampleData ? (
             <ProfileMenuRow
               title="Reset to fresh"
@@ -548,18 +530,15 @@ function SettingsScreenContent({
 
 function SettingsSection({
   title,
-  subtitle,
   children,
 }: {
   title: string;
-  subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
     <View style={styles.settingsSection}>
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionLabel}>{title}</Text>
-        {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
       </View>
       <View style={styles.menuCard}>{children}</View>
     </View>
@@ -570,39 +549,32 @@ function ProfileMenuRow({
   title,
   subtitle,
   icon,
-  tone = 'neutral',
   onPress,
-  showDivider,
 }: {
   title: string;
   subtitle?: string;
   icon: MenuIconName;
-  tone?: MenuIconTone;
   onPress: () => void;
-  showDivider?: boolean;
 }) {
-  const responsive = useResponsiveLayout();
   return (
     <Pressable
       style={({ pressed }) => [
         styles.menuRow,
-        responsive.isCompactPhone && styles.compactCardPadding,
-        showDivider && styles.menuDivider,
         pressed && styles.pressed,
       ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
     >
-      <View style={[styles.menuIconTile, menuIconToneStyle(tone)]}>
-        <MenuIcon name={icon} color={menuIconToneColor(tone)} />
+      <View style={styles.menuGlyphColumn}>
+        <MenuIcon name={icon} color={colors.accentDeep} />
       </View>
       <View style={styles.menuCopy}>
         <Text style={styles.menuTitle}>{title}</Text>
         {subtitle ? <Text style={styles.menuSubtitle}>{subtitle}</Text> : null}
       </View>
-      <View style={styles.chevronButton}>
-        <Text style={styles.chevron}>{'›'}</Text>
+      <View style={styles.rowChevron}>
+        <ForwardChevron />
       </View>
     </Pressable>
   );
@@ -642,7 +614,7 @@ function VoiceSelectorCard({
       <View style={styles.voiceSelectorHeader}>
         <Text style={styles.detailCardTitle}>Trainer voice</Text>
         <Text style={styles.voiceSelectorBody}>
-          Tap the speaker to preview. Tap a name to use that voice next time.
+          {`Clara is ${BRAND.appName}'s trainer voice. Tap the speaker to hear a preview.`}
         </Text>
       </View>
       <View style={styles.voiceOptionList}>
@@ -740,7 +712,7 @@ function HealthAnswersCard({
       body={
         value.consentHealthData
           ? `Used only on this device to choose conservative starting levels, support, and quieter variations.`
-          : `Health answers are off. Sessions stay conservative and the private Movement Check-Up remains unavailable.`
+          : `Health answers are off. The private Movement Check-Up remains unavailable, and a new programme cannot begin without an accepted starting result.`
       }
     >
       <View style={styles.healthAnswerActions}>
@@ -782,7 +754,7 @@ function HealthAnswersEditor({
     value.consentHealthData ? 'answers' : 'consent'
   );
   const [heartAnswer, setHeartAnswer] = React.useState<'yes' | 'no' | 'prefer_not_to_say'>(
-    value.gentleStartActive ? 'yes' : 'no'
+    value.heartSafetyAnswer ?? (value.gentleStartActive ? 'prefer_not_to_say' : 'no')
   );
   const [jointFlags, setJointFlags] = React.useState<readonly JointFlag[]>(value.jointFlags);
   const [pelvicSupport, setPelvicSupport] = React.useState(value.lowImpact);
@@ -910,7 +882,7 @@ function HealthAnswersEditor({
           confirmingRemoval ? (
             <DetailCard
               title="Remove health answers?"
-              body="This clears the health-derived answers on this device and turns off the Movement Check-Up. Workouts remain available with conservative choices."
+              body="This clears the health-derived answers on this device and turns off the Movement Check-Up. A new programme cannot begin without these answers; an active programme keeps conservative choices."
             >
               <View style={styles.healthAnswerActions}>
                 <Button title="Remove health answers" variant="danger" onPress={removeAnswers} />
@@ -1014,9 +986,19 @@ function SafetyPreferencesCard({
         ) : (
           <ToggleRow
             label="Keep support nearby for balance"
-            description="Use supported balance variations by default. You can change a voluntary preference at any time."
+            description={
+              value.balanceSupportPreference === null
+                ? `${BRAND.appName} is using a temporary supported start until a check-up or your choice resolves it.`
+                : 'Use supported balance variations by default. You can change this choice at any time.'
+            }
             value={value.balanceSupportDefault}
-            onValueChange={(balanceSupportDefault) => onChange({ ...value, balanceSupportDefault })}
+            onValueChange={(balanceSupportDefault) =>
+              onChange({
+                ...value,
+                balanceSupportDefault,
+                balanceSupportPreference: balanceSupportDefault,
+              })
+            }
           />
         )}
         <ToggleRow
@@ -1754,7 +1736,7 @@ function onlineProfileStorageLabel(state: OnlineProfileSyncState): string {
 
 function ProfileDetailsGlyph() {
   return (
-    <Svg width={38} height={38} viewBox="0 0 64 64" fill="none">
+    <Svg width={30} height={30} viewBox="0 0 64 64" fill="none">
       <Path
         d="M20 48 C22.4 39.6, 27.2 35.5, 32 35.5 C36.8 35.5, 41.6 39.6, 44 48"
         stroke={colors.accentDeep}
@@ -1774,6 +1756,21 @@ function ProfileDetailsGlyph() {
   );
 }
 
+function ForwardChevron({ color = colors.textSecondary }: { color?: string }) {
+  return (
+    <Svg width={8} height={14} viewBox="0 0 8 14" accessibilityElementsHidden>
+      <Path
+        d="M1.25 1.5L6 7L1.25 12.5"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 type MenuIconName =
   | 'shield'
   | 'sliders'
@@ -1782,22 +1779,6 @@ type MenuIconName =
   | 'bell'
   | 'account'
   | 'lock';
-
-type MenuIconTone = 'accent' | 'sage' | 'gold' | 'neutral';
-
-function menuIconToneStyle(tone: MenuIconTone) {
-  if (tone === 'accent') return styles.menuIconTileAccent;
-  if (tone === 'sage') return styles.menuIconTileSage;
-  if (tone === 'gold') return styles.menuIconTileGold;
-  return styles.menuIconTileNeutral;
-}
-
-function menuIconToneColor(tone: MenuIconTone): string {
-  if (tone === 'accent') return colors.accentDeep;
-  if (tone === 'sage') return colors.sageDeep;
-  if (tone === 'gold') return colors.accentGold;
-  return colors.textSecondary;
-}
 
 function MenuIcon({ name, color = colors.textSecondary }: { name: MenuIconName; color?: string }) {
   const stroke = color;
@@ -1890,188 +1871,93 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     gap: spacing.xl,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingTop: spacing.xs,
-  },
-  headerCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  headerEyebrow: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 11,
-    lineHeight: 15,
-    letterSpacing: 1.35,
-    color: colors.accentDeep,
-  },
-  headerSubtitle: {
-    ...type.pageSubtitle,
-    marginTop: 2,
-  },
-  headerMark: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  title: { ...type.pageTitle, flexShrink: 1 },
-  detailBackRow: {
-    alignItems: 'flex-start',
-  },
-  detailHeader: {
-    gap: 4,
-    paddingBottom: spacing.xs,
-  },
-  detailEyebrow: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 11,
-    lineHeight: 15,
-    letterSpacing: 1.35,
-    color: colors.accentDeep,
+  detailNavigation: {
+    gap: spacing.md,
   },
   detailSubtitle: {
     ...type.pageSubtitle,
     marginTop: 1,
   },
   profileCard: {
-    minHeight: 126,
+    minHeight: 92,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    overflow: 'hidden',
-  },
-  profileHaloLarge: {
-    position: 'absolute',
-    width: 178,
-    height: 178,
-    borderRadius: 89,
-    right: -92,
-    top: -86,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    opacity: 0.4,
-  },
-  profileHaloSmall: {
-    position: 'absolute',
-    width: 94,
-    height: 94,
-    borderRadius: 47,
-    right: -30,
-    bottom: -55,
-    backgroundColor: colors.accentSoft,
+    paddingVertical: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
   },
   avatar: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accentSoft,
     borderWidth: 1,
     borderColor: colors.accentBorder,
   },
   profileCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 3,
-  },
-  profileEyebrow: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 1.2,
-    color: colors.accentDeep,
+    gap: 2,
   },
   profileName: {
     fontFamily: fonts.serifMedium,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 28,
     letterSpacing: 0,
     color: colors.primaryText,
   },
   profileSummary: {
     fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     letterSpacing: 0,
     color: colors.textSecondary,
   },
-  profileEditPill: {
-    minWidth: 58,
-    height: 34,
+  profileEditAction: {
+    minWidth: 54,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     gap: 4,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
   },
   profileEditText: {
     fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    color: colors.onAccent,
-  },
-  profileEditChevron: {
-    fontFamily: fonts.sansRegular,
-    fontSize: 20,
-    lineHeight: 21,
-    color: colors.onAccent,
-    marginTop: -1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.accentDeep,
   },
   menuCard: {
-    overflow: 'hidden',
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
   },
   settingsSection: {
-    gap: spacing.sm,
+    gap: 0,
   },
   sectionHeading: {
-    gap: 1,
-    paddingHorizontal: spacing.xs,
+    minHeight: 42,
+    justifyContent: 'flex-end',
+    paddingBottom: spacing.sm,
   },
   sectionLabel: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 19,
-    lineHeight: 25,
-    color: colors.primaryText,
-  },
-  sectionSubtitle: {
-    fontFamily: fonts.sansRegular,
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
     fontSize: 12,
     lineHeight: 17,
-    color: colors.textTertiary,
+    letterSpacing: 1.5,
+    color: colors.primaryText,
+    textTransform: 'uppercase',
   },
   menuRow: {
-    minHeight: 88,
+    minHeight: 82,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    backgroundColor: colors.bgSurface,
-  },
-  menuDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
   },
@@ -2079,29 +1965,10 @@ const styles = StyleSheet.create({
     width: 24,
     alignItems: 'center',
   },
-  menuIconTile: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    alignItems: 'center',
+  menuGlyphColumn: {
+    width: 36,
+    alignItems: 'flex-start',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  menuIconTileAccent: {
-    backgroundColor: colors.accentSoft,
-    borderColor: colors.accentBorder,
-  },
-  menuIconTileSage: {
-    backgroundColor: colors.bgElevated,
-    borderColor: colors.borderHairline,
-  },
-  menuIconTileGold: {
-    backgroundColor: colors.bgGold,
-    borderColor: colors.borderHairline,
-  },
-  menuIconTileNeutral: {
-    backgroundColor: colors.bgElevated,
-    borderColor: colors.borderHairline,
   },
   menuCopy: {
     flex: 1,
@@ -2110,30 +1977,20 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 20,
     color: colors.primaryText,
   },
   menuSubtitle: {
     fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
     color: colors.textSecondary,
   },
-  chevronButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
+  rowChevron: {
+    width: 24,
+    alignItems: 'flex-end',
     justifyContent: 'center',
-    backgroundColor: colors.bgElevated,
-  },
-  chevron: {
-    fontFamily: fonts.sansRegular,
-    fontSize: 22,
-    color: colors.textSecondary,
-    lineHeight: 24,
-    marginTop: -2,
   },
   compactCardPadding: {
     paddingHorizontal: 14,

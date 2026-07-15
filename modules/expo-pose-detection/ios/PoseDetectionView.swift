@@ -1,6 +1,7 @@
 import AVFoundation
 import ExpoModulesCore
 import MediaPipeTasksVision
+import QuartzCore
 
 private let landmarkCount = 33
 private let landmarkStride = 5
@@ -53,6 +54,21 @@ private struct PoseLatencyDiagnostics {
   let mediapipeCallbackMs: Double
 }
 
+private struct NativePoseEvent {
+  let generation: Int
+  let frameId: Int
+  let timestampMs: Int
+  let inferenceMs: Double
+  let width: Int
+  let height: Int
+  let flat: [Double]
+  let maskRenderResult: SegmentationMaskRenderResult
+  let segmentationMaskEnabled: Bool
+  let nativePostprocessEndMs: Double
+  let resultFlattenMs: Double
+  let diagnostics: PoseLatencyDiagnostics?
+}
+
 /**
  * Owns AVCaptureSession + MediaPipe PoseLandmarker. No preview layer is ever
  * attached — the view renders a solid warm-stone canvas (the app's bg-base) and
@@ -72,7 +88,14 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   private var running = false
   private var lastTimestampMs = -1
   private var frameId = 0
+  private var sessionGeneration = 0
+  private let segmentationMaskLayer = CALayer()
+  private let segmentationMaskFigureRenderer = SegmentationMaskFigureRenderer()
   private let skeletonLayer = CAShapeLayer()
+  private lazy var nativeEventScheduler = LatestNativeEventScheduler<NativePoseEvent>(
+    getOrder: { $0.frameId },
+    schedule: { block in DispatchQueue.main.async(execute: block) },
+    emit: { [weak self] event in self?.emitNativePoseEvent(event) })
 
   // Props (defaults mirror the JS-side defaults).
   private var active = false
@@ -82,17 +105,23 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   private var minTrackingConfidence: Float = 0.35
   private var minPresenceConfidence: Float = 0.35
   private var latencyDiagnosticsEnabled = false
+  private var segmentationMaskFigureEnabled = false
   private var nativeSkeletonOverlayEnabled = false
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     // focus-canvas (#FAF8F7) - keep in sync with the JS theme token (src/theme).
     backgroundColor = UIColor(red: 0xFA / 255.0, green: 0xF8 / 255.0, blue: 0xF7 / 255.0, alpha: 1.0)
+    segmentationMaskLayer.contentsGravity = .resizeAspect
+    segmentationMaskLayer.minificationFilter = .linear
+    segmentationMaskLayer.magnificationFilter = .linear
+    segmentationMaskLayer.isHidden = true
     skeletonLayer.fillColor = nil
     skeletonLayer.strokeColor = UIColor(red: 0xEE / 255.0, green: 0xE2 / 255.0, blue: 0xDC / 255.0, alpha: 1.0).cgColor
     skeletonLayer.lineCap = .round
     skeletonLayer.lineJoin = .round
     skeletonLayer.contentsScale = UIScreen.main.scale
+    layer.addSublayer(segmentationMaskLayer)
     layer.addSublayer(skeletonLayer)
   }
 
@@ -105,6 +134,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   func setCameraFacingProp(_ value: String) {
     guard cameraFacing != value else { return }
     cameraFacing = value
+    updateSegmentationMaskLayerGeometry()
     restartIfRunning()
   }
 
@@ -136,11 +166,21 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     latencyDiagnosticsEnabled = value
   }
 
-  // Android-only for now: the iOS mask figure lands after the Android
-  // spike passes its fps/edge-quality gate (see docs/decisions.md).
-  func setSegmentationMaskFigureEnabledProp(_ value: Bool) {}
+  func setSegmentationMaskFigureEnabledProp(_ value: Bool) {
+    guard segmentationMaskFigureEnabled != value else { return }
+    segmentationMaskFigureEnabled = value
+    segmentationMaskFigureRenderer.clearSubject()
+    setSegmentationMaskVisible(false)
+    // The landmarker only produces masks when requested at construction.
+    restartIfRunning()
+  }
 
-  func setSegmentationMaskFigureColorProp(_ value: String) {}
+  func setSegmentationMaskFigureColorProp(_ value: String) {
+    segmentationMaskFigureRenderer.setColor(
+      UIColor(hexString: value)
+        ?? UIColor(red: 0x8E / 255.0, green: 0x31 / 255.0, blue: 0x58 / 255.0, alpha: 1.0)
+    )
+  }
 
   func setAndroidPipelineModeProp(_ value: String) {}
 
@@ -169,6 +209,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   override func layoutSubviews() {
     super.layoutSubviews()
+    updateSegmentationMaskLayerGeometry()
     skeletonLayer.frame = bounds
   }
 
@@ -207,6 +248,8 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     UIApplication.shared.isIdleTimerDisabled = true
     lastTimestampMs = -1
     frameId = 0
+    sessionGeneration += 1
+    nativeEventScheduler.reset()
     sessionQueue.async { [weak self] in
       guard let self, self.running else { return }
       do {
@@ -232,7 +275,11 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   private func stop() {
     running = false
+    sessionGeneration += 1
+    nativeEventScheduler.cancel()
     UIApplication.shared.isIdleTimerDisabled = false
+    segmentationMaskFigureRenderer.clearSubject()
+    setSegmentationMaskVisible(false)
     sessionQueue.async { [weak self] in
       guard let self else { return }
       if self.session.isRunning {
@@ -253,7 +300,8 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     }
 
     session.beginConfiguration()
-    // 640x480 is plenty: the lite model downscales to 256px internally.
+    // Keep the locked 640x480 capture input; MediaPipe performs its own model
+    // input resize. Mask presentation must not change measurement resolution.
     session.sessionPreset = .vga640x480
 
     let position: AVCaptureDevice.Position = cameraFacing == "back" ? .back : .front
@@ -318,7 +366,8 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
       return try PoseDetectionView.buildLandmarker(
         modelPath: modelPath, delegate: .GPU,
         detection: minDetectionConfidence, tracking: minTrackingConfidence,
-        presence: minPresenceConfidence)
+        presence: minPresenceConfidence,
+        outputSegmentationMasks: segmentationMaskFigureEnabled)
     } catch {
       // GPU delegate can fail (simulator, older devices); CPU still hits
       // ~30fps with the lite model on modern iPhones.
@@ -328,13 +377,15 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
       return try PoseDetectionView.buildLandmarker(
         modelPath: modelPath, delegate: .CPU,
         detection: minDetectionConfidence, tracking: minTrackingConfidence,
-        presence: minPresenceConfidence)
+        presence: minPresenceConfidence,
+        outputSegmentationMasks: segmentationMaskFigureEnabled)
     }
   }
 
   private static func buildLandmarker(
     modelPath: String, delegate: Delegate,
-    detection: Float, tracking: Float, presence: Float
+    detection: Float, tracking: Float, presence: Float,
+    outputSegmentationMasks: Bool
   ) throws -> PoseLandmarker {
     let options = PoseLandmarkerOptions()
     options.baseOptions.modelAssetPath = modelPath
@@ -344,6 +395,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     options.minPoseDetectionConfidence = detection
     options.minTrackingConfidence = tracking
     options.minPosePresenceConfidence = presence
+    options.shouldOutputSegmentationMasks = outputSegmentationMasks
     return try PoseLandmarker(options: options)
   }
 
@@ -363,8 +415,9 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   ) {
     guard running, let landmarker else { return }
     let diagnosticsEnabled = latencyDiagnosticsEnabled
-    if diagnosticsEnabled { frameId += 1 }
+    frameId += 1
     let diagnosticFrameId = frameId
+    let generation = sessionGeneration
     let preprocessingStartMs = diagnosticsEnabled ? PoseDetectionView.nativeNowMs() : 0
 
     // Presentation timestamps are monotonic within a capture session; VIDEO
@@ -393,6 +446,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
           mediapipeCallbackMs: mediapipeCallbackMs)
         : nil
       dispatch(
+        generation: generation, frameId: diagnosticFrameId,
         result: result, timestampMs: timestampMs, inferenceMs: inferenceMs,
         width: Int(image.width), height: Int(image.height), diagnostics: diagnostics)
     } catch {
@@ -403,9 +457,14 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   }
 
   private func dispatch(
+    generation: Int, frameId: Int,
     result: PoseLandmarkerResult, timestampMs: Int, inferenceMs: Double,
     width: Int, height: Int, diagnostics: PoseLatencyDiagnostics?
   ) {
+    // A restart can finish while an older synchronous VIDEO inference is still
+    // returning. Never let that stale frame poison the new session's ordering.
+    guard running, generation == sessionGeneration else { return }
+    let flattenStartMs = diagnostics != nil ? PoseDetectionView.nativeNowMs() : 0
     var flat: [Double]
     if let pose = result.landmarks.first {
       flat = [Double](repeating: 0, count: landmarkCount * landmarkStride)
@@ -424,17 +483,57 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
       // continuity to drive subject-gone detection.
       flat = []
     }
+    let flattenEndMs = diagnostics != nil ? PoseDetectionView.nativeNowMs() : 0
+    let maskRenderResult: SegmentationMaskRenderResult
+    if segmentationMaskFigureEnabled {
+      if flat.isEmpty {
+        segmentationMaskFigureRenderer.clearSubject()
+        maskRenderResult = .hidden(dataType: "no-subject")
+      } else {
+        maskRenderResult = segmentationMaskFigureRenderer.render(
+          mask: result.segmentationMasks.first,
+          collectDiagnostics: diagnostics != nil)
+      }
+    } else {
+      maskRenderResult = .hidden(dataType: "disabled")
+    }
     let nativePostprocessEndMs = diagnostics != nil ? PoseDetectionView.nativeNowMs() : 0
-    let nativeEventEmitMs = diagnostics != nil ? PoseDetectionView.nativeNowMs() : 0
+    nativeEventScheduler.submit(
+      NativePoseEvent(
+        generation: generation,
+        frameId: frameId,
+        timestampMs: timestampMs,
+        inferenceMs: inferenceMs,
+        width: width,
+        height: height,
+        flat: flat,
+        maskRenderResult: maskRenderResult,
+        segmentationMaskEnabled: segmentationMaskFigureEnabled,
+        nativePostprocessEndMs: nativePostprocessEndMs,
+        resultFlattenMs: diagnostics != nil ? flattenEndMs - flattenStartMs : 0,
+        diagnostics: diagnostics))
+  }
+
+  /** Publishes one matched mask + landmark pair on the main thread. */
+  private func emitNativePoseEvent(_ event: NativePoseEvent) {
+    guard running, event.generation == sessionGeneration else { return }
+    let payloadStartMs = event.diagnostics != nil ? PoseDetectionView.nativeNowMs() : 0
+    applySegmentationMaskRenderResult(event.maskRenderResult)
+    let maskPublishMs = event.diagnostics != nil && event.segmentationMaskEnabled
+      ? PoseDetectionView.nativeNowMs()
+      : 0
+    updateNativeSkeleton(flat: event.flat, sourceWidth: event.width, sourceHeight: event.height)
     var payload: [String: Any] = [
-      "timestampMs": Double(timestampMs),
-      "landmarks": flat,
-      "inferenceMs": inferenceMs,
-      "sourceWidth": width,
-      "sourceHeight": height,
+      "timestampMs": Double(event.timestampMs),
+      "landmarks": event.flat,
+      "inferenceMs": event.inferenceMs,
+      "sourceWidth": event.width,
+      "sourceHeight": event.height,
     ]
-    if let diagnostics {
-      payload["latency"] = [
+    if let diagnostics = event.diagnostics {
+      let nativeEventEmitMs = PoseDetectionView.nativeNowMs()
+      let schedulerStats = nativeEventScheduler.stats()
+      var latency: [String: Any] = [
         "frameId": Double(diagnostics.frameId),
         "nativeClock": "ios.CACurrentMediaTime",
         "sourceTimestampMs": diagnostics.sourceTimestampMs,
@@ -442,14 +541,74 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
         "preprocessingEndMs": diagnostics.preprocessingEndMs,
         "mediapipeSubmitMs": diagnostics.mediapipeSubmitMs,
         "mediapipeCallbackMs": diagnostics.mediapipeCallbackMs,
-        "nativePostprocessEndMs": nativePostprocessEndMs,
+        "nativePostprocessEndMs": event.nativePostprocessEndMs,
         "nativeEventEmitMs": nativeEventEmitMs,
+        "sourceAgeAtMediapipeSubmitMs": diagnostics.mediapipeSubmitMs - diagnostics.sourceTimestampMs,
+        "sourceAgeAtMediapipeCallbackMs": diagnostics.mediapipeCallbackMs - diagnostics.sourceTimestampMs,
+        "sourceAgeAtNativeEventEmitMs": nativeEventEmitMs - diagnostics.sourceTimestampMs,
+        "resultFlattenMs": event.resultFlattenMs,
+        "eventPayloadBuildMs": nativeEventEmitMs - payloadStartMs,
+        "outputSegmentationMasks": event.segmentationMaskEnabled,
+        "maskFrameId": Double(event.frameId),
+        "maskExtractionMs": event.maskRenderResult.diagnostics.extractionMs,
+        "maskRasterMs": event.maskRenderResult.diagnostics.rasterMs,
+        "maskPostprocessMs": event.maskRenderResult.diagnostics.postprocessMs,
+        "maskDataType": event.maskRenderResult.diagnostics.dataType,
+        "maskSourceWidth": event.maskRenderResult.diagnostics.sourceWidth,
+        "maskSourceHeight": event.maskRenderResult.diagnostics.sourceHeight,
+        "maskRasterWidth": event.maskRenderResult.diagnostics.rasterWidth,
+        "maskRasterHeight": event.maskRenderResult.diagnostics.rasterHeight,
+        "nativeEventScheduledCount": Double(schedulerStats.scheduled),
+        "nativeEventCoalescedCount": Double(schedulerStats.coalesced),
+        "nativeEventRejectedCount": Double(schedulerStats.rejected),
+        "nativeEventEmittedCount": Double(schedulerStats.emitted),
       ]
+      if event.segmentationMaskEnabled {
+        latency["maskPublishMs"] = maskPublishMs
+        latency["sourceAgeAtMaskPublishMs"] = maskPublishMs - diagnostics.sourceTimestampMs
+      }
+      payload["latency"] = latency
     }
-    DispatchQueue.main.async {
-      self.updateNativeSkeleton(flat: flat, sourceWidth: width, sourceHeight: height)
-      self.onLandmarks(payload)
+    onLandmarks(payload)
+  }
+
+  private func applySegmentationMaskRenderResult(_ result: SegmentationMaskRenderResult) {
+    guard running, segmentationMaskFigureEnabled else {
+      setSegmentationMaskVisible(false)
+      return
     }
+    switch result.content {
+    case .image(let image):
+      CATransaction.begin()
+      CATransaction.setDisableActions(true)
+      segmentationMaskLayer.contents = image
+      segmentationMaskLayer.isHidden = false
+      CATransaction.commit()
+    case .hidden:
+      setSegmentationMaskVisible(false)
+    case .unavailable(let message):
+      setSegmentationMaskVisible(false)
+      onPoseError(["message": message])
+    }
+  }
+
+  private func setSegmentationMaskVisible(_ visible: Bool) {
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    segmentationMaskLayer.isHidden = !visible
+    if !visible { segmentationMaskLayer.contents = nil }
+    CATransaction.commit()
+  }
+
+  private func updateSegmentationMaskLayerGeometry() {
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    segmentationMaskLayer.bounds = bounds
+    segmentationMaskLayer.position = CGPoint(x: bounds.midX, y: bounds.midY)
+    segmentationMaskLayer.setAffineTransform(
+      CGAffineTransform(scaleX: cameraFacing == "back" ? 1 : -1, y: 1)
+    )
+    CATransaction.commit()
   }
 
   private func updateNativeSkeleton(flat: [Double], sourceWidth: Int, sourceHeight: Int) {

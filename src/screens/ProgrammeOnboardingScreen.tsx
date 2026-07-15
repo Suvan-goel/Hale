@@ -2,10 +2,10 @@
  * Programme v2 onboarding — ONE config-driven screen for the whole flow
  * (THE app onboarding since promotion, 2026-07-08).
  *
- * Seven user-visible screens preserve every answer that changes safety,
- * starting placement, check-up access, or meaningful context. Related answer
- * fields share a screen; the flow machine still owns their conservative
- * defaults and conditional Gentle Start branch.
+ * The normal path is four top-level stages: Welcome, one personal goal,
+ * progressively disclosed Health & Privacy, and Start. The first required
+ * health answer carries the on-device-use disclosure. The flow machine owns
+ * the conservative defaults for everything deliberately deferred to Settings.
  *
  * Promotion integration Phase 2: restyled to the app's design language —
  * ScreenHeader with eyebrow/progress, rail-accented option cards
@@ -17,12 +17,10 @@ import * as React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { BRAND } from '../brand';
-import { BackArrowButton } from '../components/BackArrowButton';
 import { OptionCard } from '../components/OptionCard';
 import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import {
   currentOnboardingStep,
-  gentleStartFromAnswers,
   onboardingScreenForStep,
   onboardingMessageContent,
   onboardingQuestionContent,
@@ -31,7 +29,7 @@ import {
   type OnboardingStepId,
   type ProgrammeOnboardingFlowState,
 } from '../programme';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
 const WELCOME_HERO_IMAGE = require('../../assets/images/pearl-welcome-hero-v3.png');
@@ -43,23 +41,24 @@ export function ProgrammeOnboardingScreen({
   onSkipQuestion,
   onAcknowledge,
   onComplete,
+  onPreviewSession,
   onBack,
   onSignIn,
 }: {
   flowState: ProgrammeOnboardingFlowState;
-  /** Single-select answer tap (value from the content layer's options). */
   onSelectOption: (step: OnboardingQuestionStepId, value: string) => void;
-  /** Multi-select answer (the grouped Movement Comfort screen). */
-  onSelectMany: (step: OnboardingQuestionStepId, values: readonly string[]) => void;
-  onSkipQuestion: (step: OnboardingQuestionStepId) => void;
+  onSelectMany: (step: 'b3_joints', values: readonly JointFlag[]) => void;
+  onSkipQuestion: (step: Extract<OnboardingQuestionStepId, 'a1_life_goal' | 'b3_joints'>) => void;
   onAcknowledge: (step: OnboardingStepId) => void;
   /** The final screen records check-up timing and the immediate route together. */
   onComplete: (input: {
-    assessmentChoice: 'now' | 'after_first_workout' | 'skip';
-    action: 'start_first_session' | 'schedule';
+    assessmentChoice: 'now';
+    action: 'start_first_session';
   }) => void;
-  /** Screen-wise back (flow-machine undo). Hidden on Welcome. */
-  onBack?: () => void;
+  /** Opens a short voice-paced preview without completing onboarding or saving a workout. */
+  onPreviewSession: () => void;
+  /** Progressive-panel back (flow-machine undo). Hidden on Welcome. */
+  onBack: () => void;
   /** Optional returning-user path; guest-first Continue remains primary. */
   onSignIn?: () => void;
 }) {
@@ -70,12 +69,7 @@ export function ProgrammeOnboardingScreen({
   const screen = onboardingScreenForStep(step);
   const answers = flowState.answers;
 
-  const showBack = screen !== 'welcome' && !!onBack;
-  const backRow = showBack ? (
-    <View style={styles.backRow}>
-      <BackArrowButton accessibilityLabel="Back to the previous screen" onPress={onBack} />
-    </View>
-  ) : null;
+  const headerBack = screen !== 'welcome' ? onBack : undefined;
 
   if (screen === 'welcome' || screen === 'heart_advisory') {
     const messageStep: Extract<OnboardingStepId, 'welcome' | 'b1_advisory'> =
@@ -85,8 +79,14 @@ export function ProgrammeOnboardingScreen({
     const [subtitle, ...panelLines] = message.body;
     return (
       <Screen contentStyle={styles.screen}>
-        {backRow}
-        <ScreenHeader eyebrow={message.eyebrow} title={message.title} subtitle={subtitle} />
+        <ScreenHeader
+          eyebrow={message.eyebrow}
+          title={message.title}
+          subtitle={subtitle}
+          prominentTitle
+          onBack={headerBack}
+          backAccessibilityLabel="Back to the previous screen"
+        />
         {isWelcome ? (
           <View style={styles.heroImageCard}>
             <Image
@@ -98,30 +98,13 @@ export function ProgrammeOnboardingScreen({
             />
           </View>
         ) : null}
-        {panelLines.length > 0 || message.facts ? (
+        {panelLines.length > 0 ? (
           <View style={[styles.panel, responsive.isCompactPhone && styles.compactCardPadding]}>
             {panelLines.map((line) => (
               <Text key={line} style={styles.panelBody}>
                 {line}
               </Text>
             ))}
-            {message.facts ? (
-              <View style={styles.factsRow}>
-                {message.facts.map((fact) => (
-                  <View key={fact.detail} style={styles.fact}>
-                    <Text
-                      style={styles.factValue}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.82}
-                    >
-                      {fact.value}
-                    </Text>
-                    <Text style={styles.factDetail}>{fact.detail}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : null}
           </View>
         ) : null}
         <View style={styles.actions}>
@@ -140,184 +123,73 @@ export function ProgrammeOnboardingScreen({
     );
   }
 
-  if (screen === 'about_you') {
-    return (
-      <Screen contentStyle={styles.screen}>
-        {backRow}
-        <ScreenHeader
-          eyebrow="About you"
-          title="A little about you"
-          subtitle="These answers set your starting levels and keep your experience relevant to you."
-        />
-        <QuestionGroup
-          step="a1_life_goal"
-          selected={answers.lifeGoal}
-          onSelect={onSelectOption}
-          onSkip={onSkipQuestion}
-        />
-        <QuestionGroup
-          step="a2_menopause_journey"
-          selected={answers.menopauseStage}
-          onSelect={onSelectOption}
-          onSkip={onSkipQuestion}
-        />
-        <QuestionGroup
-          step="a3_activity"
-          selected={answers.activityLevel}
-          onSelect={onSelectOption}
-          onSkip={onSkipQuestion}
-        />
-      </Screen>
-    );
-  }
-
-  if (screen === 'health_consent' || screen === 'heart_safety') {
-    const questionStep: Extract<OnboardingQuestionStepId, 'consent_health' | 'b1_heart'> =
-      screen === 'health_consent' ? 'consent_health' : 'b1_heart';
+  if (screen === 'goal') {
     return (
       <SingleQuestion
-        step={questionStep}
-        selected={questionStep === 'consent_health' ? answers.consent : answers.b1Heart}
-        backRow={backRow}
+        step="a1_life_goal"
+        selected={answers.lifeGoal}
+        onBack={headerBack}
         onSelect={onSelectOption}
         onSkip={onSkipQuestion}
       />
     );
   }
 
-  if (screen === 'movement_comfort') {
-    const joints = answers.b3Joints;
-    const toggleJoint = (value: string) => {
-      if (value === 'none') {
-        onSelectMany('b3_joints', []);
-        return;
-      }
-      const current = joints ?? [];
-      const joint = value as JointFlag;
-      onSelectMany(
-        'b3_joints',
-        current.includes(joint)
-          ? current.filter((item) => item !== joint)
-          : [...current, joint]
+  if (screen === 'health_safety') {
+    if (step === 'b3_joints') {
+      return (
+        <JointComfortQuestion
+          onBack={headerBack}
+          onSubmit={(values) => onSelectMany('b3_joints', values)}
+          onSkip={() => onSkipQuestion('b3_joints')}
+        />
       );
-    };
+    }
     return (
-      <Screen contentStyle={styles.screen}>
-        {backRow}
-        <ScreenHeader
-          eyebrow="Health check"
-          title="What should feel gentler?"
-          subtitle="These answers change starting levels, impact, and support. You can still stop or skip any move."
-        />
-        <QuestionGroup
-          step="b3_joints"
-          selectedMany={joints ?? []}
-          explicitEmpty={joints !== null && joints.length === 0}
-          onSelectMany={toggleJoint}
-        />
-        <QuestionGroup
-          step="b4_pelvic"
-          selected={answers.b4Pelvic}
-          onSelect={onSelectOption}
-          onSkip={onSkipQuestion}
-        />
-        <QuestionGroup
-          step="b5_balance"
-          selected={answers.b5Balance}
-          onSelect={onSelectOption}
-          onSkip={onSkipQuestion}
-        />
-      </Screen>
+      <SingleQuestion
+        step="b1_heart"
+        selected={answers.b1Heart}
+        onBack={headerBack}
+        onSelect={onSelectOption}
+        onSkip={onSkipQuestion}
+      />
     );
   }
 
-  if (screen === 'setup') {
-    return (
-      <Screen contentStyle={styles.screen}>
-        {backRow}
-        <ScreenHeader
-          eyebrow="Your setup"
-          title="Your workout space"
-          subtitle="We only use a step when the setup is stable, and we can leave stomping out."
-        />
-        <QuestionGroup
-          step="c1_stairs"
-          selected={answers.c1Stairs}
-          onSelect={onSelectOption}
-          onSkip={onSkipQuestion}
-        />
-        <QuestionGroup
-          step="c2_quiet"
-          selected={answers.c2Quiet}
-          onSelect={onSelectOption}
-          onSkip={onSkipQuestion}
-        />
-      </Screen>
-    );
-  }
-
-  const gentleStart = gentleStartFromAnswers(answers);
-  const checkUpAvailable = answers.consent === 'agree' && !gentleStart;
-  const finishTitle = gentleStart
-    ? 'Your gentle start is ready'
-    : answers.consent === 'decline'
-      ? 'Your private starter plan is ready'
-      : 'How would you like to begin?';
-  const finishSubtitle = gentleStart
-    ? 'Your first sessions begin at the easiest levels. The Movement Check-Up stays off while Gentle Start is active.'
-    : answers.consent === 'decline'
-      ? 'We will not use health answers. Your sessions start conservatively, without a Movement Check-Up.'
-      : 'Choose the start that feels right. You can stop or change your mind at any time.';
+  const finishTitle = 'Your starting check-up is next';
+  const finishSubtitle = `Measure Strength and Balance before Week 1, so ${BRAND.appName} can choose the right focus and compare your results later.`;
 
   return (
     <Screen contentStyle={styles.screen}>
-      {backRow}
-      <ScreenHeader eyebrow="Your start" title={finishTitle} subtitle={finishSubtitle} />
+      <ScreenHeader
+        eyebrow="Your start"
+        title={finishTitle}
+        subtitle={finishSubtitle}
+        prominentTitle
+        onBack={headerBack}
+        backAccessibilityLabel="Back to the previous screen"
+      />
       <View style={[styles.panel, responsive.isCompactPhone && styles.compactCardPadding]}>
         <Text style={styles.panelBody}>
-          Three sessions are planned each week, and two is enough. Your first session is about 15 minutes and voice-guided.
+          {BRAND.appName} plans three voice-guided sessions each week. Two is a successful week.
         </Text>
-        {checkUpAvailable ? (
-          <Text style={styles.panelBody}>
-            The private check-up measures Strength and Balance, then offers Everyday Clarity. It is processed on this phone and never shows your video.
-          </Text>
-        ) : null}
+        <Text style={styles.panelBody}>
+          The Movement Check-Up takes about eight minutes, measures Strength and Balance, then offers optional Everyday Clarity. Your 15-minute first session follows an accepted result. It is all processed on this phone and never shows your video.
+        </Text>
+        <Text style={styles.panelBody}>
+          You’ll need a sturdy chair and a little clear space.
+        </Text>
       </View>
       <View style={styles.actions}>
-        {checkUpAvailable ? (
-          <>
-            <PrimaryButton
-              title="Check my movement, then start"
-              onPress={() =>
-                onComplete({ assessmentChoice: 'now', action: 'start_first_session' })
-              }
-            />
-            <SecondaryButton
-              title="Start with one gentle session"
-              onPress={() =>
-                onComplete({
-                  assessmentChoice: 'after_first_workout',
-                  action: 'start_first_session',
-                })
-              }
-            />
-          </>
-        ) : (
-          <PrimaryButton
-            title="Start my first session"
-            onPress={() =>
-              onComplete({ assessmentChoice: 'skip', action: 'start_first_session' })
-            }
-          />
-        )}
-        <GhostButton
-          title="Go to Home for now"
+        <PrimaryButton
+          title="Do my starting check-up"
           onPress={() =>
-            onComplete({
-              assessmentChoice: checkUpAvailable ? 'after_first_workout' : 'skip',
-              action: 'schedule',
-            })
+            onComplete({ assessmentChoice: 'now', action: 'start_first_session' })
           }
+        />
+        <SecondaryButton
+          title="See how a session works"
+          onPress={onPreviewSession}
         />
       </View>
     </Screen>
@@ -327,25 +199,27 @@ export function ProgrammeOnboardingScreen({
 function SingleQuestion({
   step,
   selected,
-  backRow,
+  onBack,
   onSelect,
   onSkip,
 }: {
-  step: Extract<OnboardingQuestionStepId, 'consent_health' | 'b1_heart'>;
+  step: Extract<OnboardingQuestionStepId, 'a1_life_goal' | 'b1_heart'>;
   selected: string | null;
-  backRow: React.ReactNode;
+  onBack?: () => void;
   onSelect: (step: OnboardingQuestionStepId, value: string) => void;
-  onSkip: (step: OnboardingQuestionStepId) => void;
+  onSkip: (step: Extract<OnboardingQuestionStepId, 'a1_life_goal'>) => void;
 }) {
   const responsive = useResponsiveLayout();
   const question = onboardingQuestionContent(step);
   return (
     <Screen contentStyle={styles.screen}>
-      {backRow}
       <ScreenHeader
         eyebrow={question.eyebrow}
         title={question.question}
         subtitle={question.whyWeAsk}
+        prominentTitle
+        onBack={onBack}
+        backAccessibilityLabel="Back to the previous screen"
       />
       {question.note ? (
         <View style={[styles.notePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
@@ -362,7 +236,7 @@ function SingleQuestion({
             onPress={() => onSelect(step, option.value)}
           />
         ))}
-        {question.skippable ? (
+        {question.skippable && step === 'a1_life_goal' ? (
           <OptionCard
             label={question.skipLabel ?? 'Skip'}
             selected={selected === 'skipped'}
@@ -374,62 +248,62 @@ function SingleQuestion({
   );
 }
 
-function QuestionGroup({
-  step,
-  selected,
-  selectedMany,
-  explicitEmpty = false,
-  onSelect,
-  onSelectMany,
+function JointComfortQuestion({
+  onBack,
+  onSubmit,
   onSkip,
 }: {
-  step: OnboardingQuestionStepId;
-  selected?: string | null;
-  selectedMany?: readonly string[];
-  explicitEmpty?: boolean;
-  onSelect?: (step: OnboardingQuestionStepId, value: string) => void;
-  onSelectMany?: (value: string) => void;
-  onSkip?: (step: OnboardingQuestionStepId) => void;
+  onBack?: () => void;
+  onSubmit: (values: readonly JointFlag[]) => void;
+  onSkip: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const question = onboardingQuestionContent(step);
+  const question = onboardingQuestionContent('b3_joints');
+  const [selected, setSelected] = React.useState<readonly JointFlag[]>([]);
+  const jointOptions = question.options.filter(
+    (option): option is { value: JointFlag; label: string; microcopy?: string } =>
+      option.value !== question.noneValue
+  );
+  const toggle = (joint: JointFlag) => {
+    setSelected((current) =>
+      current.includes(joint)
+        ? current.filter((item) => item !== joint)
+        : [...current, joint]
+    );
+  };
   return (
-    <View style={[styles.questionGroup, responsive.isCompactPhone && styles.compactCardPadding]}>
-      <View style={styles.questionGroupHeader}>
-        <Text style={styles.questionGroupTitle}>{question.question}</Text>
-        <Text style={styles.questionGroupWhy}>{question.whyWeAsk}</Text>
-        {question.note ? <Text style={styles.questionGroupNote}>{question.note}</Text> : null}
-      </View>
+    <Screen contentStyle={styles.screen}>
+      <ScreenHeader
+        eyebrow={question.eyebrow}
+        title={question.question}
+        subtitle={question.whyWeAsk}
+        prominentTitle
+        onBack={onBack}
+        backAccessibilityLabel="Back to the previous question"
+      />
       <View style={styles.options}>
-        {question.options.map((option) => {
-          const selectedOption = question.multiSelect
-            ? option.value === question.noneValue
-              ? explicitEmpty
-              : selectedMany?.includes(option.value) === true
-            : selected === option.value;
-          return (
-            <OptionCard
-              key={option.value}
-              label={option.label}
-              microcopy={option.microcopy}
-              selected={selectedOption}
-              onPress={() =>
-                question.multiSelect
-                  ? onSelectMany?.(option.value)
-                  : onSelect?.(step, option.value)
-              }
-            />
-          );
-        })}
-        {question.skippable ? (
+        {jointOptions.map((option) => (
           <OptionCard
-            label={question.skipLabel ?? 'Skip'}
-            selected={selected === 'skipped'}
-            onPress={() => onSkip?.(step)}
+            key={option.value}
+            label={option.label}
+            selected={selected.includes(option.value)}
+            onPress={() => toggle(option.value)}
           />
-        ) : null}
+        ))}
       </View>
-    </View>
+      <View style={styles.actions}>
+        {selected.length > 0 ? (
+          <PrimaryButton title="Continue" onPress={() => onSubmit(selected)} />
+        ) : null}
+        <SecondaryButton title="None of these" onPress={() => onSubmit([])} />
+        <GhostButton title={question.skipLabel ?? 'Prefer not to say'} onPress={onSkip} />
+      </View>
+      {question.note ? (
+        <View style={[styles.notePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
+          <Text style={styles.noteText}>{question.note}</Text>
+        </View>
+      ) : null}
+    </Screen>
   );
 }
 
@@ -438,9 +312,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.pageTop,
     paddingBottom: spacing.xxxl,
     gap: spacing.xl,
-  },
-  backRow: {
-    alignItems: 'flex-start',
   },
   heroImageCard: {
     aspectRatio: 16 / 9,
@@ -469,36 +340,6 @@ const styles = StyleSheet.create({
     ...type.bodySmall,
     color: colors.textSecondary,
   },
-  factsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingTop: spacing.sm,
-  },
-  fact: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: radius.sm,
-    backgroundColor: colors.bgElevated,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  factValue: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  factDetail: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
   notePanel: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
@@ -507,37 +348,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
   },
+  // The on-device-use disclosure is the most trust-sensitive line in the
+  // flow, for an audience 45–60: body-size type and primary colour, never
+  // caption-grey (2026-07-14 onboarding review).
   noteText: {
-    ...type.cardBody,
-    color: colors.textSecondary,
-  },
-  questionGroup: {
-    gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.card,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
-  },
-  questionGroupHeader: {
-    gap: spacing.sm,
-  },
-  questionGroupTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 21,
-    lineHeight: 27,
+    ...type.bodySmall,
     color: colors.textPrimary,
-  },
-  questionGroupWhy: {
-    ...type.cardBody,
-    color: colors.textSecondary,
-  },
-  questionGroupNote: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-    paddingTop: spacing.xs,
   },
   options: {
     gap: spacing.md,

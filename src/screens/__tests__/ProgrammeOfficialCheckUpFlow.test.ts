@@ -29,6 +29,17 @@ describe('official Movement Check-Up lifecycle', () => {
     );
   });
 
+  it('states the physical setup at the moment of commitment with a penalty-free exit', () => {
+    // 2026-07-14 onboarding review: she picks her moment before the camera
+    // ask, and leaving is a plan ("set up and come back"), not a dead end.
+    expect(host).toContain('checklist={CHECKUP_SETUP_CHECKLIST}');
+    expect(host).toContain("'A sturdy chair'");
+    expect(host).toContain("'A couple of steps of clear space'");
+    expect(host).toContain("'The main light on'");
+    expect(host).toContain("'Somewhere to prop your phone at about hip height'");
+    expect(host).toContain('title="I’ll set up and come back" onPress={onCancel}');
+  });
+
   it('stages raw movement data as a draft and saves official history only on final completion', () => {
     expect(root).toContain('new OfficialCheckUpDraftStore(localFs)');
     expect(root).toContain('checkUpDraftStore.save(checkUp, checkupType, updatedAtIso)');
@@ -68,5 +79,19 @@ describe('official Movement Check-Up lifecycle', () => {
     expect(handler).toContain('officialCheckUpAccess');
     expect(handler).toContain('if (access.allowed)');
     expect(root).toContain('checkUpBlockedReason=');
+  });
+
+  it('gates every eligible Week 1 entry on an accepted baseline', () => {
+    const sessionHandler = root.slice(
+      root.indexOf('const startSessionFromHome ='),
+      root.indexOf('const handleSessionStart =')
+    );
+    expect(sessionHandler).toContain('baselineCheckupRequiredBeforeTraining(programmeState)');
+    expect(sessionHandler).toContain('healthAnswersRequiredBeforeBaseline(programmeState)');
+    expect(sessionHandler).toContain("setSettingsInitialSection('health')");
+    expect(sessionHandler).toContain("setPhase('assessment')");
+    expect(root).toContain("continuationState.journey.status !== 'awaiting_baseline'");
+    expect(root).toContain('deferred: programmeState.completedSessionCount > 0');
+    expect(root).toContain("completion.assessmentIntent !== 'start_now'");
   });
 });

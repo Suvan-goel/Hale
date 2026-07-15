@@ -277,7 +277,6 @@ export interface TrainingVoiceAssetRequirementV21 {
   readonly currentCandidateKey: string | null;
   readonly currentCandidateScript: string | null;
   readonly claraStatus: 'exists' | 'missing';
-  readonly marcusStatus: 'exists' | 'missing';
   readonly semanticMatch: boolean;
   readonly reuseDecision:
     | 'reuse_exact_existing_pair'

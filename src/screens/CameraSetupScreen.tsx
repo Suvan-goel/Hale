@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
@@ -10,7 +9,7 @@ import { BRAND } from '../brand';
 const SETUP_HERO_IMAGE = require('../../assets/images/pearl-camera-setup-hero-v4.png');
 
 const SETUP_STEPS = [
-  'Set your phone somewhere steady. A shelf, table, phone stand, wall, or sturdy bottle is fine.',
+  'Set your phone somewhere steady at about hip height. A shelf, table, phone stand, or chair seat is fine.',
   'Stand about 2 to 3 meters away, with your whole body in view.',
   `Turn your volume up so you can hear ${BRAND.appName}.`,
   'Keep your chair and a wall or counter nearby.',
@@ -31,11 +30,12 @@ export function CameraSetupScreen({
 
   return (
     <Screen>
-      <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
         eyebrow="Camera and audio"
         title="Set up your phone"
         subtitle={`Place your phone so ${BRAND.appName} can see your full body. You will not see a live video of yourself — just a simple outline.`}
+        onBack={onCancel}
+        backAccessibilityLabel="Back"
       />
 
       <View style={styles.setupImageCard}>

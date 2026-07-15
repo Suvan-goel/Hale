@@ -43,7 +43,7 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSCameraUsageDescription": "The camera estimates your movement as a skeleton outline. Camera video is never shown or stored.",
+        "NSCameraUsageDescription": "The camera estimates your movement as a clean body outline. Camera video is never shown or stored.",
         "NSMicrophoneUsageDescription": "The microphone listens for short session commands like ‘I’m ready’ and ‘done’, only while a workout is waiting for you. Audio is processed on your phone — never recorded, never uploaded.",
         "NSSpeechRecognitionUsageDescription": "Speech recognition runs on this phone only to hear short workout commands. Nothing you say is saved or uploaded."
       },

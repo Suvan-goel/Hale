@@ -19,6 +19,7 @@
  */
 
 import type { SessionRpe } from './effort';
+import { BRAND } from '../brand';
 import { getProgrammeLevel, maxProgrammeLevel } from './ladders';
 import { programmeDisplayName } from './naming';
 import {
@@ -74,6 +75,7 @@ export type ProgrammeTodayStateId =
   | 'first_session_ready'
   | 'session_ready'
   | 'returning_after_break'
+  | 'health_answers_required'
   | 'baseline_due';
 
 /** Mirrors the old lifecycle's action vocabulary so TodayScreen ports cleanly. */
@@ -82,7 +84,8 @@ export interface ProgrammeTodayAction {
     | 'start_first_session'
     | 'start_today_session'
     | 'start_gentle_restart'
-    | 'start_baseline_checkup';
+    | 'start_baseline_checkup'
+    | 'review_health_answers';
   title: string;
   subtitle: string;
   ctaLabel: string;
@@ -90,15 +93,15 @@ export interface ProgrammeTodayAction {
 }
 
 /**
- * The baseline can be deferred for one generic starter, but never becomes an
- * open-ended generic programme. Legacy `skipped` installs and an interrupted
- * "do it now" path follow the same rule when health-data consent is present.
- * The B1 gentle-start safety gate remains authoritative.
+ * Eligible users need an accepted baseline before programme training begins.
+ * This also closes the old one-starter exception for legacy `deferred`,
+ * `skipped`, and interrupted states. The active B1 Gentle Start safety route
+ * remains an authoritative exception because Pearl cannot offer it the
+ * effort-based check-up.
  */
-export function baselineCheckupDueAfterStarter(state: ProgrammeState): boolean {
+export function baselineCheckupRequiredBeforeTraining(state: ProgrammeState): boolean {
   if (
     state.journey.status !== 'awaiting_baseline' ||
-    state.completedSessionCount < 1 ||
     !state.profile.consentHealthData ||
     state.profile.assessmentStatus === 'done'
   ) {
@@ -106,6 +109,19 @@ export function baselineCheckupDueAfterStarter(state: ProgrammeState): boolean {
   }
   if (state.profile.gentleStartActive && !state.profile.gpConfirmed) return false;
   return state.profile.assessmentStatus !== 'bypassed_b1' || state.profile.gpConfirmed;
+}
+
+/**
+ * A new programme cannot begin without both the private safety answers and an
+ * accepted baseline. Kept separate from the check-up gate because consent must
+ * be restored before Pearl can decide whether the check-up itself is suitable.
+ */
+export function healthAnswersRequiredBeforeBaseline(state: ProgrammeState): boolean {
+  return (
+    state.journey.status === 'awaiting_baseline' &&
+    !state.profile.consentHealthData &&
+    state.profile.assessmentStatus !== 'done'
+  );
 }
 
 export interface ProgrammeSessionPreview {
@@ -149,10 +165,15 @@ export function programmeTodayViewModel(
   const minutes = Math.round(plan.estimatedMinutes);
   const patternList = listSentence(plan.main.map((exercise) => patternTitle(exercise.pattern).toLowerCase()));
 
-  const baselineDue = baselineCheckupDueAfterStarter(effective);
-  const checkupOffer = baselineDue ? null : checkupOfferFor(effective, nowIso);
+  const healthAnswersRequired = healthAnswersRequiredBeforeBaseline(effective);
+  const baselineRequired = baselineCheckupRequiredBeforeTraining(effective);
+  const checkupOffer = healthAnswersRequired || baselineRequired
+    ? null
+    : checkupOfferFor(effective, nowIso);
   const routineCheckupDue = checkupOffer?.kind === 'routine_due';
-  const stateId: ProgrammeTodayStateId = baselineDue || routineCheckupDue
+  const stateId: ProgrammeTodayStateId = healthAnswersRequired
+    ? 'health_answers_required'
+    : baselineRequired || routineCheckupDue
     ? 'baseline_due'
     : !effective.profile.firstSessionStarted
       ? 'first_session_ready'
@@ -161,13 +182,25 @@ export function programmeTodayViewModel(
         : 'session_ready';
 
   const primaryAction: ProgrammeTodayAction =
-    baselineDue
+    healthAnswersRequired
+      ? {
+          type: 'review_health_answers',
+          title: 'Health answers needed before your check-up',
+          subtitle:
+            `Week 1 begins after an accepted starting check-up. Review the two private safety answers so ${BRAND.appName} can decide whether to offer it.`,
+          ctaLabel: 'Review health answers',
+          tone: 'default',
+        }
+      : baselineRequired
       ? {
           type: 'start_baseline_checkup',
-          title: 'Build your 12-week plan',
+          title: 'Start with your Movement Check-Up',
+          // Warm re-entry: anyone who left the check-up lands here, so the
+          // card reads as a plan waiting for its moment, never a dead end
+          // (2026-07-14 onboarding review).
           subtitle:
-            'Your starter is done. Complete your private Movement Check-Up to begin Phase 1 with a measured Strength or Balance focus.',
-          ctaLabel: 'Continue to check-up',
+            `Ready whenever you are — about eight minutes with a sturdy chair and a little clear space. It measures your starting Strength and Balance before Week 1, so ${BRAND.appName} can choose the right focus and compare your results later.`,
+          ctaLabel: 'Start check-up',
           tone: 'default',
         }
       : routineCheckupDue
@@ -212,8 +245,10 @@ export function programmeTodayViewModel(
       estimatedMinutes: plan.estimatedMinutes,
       mainPatternTitles: plan.main.map((exercise) => patternTitle(exercise.pattern)),
     },
-    sessionDetail: baselineDue || routineCheckupDue
-      ? 'About eight minutes · Strength, Balance, then optional Everyday Clarity.'
+    sessionDetail: healthAnswersRequired
+      ? 'The answers stay on this phone and can be removed later in Settings.'
+      : baselineRequired || routineCheckupDue
+        ? 'About eight minutes · Strength, Balance, then optional Everyday Clarity.'
       : `Today: ${patternList} — about ${minutes} minutes.`,
     checkupOffer,
   };
@@ -230,6 +265,8 @@ export function checkupOfferFor(
   state: ProgrammeState,
   nowIso: string
 ): ProgrammeCheckupOffer | null {
+  if (!state.profile.consentHealthData) return null;
+  if (state.profile.gentleStartActive && !state.profile.gpConfirmed) return null;
   if (state.journey.status === 'completed') return null;
   if (isProgrammeJourneyRetestDue(state.journey, nowIso)) {
     return {
@@ -273,19 +310,20 @@ export interface OnboardingRoute {
 }
 
 /**
- * Where the app goes when onboarding completes. Honors BOTH promises made in
- * the flow: an assessment_offer answer of 'now' launches Check-up #0 (the
- * flow.ts completion contract — previously dropped by the dev shell), and
- * the expectation CTA's "start your first session" holds either way — after
- * the check-up when one runs first, so the freshly exact placement shapes
- * the very first session.
+ * Where the app goes when onboarding completes. Current onboarding always
+ * launches Check-up #0, then honors the first-session promise only after that
+ * check-up. A missing assessment intent is an incomplete/legacy caller and
+ * fails closed without a session route.
  */
 export function onboardingCompletionRoute(
   completion: { assessmentIntent: 'start_now' | null },
   action: 'start_first_session' | 'schedule'
 ): OnboardingRoute {
+  if (completion.assessmentIntent !== 'start_now') {
+    return { assessmentFirst: false, startFirstSession: false };
+  }
   return {
-    assessmentFirst: completion.assessmentIntent === 'start_now',
+    assessmentFirst: true,
     startFirstSession: action === 'start_first_session',
   };
 }

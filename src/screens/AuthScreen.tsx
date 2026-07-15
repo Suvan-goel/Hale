@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { AppBackground } from '../components/AppBackground';
-import { HeaderLogo } from '../components/HeaderLogo';
+import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { colors, fonts, spacing } from '../theme';
@@ -51,10 +51,7 @@ export function AuthScreen({
               { paddingHorizontal: responsive.horizontalPadding },
             ]}
           >
-            <View style={styles.brandRow}>
-              <HeaderLogo size={isCompactPhone ? 30 : 34} />
-              <Text style={[styles.wordmark, isCompactPhone && styles.wordmarkCompact]}>{BRAND.appName}</Text>
-            </View>
+            <PageHeader title="Sign in" brandMarkSize={isCompactPhone ? 30 : 34} />
             <View style={[styles.heroCopy, isCompactPhone && styles.heroCopyCompact]}>
               <Text style={[styles.title, isCompactPhone && styles.titleCompact]}>Strength for this chapter</Text>
               <View style={[styles.titleRule, isCompactPhone && styles.titleRuleCompact]} />
@@ -138,24 +135,6 @@ const styles = StyleSheet.create({
   heroContentCompact: {
     paddingTop: spacing.xxxl + spacing.xs,
     paddingBottom: AUTH_CARD_OVERLAP + spacing.xl,
-  },
-  brandRow: {
-    minHeight: 46,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: spacing.sm,
-  },
-  wordmark: {
-    color: colors.accentDeep,
-    fontFamily: fonts.serifMedium,
-    fontSize: 36,
-    lineHeight: 42,
-    letterSpacing: 0,
-  },
-  wordmarkCompact: {
-    fontSize: 32,
-    lineHeight: 38,
   },
   heroCopy: {
     width: '66%',

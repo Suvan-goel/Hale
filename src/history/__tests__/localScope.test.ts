@@ -40,16 +40,16 @@ describe('moveLocalFiles (guest data adoption)', () => {
 
   it('never overwrites files already present in the user scope', async () => {
     const guestFiles = new Map<string, string>([['prefs.json', '{"voice":"clara"}']]);
-    const userFiles = new Map<string, string>([['prefs.json', '{"voice":"marcus"}']]);
+    const userFiles = new Map<string, string>([['prefs.json', '{"theme":"custom"}']]);
     const result = await moveLocalFiles(createMemoryFs(guestFiles), createMemoryFs(userFiles));
 
     expect(result.moved).toBe(0);
-    expect(userFiles.get('prefs.json')).toBe('{"voice":"marcus"}');
+    expect(userFiles.get('prefs.json')).toBe('{"theme":"custom"}');
     expect(guestFiles.size).toBe(0);
   });
 
   it('is a no-op for an empty guest scope', async () => {
-    const userFiles = new Map<string, string>([['prefs.json', '{"voice":"marcus"}']]);
+    const userFiles = new Map<string, string>([['prefs.json', '{"theme":"custom"}']]);
     const result = await moveLocalFiles(createMemoryFs(), createMemoryFs(userFiles));
 
     expect(result.moved).toBe(0);

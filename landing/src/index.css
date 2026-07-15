@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  /* Palette — see README "Design system" */
-  --color-ink: #1a2420; /* near-black evergreen: dark sections, body text */
-  --color-bone: #f3efe7; /* warm paper: page background, text on dark */
-  --color-paper: #fbf8f2; /* raised light surface: cards, phone screen */
-  --color-pine: #2e4638; /* deep green: primary CTA, positive marks */
-  --color-brass: #a67c3d; /* burnished metric accent: dial, highlights */
-  --color-sage: #96a292; /* muted support: decoration only, never data */
-  --color-line: #ddd6c8; /* hairline rules on light surfaces */
+  /* Mirror the native app's warm editorial palette from src/theme. */
+  --color-ink: #171714;
+  --color-bone: #faf8f7;
+  --color-paper: #fffdfc;
+  --color-elevated: #f2ece9;
+  --color-pine: #7c405d;
+  --color-blush: #8e3158;
+  --color-brass: #9b7b4d;
+  --color-sage: #68735e;
+  --color-line: rgba(48, 39, 33, 0.14);
 
   --font-display: "Fraunces", ui-serif, Georgia, serif;
-  --font-body: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
@@ -27,12 +29,12 @@ body {
 }
 
 ::selection {
-  background: var(--color-brass);
-  color: var(--color-bone);
+  background: var(--color-pine);
+  color: #ffffff;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-brass);
+  outline: 2px solid var(--color-pine);
   outline-offset: 2px;
 }
 
@@ -57,6 +59,10 @@ summary::-webkit-details-marker {
   height: 52px;
   min-height: 52px;
   padding-block: 0;
+}
+
+.waitlist-input:focus-visible {
+  outline-color: #ffffff;
 }
 
 @media (prefers-reduced-motion: reduce) {

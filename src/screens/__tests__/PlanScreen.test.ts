@@ -11,6 +11,7 @@ const programmeRootSource = readFileSync(join(process.cwd(), 'src/screens/Progra
 describe('Home / Plan / Progress information architecture', () => {
   it('keeps Home to one centered action without imagery or plan-summary cards', () => {
     expect(homeSource).toContain("action.type === 'start_baseline_checkup'");
+    expect(homeSource).toContain("action.type === 'review_health_answers'");
     expect(homeSource).toContain('onPress={onPrimaryAction}');
     expect(homeSource).toContain('styles.actionStage');
     expect(homeSource).not.toContain('HERO_IMAGE');
@@ -37,10 +38,10 @@ describe('Home / Plan / Progress information architecture', () => {
   });
 
   it('uses a Plan-specific editorial hero and connected vertical session timeline', () => {
-    expect(planSource).toContain("pearl-plan-twelve-week-hero-v11.png");
+    expect(planSource).toContain("pearl-plan-supported-split-squat-transparent-v13.png");
     expect(planSource).toContain('<PlanJourneyHero />');
     expect(planSource).toContain('source={PLAN_JOURNEY_HERO}');
-    expect(planSource).toContain('resizeMode="cover"');
+    expect(planSource).toContain('resizeMode="contain"');
     expect(planSource).toContain('styles.timelineRail');
     expect(planSource).toContain('styles.timelineLineTop');
     expect(planSource).toContain('styles.timelineLineBottom');
@@ -71,12 +72,19 @@ describe('Home / Plan / Progress information architecture', () => {
     expect(planSource).not.toContain('There is no further check-up');
   });
 
-  it('keeps pre-baseline to one centered introduction', () => {
+  it('keeps pre-baseline to one centered introduction with one direct action', () => {
     expect(planSource).toContain('BEFORE WEEK 1');
     expect(planSource).toContain('Start with your Movement Check-Up');
     expect(planSource).toContain('Your eight-minute check-up');
     expect(planSource).toContain("alignItems: 'center'");
     expect(planSource).toContain("justifyContent: 'center'");
+    // The introduction must never be a dead end: when a check-up is allowed,
+    // she can start it right here instead of hunting for the button on Home.
+    expect(planSource).toContain('title="Start Movement Check-Up"');
+    expect(planSource).toContain('onPress={onStartCheckUp}');
+    expect(programmeRootSource).toContain(
+      'onStartCheckUp={checkUpAccess.allowed ? goAssessment : undefined}'
+    );
     expect(planSource).not.toContain('styles.preBaselineNext');
     expect(planSource).not.toContain('No camera video shown or saved · Start from Home');
     expect(planSource).not.toContain('<PrePlanPreview />');

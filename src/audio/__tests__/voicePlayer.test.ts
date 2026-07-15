@@ -21,67 +21,51 @@ jest.mock('expo-audio', () => ({
 describe('voice cue asset resolution', () => {
   const safetyCue: VoiceCueKey = 'tracking_pause_and_reset';
   const movementProfileV2Cue: VoiceCueKey = 'mpv2_balance_tracking_retry';
-  const normalCue: VoiceCueKey = 'training-intro';
 
   it('resolves safety cues directly for the selected voice', () => {
     const resolved = resolveVoiceCueAssetFromManifest(
       {
         clara: { [safetyCue]: 101 },
-        marcus: { [safetyCue]: 202 },
       },
-      'marcus',
+      'clara',
       safetyCue
     );
-    expect(resolved).toEqual({ asset: 202, resolvedVoiceId: 'marcus', usedFallback: false });
+    expect(resolved).toEqual({ asset: 101, resolvedVoiceId: 'clara', usedFallback: false });
   });
 
-  it('does not silently cross-fallback safety cues between supported voices', () => {
+  it('fails closed when the required Clara safety cue is absent', () => {
     expect(() =>
       resolveVoiceCueAssetFromManifest(
         {
-          clara: { [safetyCue]: 101 },
-          marcus: {},
+          clara: {},
         },
-        'marcus',
+        'clara',
         safetyCue
       )
     ).toThrow(/no bundled required audio/);
   });
 
-  it('does not silently cross-fallback Movement Profile V2 cues between supported voices', () => {
+  it('fails closed when the required Clara Movement Profile V2 cue is absent', () => {
     expect(() =>
       resolveVoiceCueAssetFromManifest(
         {
-          clara: { [movementProfileV2Cue]: 101 },
-          marcus: {},
+          clara: {},
         },
-        'marcus',
+        'clara',
         movementProfileV2Cue
       )
     ).toThrow(/no bundled required audio/);
   });
 
-  it('keeps the historical default fallback for non-safety cues', () => {
+  it('normalizes retired voice ids to Clara', () => {
     const resolved = resolveVoiceCueAssetFromManifest(
       {
-        clara: {},
-        marcus: { [normalCue]: 202 },
+        clara: { [safetyCue]: 101 },
       },
-      'clara',
-      normalCue
-    );
-    expect(resolved).toEqual({ asset: 202, resolvedVoiceId: 'marcus', usedFallback: true });
-  });
-
-  it('normalizes malformed voice ids through the existing default voice policy', () => {
-    const resolved = resolveVoiceCueAssetFromManifest(
-      {
-        marcus: { [safetyCue]: 202 },
-      },
-      'not-a-voice',
+      'retired-voice',
       safetyCue
     );
-    expect(resolved).toEqual({ asset: 202, resolvedVoiceId: 'marcus', usedFallback: false });
+    expect(resolved).toEqual({ asset: 101, resolvedVoiceId: 'clara', usedFallback: false });
   });
 });
 

@@ -23,6 +23,7 @@ import {
   birthYearFromDateOfBirth,
   defaultPreferences,
   deserializePreferences,
+  getVoice,
   type Preferences,
 } from '../../profile';
 import { getCurrentProfile } from './profileService';
@@ -93,7 +94,7 @@ export function onlineProfileProjection(prefs: Preferences): OnlineProfileProjec
         }
       : null,
     settings: {
-      voiceId: prefs.settings.voiceId,
+      voiceId: getVoice(prefs.settings.voiceId).id,
       comparisonOptIn: prefs.settings.comparisonOptIn,
     },
   };
@@ -163,9 +164,9 @@ export function mergeRemoteProfileIntoLocal(
     },
     settings: {
       ...localPrefs.settings,
-      voiceId: preferRemote
-        ? remotePrefs.settings.voiceId
-        : localPrefs.settings.voiceId,
+      voiceId: getVoice(
+        preferRemote ? remotePrefs.settings.voiceId : localPrefs.settings.voiceId
+      ).id,
       comparisonOptIn: preferRemote
         ? remotePrefs.settings.comparisonOptIn
         : localPrefs.settings.comparisonOptIn,

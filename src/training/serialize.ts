@@ -67,6 +67,7 @@ import {
   type SerializedTrainingVoiceRuntimeV21,
   type TrainingVoicePhaseV21,
 } from './voiceV21';
+import { DEFAULT_VOICE_ID, getVoice } from '../profile/voices';
 
 export const TRAINING_SCHEMA_VERSION = 4;
 
@@ -503,9 +504,13 @@ function validSerializedTrainingVoiceRuntimeV21(v: unknown): SerializedTrainingV
   const setEpoch = finiteInteger(r.setEpoch);
   const attemptEpoch = finiteInteger(r.attemptEpoch);
   if (sessionEpoch < 0 || itemEpoch < 0 || setEpoch < 0 || attemptEpoch < 0) return null;
-  const activeVoiceId = typeof r.activeVoiceId === 'string' && r.activeVoiceId.trim()
-    ? r.activeVoiceId
-    : 'clara';
+  const activeVoiceId = getVoice(
+    typeof r.activeVoiceId === 'string' && r.activeVoiceId.trim()
+      ? r.activeVoiceId
+      : DEFAULT_VOICE_ID
+  ).id;
+  const pendingVoiceId =
+    typeof r.pendingVoiceId === 'string' ? getVoice(r.pendingVoiceId).id : null;
   return {
     version: 1,
     runtimeMode: 'internal_v21',
@@ -520,7 +525,7 @@ function validSerializedTrainingVoiceRuntimeV21(v: unknown): SerializedTrainingV
     completedTransitionIds: stringArray(r.completedTransitionIds),
     firedProgressEventIds: stringArray(r.firedProgressEventIds),
     activeVoiceId,
-    pendingVoiceId: typeof r.pendingVoiceId === 'string' ? r.pendingVoiceId : null,
+    pendingVoiceId: pendingVoiceId === activeVoiceId ? null : pendingVoiceId,
     planFingerprint:
       typeof r.planFingerprint === 'string' && r.planFingerprint.trim()
         ? r.planFingerprint

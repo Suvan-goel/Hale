@@ -11,6 +11,7 @@ import {
   applyOfficialAssessmentToProgrammeJourney,
   createEmptyProgrammeJourneyState,
   isProgrammeJourneyRetestDue,
+  programmeJourneyCheckpointKindForSourceCheckUpId,
   programmeJourneyProgressAt,
   programmeJourneyRetestDueAtIso,
   programmeJourneyWeekSummaries,
@@ -56,6 +57,12 @@ describe('12-week programme journey', () => {
         1: { physicalFocus: 'strength', sourceCheckUpId: 'baseline-1' },
       },
     });
+    expect(
+      programmeJourneyCheckpointKindForSourceCheckUpId(applied.state, 'baseline-1')
+    ).toBe('baseline');
+    expect(
+      programmeJourneyCheckpointKindForSourceCheckUpId(applied.state, 'not-a-checkpoint')
+    ).toBeNull();
 
     const replay = applyOfficialAssessmentToProgrammeJourney(applied.state, {
       assessment: source,

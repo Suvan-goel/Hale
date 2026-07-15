@@ -5959,6 +5959,28 @@ Movement Check-Up, storage, and measurement behavior are unchanged.
   session actions remain owned by the surrounding interface. This supersedes
   the session-readiness hero ruling above.
 
+## 2026-07-13 — Plan hero shows a woman actively training
+
+- Founder direction requires the Plan hero to depict a woman performing a
+  workout. The selected scene shows a woman in Pearl's target audience doing
+  the programme's real `squat.supported_split_squat` movement in a restrained
+  home setting, with light chair support and no camera or gym equipment.
+- The image is premium editorial photography rather than an exercise diagram;
+  it demonstrates the character of the programme without providing form
+  judgement or replacing voice-paced session guidance. This supersedes the
+  twelve-pearl structural artwork ruling above.
+
+## 2026-07-13 — Workout hero is a transparent editorial cutout
+
+- Founder direction requires the workout artwork to sit directly on the page
+  canvas. Plan therefore retains only the woman and complete chair from the
+  supported split-squat scene and removes the room, floor, props, and external
+  shadows. The transparent PNG uses `contain` so the full silhouette remains
+  visible on every supported width.
+- This is a presentation refinement of the selected real programme movement,
+  not a new exercise or coaching surface. The surrounding Plan UI remains the
+  source of status, focus, session detail, and actions.
+
 ## 2026-07-12 — Post-reposition dead-surface and design-system cleanup
 
 - A dependency-graph pass from `App.tsx` confirmed that the old
@@ -6139,3 +6161,262 @@ Movement Check-Up, storage, and measurement behavior are unchanged.
   or deleted skeleton preview. The dedicated voice-only player is reachable.
   Full verification passes 188 suites / 1,656 tests, strict TypeScript, both
   tester release configurations, and `git diff --check`.
+
+## 2026-07-13 — The official check-up figure uses a privacy-preserving MediaPipe matte
+
+- **Founder direction:** adopt the proposed MediaPipe segmentation-mask layer
+  behind Pearl's pose trace during official check-ups. It is the default
+  check-up figure on Android and iOS, with
+  `EXPO_PUBLIC_SEGMENTATION_MASK_FIGURE=0` retained only as a diagnostic
+  opt-out. This decision does not mount the camera in daily training.
+- The native renderer converts MediaPipe's person-confidence mask into one
+  translucent burgundy matte (`#8E3158`, maximum alpha `82/255`). It never
+  renders or sends camera pixels, facial detail, clothing texture, room detail,
+  masks, or frames across the JS bridge. Per-pixel asymmetric smoothing, a
+  soft confidence edge, and 2x downsampling keep the outline calm rather than
+  mirror-like or visually noisy. Subject-gone immediately clears the matte.
+- The native camera/inference view now occupies and clips to the exact resolved
+  Fit Frame, including its rounded corners. The JS trace remains above it and
+  gains restrained nose-to-shoulder links so the head reads as part of the
+  figure. Mask availability changes presentation only; landmark processing,
+  readiness, grading, result evidence, and comparability rules are unchanged.
+- Release sign-off still requires real-device passes on representative iOS and
+  Android hardware for sustained frame rate, thermal behaviour, dim/warm
+  domestic light, chair/background edge bleed, front-camera alignment, and
+  subject exit/re-entry. The diagnostic opt-out remains available if either
+  platform misses those gates; it is not a second product treatment.
+
+## 2026-07-13 — Mask latency is bounded without weakening measurement quality
+
+- iOS now applies latest-only backpressure before the main thread. Each pending
+  delivery owns the segmentation render result and the landmarks from the same
+  MediaPipe result; a newer pair replaces an older pending pair. Stop/restart
+  cancels pending delivery and rejects stale-session results, preventing both a
+  main-thread backlog and mask/trace drift.
+- The iOS matte rasterizer keeps three reusable Core Graphics backing stores
+  and one cached RGB colour space. It reads `Mask.dataType` and accesses the
+  native `uint8Data` or `float32Data` pointer, avoiding MediaPipe's expensive
+  cross-type mask conversion and the previous per-frame Swift byte-array to
+  `Data` copy. Core Graphics image snapshots retain safe copy-on-write
+  semantics when a backing store is reused.
+- Opt-in pose diagnostics on both platforms now report mask frame id, native
+  mask type and source/raster dimensions, extraction, raster and total mask
+  post-processing time, renderer-publication time/source age, plus iOS native
+  event scheduled/coalesced/rejected/emitted counts. JS diagnostics explicitly
+  count any mask/landmark frame-id mismatch.
+- This is a presentation-pipeline optimisation only. The Full pose model,
+  640×480 camera input, current mask/landmark smoothing, grading thresholds,
+  subject validity, and all official measurement/comparability logic remain
+  unchanged.
+
+## 2026-07-13 — Initial onboarding simplification proposal
+
+- **Implementation proposal:** the seven-screen flow still felt too complicated.
+  The normal path is now Welcome, Goal, Health & privacy, and Start. This
+  supersedes the 2026-07-10 seven-screen consolidation.
+- Onboarding retains one optional life-goal anchor and the B1 heart/chest-pain/
+  serious-dizziness answer needed to decide whether an effort-based Movement
+  Check-Up can be offered. Choosing Yes, No, or Prefer not to say explicitly
+  consents to Pearl using that single answer on-device; "Continue without a
+  health answer" records no health consent and never treats privacy as a
+  medical flag.
+- Menopause stage, activity, joint areas, pelvic guidance, voluntary balance
+  support, stair access, and noise preference no longer delay first value.
+  They remain editable in Settings. Day one uses honest conservative defaults:
+  null activity (all ladders at level 1), quiet mode on, supported balance on,
+  and no stair assumed. No symptom disclosure or pelvic-content unlock is
+  inferred from those defaults.
+- The normal Start surface has two actions only: an eight-minute Movement
+  Check-Up, which no longer chains a 15-minute workout, or one 15-minute
+  starter session with the check-up deferred. Gentle Start and no-health-
+  answer paths use one "See my plan" action.
+- Removing the menopause-stage question must not remove the target audience's
+  optional symptom context after a check-up. It is offered by default unless a
+  compatibility profile explicitly selects male references or the user has
+  explicitly preferred not to state menopause context. It remains optional
+  and observational.
+- **Verified:** strict TypeScript, Expo public config, 191 Jest suites / 1,687
+  tests, and `git diff --check`. A real-device onboarding run-through remains
+  part of the updated manual QA checklist.
+
+## 2026-07-13 — Onboarding keeps four stages but restores placement protections
+
+- **Founder-approved revision:** keep the simplified Welcome, Goal, Health &
+  privacy, and Start structure, but do not merge consent into a health answer.
+  Health & privacy progressively discloses a clear affirmative consent action,
+  the B1 heart-safety answer, and one concise multi-select joint-comfort answer.
+  Declining consent skips both answers and never invents a health disclosure.
+- Joint comfort is retained because it constrains the starting placement after
+  a strong baseline result. The same constraint now applies immediately when
+  joint answers are added later in Settings; removing a flag never
+  auto-promotes a ladder.
+- Balance support remains unasked during onboarding. Its initial enabled state
+  is stored as a temporary conservative default, not a user preference. A
+  valid baseline balance result can clear that default when support is not
+  required. An explicit Settings preference remains in force, and a measured
+  support requirement always wins.
+- The exact B1 answer is stored locally so Settings never reconstructs
+  “Prefer not to say” as “Yes.” Programme-state schema v3 adds this answer and
+  balance-preference provenance; schema-v2 journeys migrate without losing
+  their programme phase.
+- Menopause stage, activity, pelvic guidance, stairs, and noise preference
+  remain deferred. Quiet sessions, no stair assumption, and level-one prior
+  remain the unasked day-one defaults.
+- Welcome states the longitudinal contract without adding another screen or
+  choice: the same Movement Check-Up repeats at weeks 4, 8, and 12 so personal
+  Strength and Balance results can be compared across the programme.
+- The established activation promise is restored: the primary normal route is
+  the roughly eight-minute check-up followed, after results, by the first
+  15-minute session. Starting with the session remains the secondary route;
+  Gentle Start and no-health-answer paths go directly to that first session.
+- **Verified:** strict TypeScript, Expo public config, 191 Jest suites / 1,696
+  tests, schema-v2 migration coverage, and `git diff --check`. Real-device
+  onboarding and compact-phone visual QA remain release gates.
+
+## 2026-07-13 — The onboarding goal is framed for the menopause years, not longevity
+
+- The first onboarding question now asks what feeling stronger in the
+  menopause years would mean right now. Its choices focus on immediate
+  confidence and useful movement: stairs and walks, lowering and rising,
+  lifting and reaching, or all-round confidence in the body.
+- Grandchildren, long-term independence, and “years to come” language are
+  removed from this surface and from the shared goal display copy used by
+  Settings and adherence framing. Those prompts belonged to Pearl's retired
+  broad-longevity positioning.
+- The serialized identifiers `stairs_walks`, `grandchildren`,
+  `bend_reach_carry`, and `independence` remain unchanged for local-record and
+  optional online-profile compatibility. Their functional domain mappings
+  also remain unchanged, so the new labels truthfully describe the same
+  strength/balance/mobility intent rather than silently changing prescription.
+
+## 2026-07-13 — Onboarding questions use the prominent page-heading position
+
+- Every onboarding surface keeps its short section label in the one-line top
+  navigation row and renders the actual question or message as a wrapping
+  page title below progress. This prevents long questions from shrinking to
+  fit beside Back and restores the intended reading hierarchy.
+- The prominent title uses the shared 30pt editorial page-title token. The
+  behavior is an opt-in `ScreenHeader` mode used by all onboarding branches;
+  other app screens retain their existing header layout.
+
+## 2026-07-13 — Eligible Week 1 training is baseline-first; onboarding offers a non-counted preview
+
+- This supersedes the earlier one-generic-starter exception. When health-data
+  consent and B1 safety allow an official check-up, Pearl requires an accepted
+  baseline before any Week 1 programme session. The gate is enforced in the
+  onboarding completion contract, Home/Plan session routing, and the
+  post-check-up continuation, so cancelling or receiving a needs-retake result
+  cannot silently begin an unmeasured programme.
+- The Start surface keeps a lower-friction secondary action: “See how a
+  session works.” It runs one 30-second, voice-paced warm-up through the real
+  session player with tap controls. It is explicitly a preview, returns to the
+  Start surface, does not ask for microphone access, does not mark activation
+  or programme progress, and writes its funnel only to an ephemeral in-memory
+  store.
+- Gentle Start and consent-declined routes remain direct-to-session. This is
+  not a workaround: the effort-based check-up is unavailable under those
+  policies, so their conservative programme start remains the safe, truthful
+  path.
+- Retained `after_first_workout` and eligible `skip` onboarding values are
+  read-compatible legacy tokens, but now resolve to the baseline-first route.
+  An already-trained legacy deferred state keeps upward-only placement when
+  its baseline is eventually accepted, preserving completed work.
+- **Verified:** strict TypeScript, Expo public and safe-beta configuration,
+  bundled-audio verification, 191 Jest suites / 1,698 tests, and
+  `git diff --check`. Real-device preview pacing and compact-phone layout
+  remain release QA gates.
+
+## 2026-07-13 — Developer onboarding replay can enter a non-persistent check-up
+
+- The Developer “Replay onboarding” route still preserves the established
+  programme, official history, preferences, and any staged draft, but its
+  “Do my starting check-up” action now opens the real check-up UI instead of
+  being intercepted and sent directly Home.
+- This route is a development-only dry run. It supplies empty comparison
+  history, ignores any saved draft, does not stage raw movement data, does not
+  materialise or save an official result, and never advances programme state.
+  Completion shows an explicit nothing-saved confirmation; cancellation
+  returns Home. A relaunch during the dry run also leaves established data
+  untouched because no temporary programme state is persisted.
+- **Verified:** strict TypeScript, 191 Jest suites / 1,698 tests, and
+  `git diff --check`. Real-device camera entry and completion remain in the
+  development manual-QA checklist.
+
+## 2026-07-14 — Clara is the sole trainer voice
+
+- **Founder direction:** retire Marcus and make Clara Pearl's only trainer
+  voice and default. Settings retains a Clara preview but no longer presents a
+  voice choice. Existing local or online preferences and resumable voice
+  runtime state that name a retired or unknown voice normalize to Clara.
+- Marcus is removed from the runtime catalog, generated manifests, audio
+  verification set, and bundled assets. The audio generator can resync all
+  manifests from the configured voice catalog without making a provider call,
+  so future catalog changes cannot leave retired static asset references in
+  the app bundle.
+- **Verified:** 191 Jest suites / 1,697 tests, strict TypeScript, Expo public
+  config, Clara-only bundled-audio verification, and `git diff --check`.
+
+## 2026-07-14 — Declining health answers cannot create an unmeasured Week 1 route
+
+- **Founder correction:** the onboarding consent-decline branch no longer
+  offers “Start my first session.” This supersedes the consent-declined
+  direct-to-session exception recorded on 2026-07-13. The Start surface now
+  explains that Pearl needs the two private safety answers before it can
+  decide whether to offer the starting Movement Check-Up, and returns the
+  user to Health & privacy without completing onboarding.
+- The baseline-first rule is enforced beyond the visible onboarding button.
+  An older local profile that declined consent while still awaiting baseline
+  receives a Health answers action on Home; the session-start handler fails
+  closed into that editor; and Plan does not expose or preview a first
+  session. Plan's ordinary pre-baseline order is now Movement Check-Up first,
+  then First session after an accepted result.
+- Removing health answers after an accepted baseline does not erase completed
+  work or lock an already-active programme. It makes later official check-ups
+  unavailable under the existing privacy gate. Active B1 Gentle Start also
+  remains a distinct safety exception: Pearl must not route someone into an
+  effort-based check-up that its heart-safety answer has blocked.
+- **Verified:** 191 Jest suites / 1,703 tests, strict TypeScript, Expo public
+  config, and `git diff --check`.
+
+## 2026-07-14 — Required onboarding health answers have no separate consent decision
+
+- **Founder direction:** remove the standalone “Can Pearl use two private
+  safety answers?” decision from onboarding. A new programme cannot reach its
+  starting check-up or Week 1 without the heart-safety and joint-comfort
+  answers, so presenting a decline-and-continue branch was a false choice.
+- The privacy disclosure is retained on the first health question, where it
+  explains purpose, on-device-only use, no upload/sale/sharing, and later
+  review or removal in Settings. Choosing any heart-safety answer—including
+  “Prefer not to say”—is the explicit affirmative action before either answer
+  is saved. The flow then asks joint comfort and proceeds to the Start surface;
+  it never records consent merely because the page was displayed.
+- The stored `consentHealthData` field remains necessary for old profiles and
+  the Settings removal path. Legacy or later-removed consent still fails
+  closed before a new baseline, while an accepted active programme keeps its
+  existing conservative workout behavior. The B1 Gentle Start safety gate is
+  unchanged.
+- **Verified:** the focused onboarding and integrated-shell suites pass 43
+  tests, strict TypeScript and Expo public config pass, and `git diff --check`
+  is clean.
+
+## 2026-07-14 — Every completed onboarding goes to the starting Movement Check-Up
+
+- **Founder direction:** remove the new-user Gentle Start workout-first branch.
+  Every user who completes current onboarding now receives the same next
+  action: the official starting Movement Check-Up, followed by the first
+  programme session only after an accepted baseline. The non-counted session
+  preview may still run inside onboarding because it creates no workout or
+  programme progress.
+- Heart safety remains a real gate rather than being ignored. The first safety
+  answer is now required Yes/No; “Prefer not to say” is removed from that
+  question. A Yes answer keeps the user inside onboarding on the existing
+  safety-step advisory. Confirming that step records the existing
+  `gpConfirmed` state, clears the temporary Gentle Start block, and then
+  returns to the same check-up-first Start surface.
+- This supersedes the direct-to-session onboarding exceptions recorded on
+  2026-07-13 and the unchanged-B1-gate sentence in the preceding 2026-07-14
+  decision. Legacy profiles and later Settings changes retain their existing
+  fail-closed consent and safety handling; this decision does not force an
+  ineligible effort-based check-up or make off-cadence retests available.
+- **Verified:** 191 Jest suites / 1,704 tests, strict TypeScript, Expo public
+  config, and `git diff --check`.

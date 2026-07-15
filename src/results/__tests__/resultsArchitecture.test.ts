@@ -36,7 +36,7 @@ describe('unified check-up results architecture', () => {
     expect(unifiedScreen).not.toContain('onViewBlockReport');
   });
 
-  it('keeps fresh completion concise and saved history detailed', () => {
+  it('keeps distinct fresh completion and saved history variants', () => {
     const shell = readSource('src/results/CheckUpResultsShell.tsx');
     const adapter = readSource('src/results/movementProfileV2ResultsAdapter.ts');
 
@@ -50,6 +50,35 @@ describe('unified check-up results architecture', () => {
     expect(adapter).toContain("? 'Continue'");
     expect(adapter).toContain(": 'Return Home'");
     expect(adapter).toContain("? 'Done'");
+  });
+
+  it('uses the shared editorial page treatment instead of floating result cards', () => {
+    const shell = readSource('src/results/CheckUpResultsShell.tsx');
+
+    expect(shell).toContain('<PageHeader');
+    expect(shell).toContain('<FocusSummary');
+    expect(shell).toContain('<CompactDomainResultRow');
+    expect(shell).toContain('styles.resultsSection');
+    expect(shell).not.toContain('<ResultsSectionHeading');
+    expect(shell).not.toContain('<DomainGlyph');
+    expect(shell).not.toContain('domain.body');
+    expect(shell).not.toContain('domain.metricLabel');
+    expect(shell).not.toContain('styles.focusRule');
+    expect(shell).not.toContain('<Card');
+    expect(shell).not.toContain('boxShadow');
+    expect(shell).not.toContain('focusOverviewCard');
+    expect(shell).not.toContain('areasPanel');
+  });
+
+  it('adds accepted programme milestone context without inferring it from the result date', () => {
+    const root = readSource('src/screens/ProgrammeV2Root.tsx');
+    const adapter = readSource('src/results/movementProfileV2ResultsAdapter.ts');
+    const shell = readSource('src/results/CheckUpResultsShell.tsx');
+
+    expect(root).toContain('programmeJourneyCheckpointKindForSourceCheckUpId');
+    expect(root).toContain('milestone={resultsMilestone}');
+    expect(adapter).toContain('checkUpMilestoneLabel');
+    expect(shell).toContain('`${milestoneLabel} · ${completedAtLabel}`');
   });
 
   it('keeps Clarity on Progress and population comparison control in Settings', () => {

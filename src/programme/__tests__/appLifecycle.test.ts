@@ -1,6 +1,7 @@
 import {
   PROGRAMME_SESSION_RPE_OPTIONS,
   checkupOfferFor,
+  healthAnswersRequiredBeforeBaseline,
   nextProgrammeSessionInput,
   onboardingCompletionRoute,
   patternTitle,
@@ -62,8 +63,21 @@ describe('nextProgrammeSessionInput (the one A/B + preset rule)', () => {
 });
 
 describe('programmeTodayViewModel', () => {
-  it('first session: minimum-dose preview with the stated duration matching the generated estimate', () => {
+  it('makes the accepted baseline the first action for an eligible new user', () => {
     const vm = programmeTodayViewModel(onboarded(), NOW);
+    expect(vm.state).toBe('baseline_due');
+    expect(vm.primaryAction).toMatchObject({
+      type: 'start_baseline_checkup',
+      title: 'Start with your Movement Check-Up',
+      ctaLabel: 'Start check-up',
+    });
+    expect(vm.primaryAction.subtitle).toContain('before Week 1');
+    expect(vm.sessionDetail).toContain('Strength, Balance');
+    expect(vm.checkupOffer).toBeNull();
+  });
+
+  it('first session: minimum-dose preview with the stated duration matching the generated estimate', () => {
+    const vm = programmeTodayViewModel(onboarded({ assessmentStatus: 'done' }), NOW);
     expect(vm.state).toBe('first_session_ready');
     expect(vm.primaryAction.type).toBe('start_first_session');
     expect(vm.sessionPreview.preset).toBe('first_session');
@@ -109,16 +123,15 @@ describe('programmeTodayViewModel', () => {
     expect(vm.state).toBe('session_ready');
   });
 
-  it('after one deferred starter, Home leads with the baseline instead of another generic session', () => {
-    const state = training();
-    state.profile = { ...state.profile, assessmentStatus: 'deferred' };
+  it('a legacy deferred state leads with the baseline before any generic session', () => {
+    const state = onboarded({ assessmentStatus: 'deferred' });
     const vm = programmeTodayViewModel(state, NOW);
     expect(vm.state).toBe('baseline_due');
     expect(vm.primaryAction).toMatchObject({
       type: 'start_baseline_checkup',
-      ctaLabel: 'Continue to check-up',
+      ctaLabel: 'Start check-up',
     });
-    expect(vm.primaryAction.subtitle).toContain('Phase 1');
+    expect(vm.primaryAction.subtitle).toContain('before Week 1');
     expect(vm.sessionDetail).toContain('Strength, Balance');
     expect(vm.sessionDetail).not.toContain('Today:');
     expect(vm.checkupOffer).toBeNull();
@@ -143,31 +156,49 @@ describe('programmeTodayViewModel', () => {
   });
 
   it.each(['skipped', null] as const)(
-    'legacy/interrupted %p state also stops at one generic starter',
+    'legacy/interrupted %p state requires the baseline immediately',
     (assessmentStatus) => {
-      const state = training();
-      state.profile = { ...state.profile, assessmentStatus };
+      const state = onboarded({ assessmentStatus });
       expect(programmeTodayViewModel(state, NOW).state).toBe('baseline_due');
     }
   );
 
-  it('never forces the baseline through a declined-consent or active B1 safety gate', () => {
-    const declined = training();
+  it('requires health-answer review instead of exposing Week 1 after consent was declined', () => {
+    const declined = onboarded();
     declined.profile = {
       ...declined.profile,
       assessmentStatus: 'skipped',
       consentHealthData: false,
     };
-    expect(programmeTodayViewModel(declined, NOW).state).toBe('session_ready');
+    const vm = programmeTodayViewModel(declined, NOW);
+    expect(healthAnswersRequiredBeforeBaseline(declined)).toBe(true);
+    expect(vm.state).toBe('health_answers_required');
+    expect(vm.primaryAction).toMatchObject({
+      type: 'review_health_answers',
+      ctaLabel: 'Review health answers',
+    });
+    expect(vm.primaryAction.subtitle).toContain('accepted starting check-up');
+    expect(vm.sessionDetail).not.toContain('Today:');
+  });
 
-    const gentle = training();
+  it('does not force the baseline through the active B1 Gentle Start safety gate', () => {
+    const gentle = onboarded();
     gentle.profile = {
       ...gentle.profile,
       assessmentStatus: 'bypassed_b1',
       gentleStartActive: true,
       gpConfirmed: false,
     };
-    expect(programmeTodayViewModel(gentle, NOW).state).toBe('session_ready');
+    expect(programmeTodayViewModel(gentle, NOW).state).toBe('first_session_ready');
+  });
+
+  it('does not lock an already-assessed programme if health answers are removed later', () => {
+    const assessed = training();
+    assessed.profile = { ...assessed.profile, consentHealthData: false };
+    expect(healthAnswersRequiredBeforeBaseline(assessed)).toBe(false);
+    expect(programmeTodayViewModel(assessed, NOW).primaryAction.type).toBe(
+      'start_today_session'
+    );
   });
 });
 
@@ -204,6 +235,19 @@ describe('checkupOfferFor (dev-shell home semantics preserved)', () => {
       gpConfirmed: false,
     };
     expect(checkupOfferFor(bypassed, NOW)).toBeNull();
+  });
+
+  it('does not surface an unusable due check-up after health answers are removed', () => {
+    const declined = training();
+    declined.profile = {
+      ...declined.profile,
+      consentHealthData: false,
+      lastAssessmentAtIso: daysBeforeNow(40),
+    };
+    expect(checkupOfferFor(declined, NOW)).toBeNull();
+    expect(programmeTodayViewModel(declined, NOW).primaryAction.type).toBe(
+      'start_today_session'
+    );
   });
 
   it('does not silently start a fifth checkpoint after the 12-week journey completes', () => {
@@ -323,10 +367,10 @@ describe('onboardingCompletionRoute (flow.ts completion contract honored)', () =
     });
   });
 
-  it('no assessment intent: the CTA routes straight to the session or home', () => {
+  it('no assessment intent fails closed instead of exposing a session route', () => {
     expect(onboardingCompletionRoute({ assessmentIntent: null }, 'start_first_session')).toEqual({
       assessmentFirst: false,
-      startFirstSession: true,
+      startFirstSession: false,
     });
     expect(onboardingCompletionRoute({ assessmentIntent: null }, 'schedule')).toEqual({
       assessmentFirst: false,

@@ -21,7 +21,7 @@ describe('Settings MVP scope and local data', () => {
     const settings = source('src/screens/SettingsScreen.tsx');
 
     expect(settings).toContain("title: 'Your profile'");
-    expect(settings).toContain("title: 'Workout & voice'");
+    expect(settings).toContain("title: 'Sessions & voice'");
     expect(settings).toContain("title: 'Safety & camera'");
     expect(settings).toContain("title: 'Online profile'");
     expect(settings).toContain("title: 'Privacy & data'");
@@ -58,11 +58,14 @@ describe('Settings MVP scope and local data', () => {
     expect(settings).toContain('Review or remove health answers');
     expect(settings).toContain('Review health questions');
     expect(settings).toContain('Stop using and remove health answers');
+    expect(settings).toContain('a new programme cannot begin without an accepted starting result');
     expect(settings).toContain('I’ve completed the safety step');
     expect(settings).toContain('Confirm and enable check-ups');
     expect(root).toContain('consentHealthData: next.consentHealthData');
     expect(root).toContain('gpConfirmed: next.gpConfirmed');
     expect(root).toContain('jointFlags: next.jointFlags');
+    expect(settings).toContain('initialSection ?? null');
+    expect(root).toContain('initialSection={settingsInitialSection ?? undefined}');
   });
 
   it('shows an editable future-facing movement goal and does not collect unused symptoms', () => {
@@ -105,6 +108,49 @@ describe('Settings MVP scope and local data', () => {
     expect(root).toContain('setFlowState(initialOnboardingFlowState())');
     expect(root).toContain("setPhase('onboarding')");
     expect(root).not.toContain('signOutAndClearLocalData');
+  });
+
+  it('offers a DEV-only onboarding replay that preserves saved programme data', () => {
+    const settings = source('src/screens/SettingsScreen.tsx');
+    const root = source('src/screens/ProgrammeV2Root.tsx');
+
+    expect(settings).toContain('__DEV__ &&');
+    expect(settings).toContain('Replay onboarding');
+    expect(settings).toContain('any starting check-up is a dry run and saves nothing');
+    expect(settings).toContain('onReplayOnboarding');
+    expect(root).toContain('replayingOnboardingRef.current = true');
+    expect(root).toContain('devOnboardingCheckUpRef.current = true');
+    expect(root).toContain('setFlowState(initialOnboardingFlowState())');
+    expect(root).toContain('if (replayingOnboardingRef.current)');
+    expect(root).toContain("assessmentChoice === 'now'");
+    expect(root).toContain("setPhase('assessment')");
+    expect(root).toContain('history={isDevOnboardingCheckUp ? [] : history}');
+    expect(root).toContain(
+      'initialDraft={isDevOnboardingCheckUp ? undefined : checkUpDraft?.checkUp}'
+    );
+    expect(root).toContain('if (isDevOnboardingCheckUp) return;');
+    expect(root).toContain("setPhase('dev_checkup_done')");
+    expect(root).toContain('your existing programme and history are unchanged');
+    expect(root).toContain('onReplayOnboarding={handleReplayOnboarding}');
+
+    const assessment = root.slice(
+      root.indexOf("if (phase === 'assessment')"),
+      root.indexOf('// ── Tab shell')
+    );
+    const rawReady = assessment.slice(
+      assessment.indexOf('onRawCheckUpReady={(checkUp) =>'),
+      assessment.indexOf('onComplete={(checkUp) =>')
+    );
+    expect(rawReady.indexOf('if (isDevOnboardingCheckUp) return;')).toBeLessThan(
+      rawReady.indexOf('checkUpDraftStore.save')
+    );
+    const completion = assessment.slice(assessment.indexOf('onComplete={(checkUp) =>'));
+    expect(completion.indexOf('if (isDevOnboardingCheckUp)')).toBeLessThan(
+      completion.indexOf('prepareOfficialCheckUp(checkUp)')
+    );
+    expect(completion.indexOf("setPhase('dev_checkup_done')")).toBeLessThan(
+      completion.indexOf('historyStore.save')
+    );
   });
 
   it('commits online hydration only after the scoped device profile is durable', () => {

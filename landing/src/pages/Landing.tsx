@@ -150,7 +150,7 @@ export function Landing({
   return (
     <main>
       {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section id="hero" className="relative overflow-hidden bg-ink text-bone">
+      <section id="hero" className="relative overflow-hidden bg-bone text-ink">
         {/* Desktop: photographic backdrop; y-position keeps the subject's head clear of the crop */}
         <img
           src={heroImage}
@@ -160,35 +160,35 @@ export function Landing({
           className="absolute inset-0 hidden h-full w-full object-cover object-[62%_18%] md:block"
         />
         <div
-          className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(26,36,32,0.97)_0%,rgba(26,36,32,0.9)_44%,rgba(26,36,32,0.55)_72%,rgba(26,36,32,0.22)_100%)] md:block"
+          className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(250,248,247,0.99)_0%,rgba(250,248,247,0.97)_42%,rgba(250,248,247,0.78)_62%,rgba(250,248,247,0.12)_100%)] md:block"
           aria-hidden="true"
         />
         <div
-          className="absolute inset-0 hidden bg-[linear-gradient(180deg,rgba(26,36,32,0.2)_0%,rgba(26,36,32,0.02)_44%,rgba(26,36,32,0.6)_100%)] md:block"
+          className="absolute inset-0 hidden bg-[linear-gradient(180deg,rgba(250,248,247,0.18)_0%,rgba(250,248,247,0)_48%,rgba(250,248,247,0.72)_100%)] md:block"
           aria-hidden="true"
         />
         <div className="relative mx-auto max-w-6xl px-5 md:px-8">
           <header className="flex items-center justify-between py-6">
             <span className="font-display text-[22px] font-medium tracking-tight">
-              Pearl<span className="text-brass">.</span>
+              Pearl<span className="text-pine">.</span>
             </span>
             <button
               onClick={onScrollToForm}
-              className="rounded-full border border-bone/25 px-4 py-2 text-sm font-medium text-bone transition-colors hover:border-bone/60"
+              className="rounded-2xl border border-pine/25 bg-paper/85 px-4 py-2 text-sm font-medium text-pine shadow-[0_4px_18px_rgba(56,39,28,0.08)] backdrop-blur-sm transition-colors hover:border-pine/55 hover:bg-paper"
             >
               Join the waitlist
             </button>
           </header>
 
           <div className="max-w-[590px] pb-12 pt-8 md:pb-28 md:pt-16">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-bone/55">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-pine/75">
               12 weeks · Strength · Balance · Everyday Clarity
             </p>
             <h1 className="mt-4 font-display text-[2.4rem] leading-[1.06] md:text-[3.4rem]">
               Measure your strength.{" "}
-              <em className="italic text-brass">Track your clarity.</em>
+              <em className="italic text-pine">Track your clarity.</em>
             </h1>
-            <p className="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-bone/80">
+            <p className="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-ink/75">
               Pearl is a private 12-week home strength programme for women in perimenopause and
               early postmenopause. Four camera check-ups measure Strength and Balance; an optional
               Everyday Clarity check-in tracks how thinking felt alongside them.
@@ -196,15 +196,15 @@ export function Landing({
             <div className="mt-7">
               <button
                 onClick={onScrollToForm}
-                className="h-13 rounded-full bg-bone px-8 text-[15px] font-semibold text-ink transition-opacity hover:opacity-90"
+                className="h-13 rounded-2xl bg-pine px-8 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(124,64,93,0.18)] transition-colors hover:bg-[#69364F]"
               >
                 Join the waitlist
               </button>
-              <p className="mt-3 text-sm text-bone/60">
+              <p className="mt-3 text-sm text-ink/60">
                 Early access and founding-member pricing. No spam.
               </p>
             </div>
-            <p className="mt-7 flex items-start gap-2 text-sm text-bone/60">
+            <p className="mt-7 flex items-start gap-2 text-sm text-ink/65">
               <span className="mt-0.5 shrink-0">
                 <LockIcon />
               </span>
@@ -216,7 +216,7 @@ export function Landing({
             fighting the text as a background */}
         <div className="relative md:hidden" aria-hidden="true">
           <img src={heroImage} alt="" className="h-60 w-full object-cover object-[62%_16%]" />
-          <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(26,36,32,1)_0%,rgba(26,36,32,0)_100%)]" />
+          <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(250,248,247,1)_0%,rgba(250,248,247,0)_100%)]" />
         </div>
       </section>
 
@@ -289,7 +289,7 @@ export function Landing({
                   src={progressCheckupImage}
                   alt="A woman doing a controlled sit-to-stand at home while her phone is propped nearby for a Pearl check-up."
                   loading="lazy"
-                  className="aspect-[4/3] w-full rounded-2xl object-cover object-[58%_center] shadow-[0_26px_70px_-42px_rgba(26,36,32,0.75)] lg:aspect-auto lg:min-h-0 lg:flex-1"
+              className="aspect-[4/3] w-full rounded-2xl object-cover object-[58%_center] shadow-[0_24px_64px_-40px_rgba(56,39,28,0.42)] lg:aspect-auto lg:min-h-0 lg:flex-1"
                 />
                 <figcaption className="mt-3 text-sm leading-relaxed text-ink/60">
                   The phone works like a measuring instrument: propped up, hands-free, and private.
@@ -351,7 +351,7 @@ export function Landing({
               src={strengthEngineImage}
               alt="A woman doing a safe low step-up at home with one hand lightly on the rail."
               loading="lazy"
-              className="aspect-[4/3] w-full rounded-2xl object-cover object-[46%_center] shadow-[0_26px_70px_-42px_rgba(26,36,32,0.75)] md:aspect-auto md:h-full"
+              className="aspect-[4/3] w-full rounded-2xl object-cover object-[46%_center] shadow-[0_24px_64px_-40px_rgba(56,39,28,0.42)] md:aspect-auto md:h-full"
             />
           </Reveal>
           <Reveal delay={120} className="md:py-2">
@@ -376,14 +376,14 @@ export function Landing({
       </section>
 
       {/* ── The differentiator ────────────────────────────────────────── */}
-      <section className="overflow-hidden bg-ink text-bone">
+      <section className="overflow-hidden bg-elevated text-ink">
         <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
           <Reveal className="max-w-2xl">
-            <Eyebrow dark>Why Pearl</Eyebrow>
+            <Eyebrow>Why Pearl</Eyebrow>
             <h2 className="mt-5 font-display text-[2rem] leading-[1.12] md:text-[2.6rem]">
               Built around proof, not streaks.
             </h2>
-            <p className="mt-5 text-[17px] leading-relaxed text-bone/75">
+            <p className="mt-5 text-[17px] leading-relaxed text-ink/70">
               Fitness apps count what you did — sessions, streaks, minutes. Pearl pairs a
               structured 12-week plan with comparable check-ups at baseline and after weeks 4, 8
               and 12. Strength and Balance guide the plan; Everyday Clarity remains an optional,
@@ -395,7 +395,7 @@ export function Landing({
             <Reveal className="min-w-0">
               <div className="mx-auto max-w-[340px]">
                 <PhoneMockup />
-                <p className="mt-6 text-center text-xs tracking-wide text-bone/50">
+                <p className="mt-6 text-center text-xs tracking-wide text-ink/60">
                   Example check-up · illustrative data, not a diagnosis
                 </p>
               </div>
@@ -408,14 +408,14 @@ export function Landing({
                       width="24"
                       height="24"
                       viewBox="0 0 24 24"
-                      className="mt-0.5 shrink-0 text-brass"
+                      className="mt-0.5 shrink-0 text-pine"
                       aria-hidden="true"
                     >
                       {f.icon}
                     </svg>
                     <div>
                       <h3 className="text-lg font-semibold">{f.title}</h3>
-                      <p className="mt-1 leading-relaxed text-bone/70">{f.body}</p>
+                      <p className="mt-1 leading-relaxed text-ink/70">{f.body}</p>
                     </div>
                   </div>
                 </Reveal>
@@ -426,11 +426,11 @@ export function Landing({
           <Reveal className="mt-16 text-center">
             <button
               onClick={onScrollToForm}
-              className="h-13 rounded-full bg-bone px-8 text-[15px] font-semibold text-ink transition-opacity hover:opacity-90"
+              className="h-13 rounded-2xl bg-pine px-8 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(124,64,93,0.16)] transition-colors hover:bg-[#69364F]"
             >
               Join the waitlist
             </button>
-            <p className="mt-3 text-sm text-bone/60">
+            <p className="mt-3 text-sm text-ink/60">
               Early access and founding-member pricing. No spam.
             </p>
           </Reveal>

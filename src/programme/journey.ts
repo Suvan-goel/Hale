@@ -217,6 +217,21 @@ export function expectedProgrammeJourneyCheckpoint(
 }
 
 /**
+ * Resolve the programme milestone for a saved official check-up. The source
+ * id is the durable link between local history and the accepted checkpoint;
+ * records that were not accepted (or predate journey checkpoints) return null.
+ */
+export function programmeJourneyCheckpointKindForSourceCheckUpId(
+  state: ProgrammeJourneyState,
+  sourceCheckUpId: string
+): ProgrammeJourneyCheckpointKind | null {
+  for (const kind of PROGRAMME_JOURNEY_CHECKPOINT_KINDS) {
+    if (state.checkpoints[kind]?.sourceCheckUpId === sourceCheckUpId) return kind;
+  }
+  return null;
+}
+
+/**
  * Apply the next accepted official assessment. Replaying the same source
  * check-up or assessment id is a no-op. Active phases cannot advance before
  * their 28-day due time, regardless of session count.

@@ -1,7 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Screen } from '../components/ui';
-import { MenuIcon } from '../navigation/icons';
+import { PageHeader } from '../components/PageHeader';
+import { PrimaryButton, Screen } from '../components/ui';
 import type {
   OfficialCheckUpBlockedReason,
   PhysicalTrainingFocus,
@@ -9,9 +9,8 @@ import type {
   ProgrammeTodayViewModel,
 } from '../programme';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import { useResponsiveLayout } from '../theme/responsive';
 
-const PLAN_JOURNEY_HERO = require('../../assets/images/pearl-plan-twelve-week-hero-v11.png');
+const PLAN_JOURNEY_HERO = require('../../assets/images/pearl-plan-supported-split-squat-transparent-v13.png');
 
 export interface PlanJourneySummary {
   progress: ProgrammeJourneyProgress;
@@ -40,7 +39,8 @@ export function planWeekSessionRows(
   }));
 }
 
-/** Plan explains the programme and may launch only the explicitly next session. */
+/** Plan explains the programme and may launch only the explicitly next step —
+ * the next session, or the starting check-up while the baseline is outstanding. */
 export function PlanScreen({
   today,
   journey,
@@ -48,6 +48,7 @@ export function PlanScreen({
   checkUpDraftInProgress = false,
   onOpenSettings,
   onStartNextSession,
+  onStartCheckUp,
 }: {
   today: ProgrammeTodayViewModel;
   journey: PlanJourneySummary;
@@ -55,28 +56,12 @@ export function PlanScreen({
   checkUpDraftInProgress?: boolean;
   onOpenSettings: () => void;
   onStartNextSession: () => void;
+  /** Present only when an official check-up is currently allowed. */
+  onStartCheckUp?: () => void;
 }) {
-  const responsive = useResponsiveLayout();
   return (
-    <Screen
-      contentStyle={[
-        styles.screenContent,
-        { paddingHorizontal: responsive.isCompactWidth ? spacing.xl : spacing.xxl },
-      ]}
-    >
-      <View style={styles.header}>
-        <Text style={[styles.title, responsive.isCompactPhone && styles.compactTitle]}>
-          Your plan
-        </Text>
-        <Pressable
-          style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
-          onPress={onOpenSettings}
-          accessibilityRole="button"
-          accessibilityLabel="Open settings"
-        >
-          <MenuIcon size={24} color={colors.textPrimary} strokeWidth={1.55} />
-        </Pressable>
-      </View>
+    <Screen contentStyle={styles.screenContent}>
+      <PageHeader title="Plan" onOpenSettings={onOpenSettings} />
 
       {journey.progress.status === 'active' ? (
         <ActivePlan
@@ -95,6 +80,7 @@ export function PlanScreen({
         <PreBaselinePlan
           today={today}
           blockedReason={checkUpBlockedReason}
+          onStartCheckUp={onStartCheckUp}
         />
       )}
     </Screen>
@@ -167,9 +153,11 @@ function ActivePlan({
 function PreBaselinePlan({
   today,
   blockedReason,
+  onStartCheckUp,
 }: {
   today: ProgrammeTodayViewModel;
   blockedReason?: OfficialCheckUpBlockedReason;
+  onStartCheckUp?: () => void;
 }) {
   if (blockedReason === 'health_data_consent_required') {
     return (
@@ -200,6 +188,13 @@ function PreBaselinePlan({
           Your eight-minute check-up measures your starting Strength and Balance and uses it to
           shape your Foundations sessions.
         </Text>
+        {onStartCheckUp ? (
+          <PrimaryButton
+            title="Start Movement Check-Up"
+            onPress={onStartCheckUp}
+            style={styles.preBaselineAction}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -338,7 +333,7 @@ function PlanJourneyHero() {
       <Image
         source={PLAN_JOURNEY_HERO}
         style={styles.heroImage}
-        resizeMode="cover"
+        resizeMode="contain"
         accessible={false}
       />
     </View>
@@ -473,10 +468,6 @@ function formatPlanDate(iso: string): string {
 
 const styles = StyleSheet.create({
   screenContent: { flexGrow: 1, gap: spacing.xl },
-  header: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg },
-  title: { fontFamily: fonts.serifRegular, fontSize: 48, lineHeight: 54, letterSpacing: -0.8, color: colors.textPrimary, flexShrink: 1 },
-  compactTitle: { fontSize: 42, lineHeight: 48 },
-  settingsButton: { width: 48, height: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   eyebrow: { ...type.cardCaption, color: colors.textPrimary, fontFamily: fonts.sansMedium, letterSpacing: 1.5, fontSize: 12, textTransform: 'uppercase' },
   journeyProgress: { gap: spacing.sm },
   journeyLabels: { flexDirection: 'row', alignItems: 'center' },
@@ -531,6 +522,10 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     gap: spacing.md,
+  },
+  preBaselineAction: {
+    alignSelf: 'stretch',
+    marginTop: spacing.lg,
   },
   preBaselineEyebrow: {
     ...type.cardCaption,

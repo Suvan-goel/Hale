@@ -99,6 +99,11 @@ export interface PoseNativeRuntimeSnapshot {
   nativeEventCoalescedCount: number | null;
   nativeEventRejectedCount: number | null;
   nativeEventEmittedCount: number | null;
+  maskDataType: string | null;
+  maskSourceWidth: number | null;
+  maskSourceHeight: number | null;
+  maskRasterWidth: number | null;
+  maskRasterHeight: number | null;
 }
 
 export interface PoseLatencyDiagnosticsSnapshot {
@@ -108,6 +113,7 @@ export interface PoseLatencyDiagnosticsSnapshot {
   rendererPublishedFrames: number;
   rendererCoalescedFrames: number;
   rendererRejectedFrames: number;
+  maskFrameMisalignment: number;
   frameIdOutOfOrder: number;
   timestampOutOfOrder: number;
   staleAtReceipt: number;
@@ -126,9 +132,13 @@ export interface PoseLatencyDiagnosticsSnapshot {
   nativeMpImageBuildMs: MetricSnapshot;
   nativeResultFlattenMs: MetricSnapshot;
   nativeEventPayloadBuildMs: MetricSnapshot;
+  nativeMaskExtractionMs: MetricSnapshot;
+  nativeMaskRasterMs: MetricSnapshot;
+  nativeMaskPostprocessMs: MetricSnapshot;
   nativeSourceAgeAtMediapipeSubmitMs: MetricSnapshot;
   nativeSourceAgeAtMediapipeCallbackMs: MetricSnapshot;
   nativeSourceAgeAtEmitMs: MetricSnapshot;
+  nativeSourceAgeAtMaskPublishMs: MetricSnapshot;
   nativeRuntime: PoseNativeRuntimeSnapshot | null;
   nativeRenderer: PoseLatencyNativeRendererDiagnostics | null;
   rendererInputWidth: number | null;
@@ -162,9 +172,13 @@ export class PoseLatencyDiagnostics {
   private readonly nativeMpImageBuildMs: RollingMetric;
   private readonly nativeResultFlattenMs: RollingMetric;
   private readonly nativeEventPayloadBuildMs: RollingMetric;
+  private readonly nativeMaskExtractionMs: RollingMetric;
+  private readonly nativeMaskRasterMs: RollingMetric;
+  private readonly nativeMaskPostprocessMs: RollingMetric;
   private readonly nativeSourceAgeAtMediapipeSubmitMs: RollingMetric;
   private readonly nativeSourceAgeAtMediapipeCallbackMs: RollingMetric;
   private readonly nativeSourceAgeAtEmitMs: RollingMetric;
+  private readonly nativeSourceAgeAtMaskPublishMs: RollingMetric;
   private readonly jsTransformMs: RollingMetric;
   private readonly geometryMs: RollingMetric;
   private readonly poseAgeAtReceiptMs: RollingMetric;
@@ -178,6 +192,7 @@ export class PoseLatencyDiagnostics {
   private rendererPublishedFrames = 0;
   private rendererCoalescedFrames = 0;
   private rendererRejectedFrames = 0;
+  private maskFrameMisalignment = 0;
   private frameIdOutOfOrder = 0;
   private timestampOutOfOrder = 0;
   private staleAtReceipt = 0;
@@ -207,9 +222,13 @@ export class PoseLatencyDiagnostics {
     this.nativeMpImageBuildMs = new RollingMetric(windowSize);
     this.nativeResultFlattenMs = new RollingMetric(windowSize);
     this.nativeEventPayloadBuildMs = new RollingMetric(windowSize);
+    this.nativeMaskExtractionMs = new RollingMetric(windowSize);
+    this.nativeMaskRasterMs = new RollingMetric(windowSize);
+    this.nativeMaskPostprocessMs = new RollingMetric(windowSize);
     this.nativeSourceAgeAtMediapipeSubmitMs = new RollingMetric(windowSize);
     this.nativeSourceAgeAtMediapipeCallbackMs = new RollingMetric(windowSize);
     this.nativeSourceAgeAtEmitMs = new RollingMetric(windowSize);
+    this.nativeSourceAgeAtMaskPublishMs = new RollingMetric(windowSize);
     this.jsTransformMs = new RollingMetric(windowSize);
     this.geometryMs = new RollingMetric(windowSize);
     this.poseAgeAtReceiptMs = new RollingMetric(windowSize);
@@ -264,6 +283,16 @@ export class PoseLatencyDiagnostics {
       pushOptionalMetric(this.nativeMpImageBuildMs, native.mpImageBuildMs);
       pushOptionalMetric(this.nativeResultFlattenMs, native.resultFlattenMs);
       pushOptionalMetric(this.nativeEventPayloadBuildMs, native.eventPayloadBuildMs);
+      pushOptionalMetric(this.nativeMaskExtractionMs, native.maskExtractionMs);
+      pushOptionalMetric(this.nativeMaskRasterMs, native.maskRasterMs);
+      pushOptionalMetric(this.nativeMaskPostprocessMs, native.maskPostprocessMs);
+      if (
+        frameId !== null &&
+        typeof native.maskFrameId === 'number' &&
+        Math.round(native.maskFrameId) !== frameId
+      ) {
+        this.maskFrameMisalignment++;
+      }
       const runtime = nativeRuntimeSnapshot(native);
       if (runtime) this.nativeRuntime = runtime;
       if (native.nativeRenderer) this.nativeRenderer = native.nativeRenderer;
@@ -275,6 +304,9 @@ export class PoseLatencyDiagnostics {
       }
       if (typeof native.sourceAgeAtNativeEventEmitMs === 'number') {
         this.nativeSourceAgeAtEmitMs.push(native.sourceAgeAtNativeEventEmitMs);
+      }
+      if (typeof native.sourceAgeAtMaskPublishMs === 'number') {
+        this.nativeSourceAgeAtMaskPublishMs.push(native.sourceAgeAtMaskPublishMs);
       }
     }
 
@@ -335,6 +367,7 @@ export class PoseLatencyDiagnostics {
       rendererPublishedFrames: this.rendererPublishedFrames,
       rendererCoalescedFrames: this.rendererCoalescedFrames,
       rendererRejectedFrames: this.rendererRejectedFrames,
+      maskFrameMisalignment: this.maskFrameMisalignment,
       frameIdOutOfOrder: this.frameIdOutOfOrder,
       timestampOutOfOrder: this.timestampOutOfOrder,
       staleAtReceipt: this.staleAtReceipt,
@@ -353,9 +386,13 @@ export class PoseLatencyDiagnostics {
       nativeMpImageBuildMs: this.nativeMpImageBuildMs.snapshot(),
       nativeResultFlattenMs: this.nativeResultFlattenMs.snapshot(),
       nativeEventPayloadBuildMs: this.nativeEventPayloadBuildMs.snapshot(),
+      nativeMaskExtractionMs: this.nativeMaskExtractionMs.snapshot(),
+      nativeMaskRasterMs: this.nativeMaskRasterMs.snapshot(),
+      nativeMaskPostprocessMs: this.nativeMaskPostprocessMs.snapshot(),
       nativeSourceAgeAtMediapipeSubmitMs: this.nativeSourceAgeAtMediapipeSubmitMs.snapshot(),
       nativeSourceAgeAtMediapipeCallbackMs: this.nativeSourceAgeAtMediapipeCallbackMs.snapshot(),
       nativeSourceAgeAtEmitMs: this.nativeSourceAgeAtEmitMs.snapshot(),
+      nativeSourceAgeAtMaskPublishMs: this.nativeSourceAgeAtMaskPublishMs.snapshot(),
       nativeRuntime: this.nativeRuntime,
       nativeRenderer: this.nativeRenderer,
       rendererInputWidth: this.rendererInputWidth,
@@ -438,7 +475,8 @@ function nativeRuntimeSnapshot(
     native.sensorTimestampSourceName !== undefined ||
     native.sensorTimestampComparableToElapsedRealtime !== undefined ||
     native.cameraInputFps !== undefined ||
-    native.nativeEventScheduledCount !== undefined;
+    native.nativeEventScheduledCount !== undefined ||
+    native.maskDataType !== undefined;
   if (!hasRuntimeFields) return null;
   return {
     modelAsset: native?.modelAsset ?? null,
@@ -487,6 +525,11 @@ function nativeRuntimeSnapshot(
     nativeEventCoalescedCount: finiteOrNull(native?.nativeEventCoalescedCount),
     nativeEventRejectedCount: finiteOrNull(native?.nativeEventRejectedCount),
     nativeEventEmittedCount: finiteOrNull(native?.nativeEventEmittedCount),
+    maskDataType: typeof native?.maskDataType === 'string' ? native.maskDataType : null,
+    maskSourceWidth: finiteOrNull(native?.maskSourceWidth),
+    maskSourceHeight: finiteOrNull(native?.maskSourceHeight),
+    maskRasterWidth: finiteOrNull(native?.maskRasterWidth),
+    maskRasterHeight: finiteOrNull(native?.maskRasterHeight),
   };
 }
 

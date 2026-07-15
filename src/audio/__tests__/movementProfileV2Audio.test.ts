@@ -39,7 +39,7 @@ describe('Movement Profile V2 audio metadata helpers', () => {
     expect(
       movementProfileV2AudioFingerprint({
         cueId: 'mpv2_balance_tracking_retry',
-        voiceId: 'marcus',
+        voiceId: 'another-voice',
         providerVoiceId: 'voice-a',
       })
     ).not.toBe(base);

@@ -7,6 +7,7 @@ import {
   Screen,
 } from '../components/ui';
 import { ClarityProgressCard } from '../components/ClarityProgressCard';
+import { PageHeader } from '../components/PageHeader';
 import {
   type MovementProfileV2ProgressChangeDomain,
   type MovementProfileV2ProgressViewModel,
@@ -15,8 +16,6 @@ import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
 import type { OfficialCheckUpBlockedReason } from '../programme';
 import type { ClarityTrendViewModel } from '../pearlFlow/clarityTrend';
 import { colors, fonts, radius, spacing, type } from '../theme';
-import { useResponsiveLayout } from '../theme/responsive';
-import { MenuIcon } from '../navigation/icons';
 
 import { BRAND } from '../brand';
 
@@ -28,7 +27,6 @@ export function ProgressScreen({
   checkUpBlockedReason,
   onOpenSettings,
 }: ProgressScreenProps) {
-  const responsive = useResponsiveLayout();
   const progress = movementProfileV2Progress ?? null;
   const checkUpHistory =
     progress?.status === 'ready' && progress.officialHistory.length >= 1
@@ -36,30 +34,8 @@ export function ProgressScreen({
       : null;
 
   return (
-    <Screen
-      contentStyle={[
-        styles.screenContent,
-        { paddingHorizontal: responsive.isCompactWidth ? spacing.xl : spacing.xxl },
-      ]}
-    >
-      <View style={styles.header}>
-        <Text
-          style={[styles.title, responsive.isCompactPhone && styles.compactTitle]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.9}
-        >
-          Your progress
-        </Text>
-        <Pressable
-          style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
-          onPress={onOpenSettings}
-          accessibilityRole="button"
-          accessibilityLabel="Open settings"
-        >
-          <MenuIcon size={24} color={colors.textPrimary} strokeWidth={1.55} />
-        </Pressable>
-      </View>
+    <Screen contentStyle={styles.screenContent}>
+      <PageHeader title="Progress" onOpenSettings={onOpenSettings} />
 
       <MovementProfileV2ProgressContent
         viewModel={progress}
@@ -605,7 +581,9 @@ interface ProgressScreenProps {
   onOpenSettings: () => void;
 }
 
-function blockedCheckUpCopy(reason?: OfficialCheckUpBlockedReason): {
+/** One reason-specific explanation per blocked check-up route, shared with the
+ * root's blocked moment so she is always told the actual cause. */
+export function blockedCheckUpCopy(reason?: OfficialCheckUpBlockedReason): {
   title: string;
   body: string;
 } {
@@ -675,29 +653,6 @@ const styles = StyleSheet.create({
   screenContent: {
     flexGrow: 1,
     gap: spacing.xxl,
-  },
-  header: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  title: {
-    color: colors.textPrimary,
-    flexShrink: 1,
-    fontFamily: fonts.serifRegular,
-    fontSize: 40,
-    letterSpacing: -0.8,
-    lineHeight: 46,
-  },
-  compactTitle: { fontSize: 36, lineHeight: 42 },
-  headerIconButton: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   progressCard: {
     paddingHorizontal: 0,

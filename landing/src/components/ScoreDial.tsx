@@ -1,7 +1,7 @@
 /**
- * The signature element: a 240° score dial. Brass carries the value; the
- * track is a lighter step of the same hue; the numeral wears ink/bone text
- * tokens, never the data colour.
+ * The signature element: a 240° score dial. Pearl burgundy carries the value;
+ * the track is a lighter step of the same hue; the numeral wears the shared
+ * neutral text tokens, never the data colour.
  */
 
 const SWEEP = 240; // degrees
@@ -25,12 +25,12 @@ export function ScoreDial({
   label,
   size = 180,
   tone = "light",
-  surface = "#fbf8f2",
+  surface = "#fffdfc",
   delta,
 }: ScoreDialProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const track = tone === "light" ? "#eadfc9" : "rgba(243,239,231,0.16)";
-  const fill = "#a67c3d";
+  const track = tone === "light" ? "rgba(142,49,88,0.12)" : "rgba(255,255,255,0.18)";
+  const fill = "#7c405d";
   // Dash starts at 150° (bottom-left) and sweeps clockwise; gap centred at the bottom.
   const tipAngle = ((150 + SWEEP * (clamped / 100)) * Math.PI) / 180;
   const tipX = 50 + R * Math.cos(tipAngle);

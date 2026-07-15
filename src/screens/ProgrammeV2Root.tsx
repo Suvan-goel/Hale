@@ -47,7 +47,13 @@ import { materializeOfficialMovementProfileV2Artifacts } from '../reference/move
 import type { MovementProfileV2ReferenceProfile } from '../reference/movementProfileV2/types';
 import { validOfficialMovementProfileV2Assessments } from '../pearlFlow/checkupHistory';
 import { buildClarityTrendViewModel } from '../pearlFlow/clarityTrend';
-import { adoptGuestSessionFunnelFiles } from '../telemetry/fsAdapter';
+import { adoptGuestSessionFunnelFiles, createExpoSessionFunnelFs } from '../telemetry/fsAdapter';
+import {
+  buildOnboardingFunnelEvent,
+  onboardingFunnelEventsForTransition,
+  type OnboardingFunnelEvent,
+} from '../telemetry/onboardingFunnelRecord';
+import { OnboardingFunnelStore } from '../telemetry/onboardingFunnelStore';
 import {
   buildMovementProfileV2ProgressViewModel,
   movementProfileV2ProgressProfileBySourceCheckUpId,
@@ -57,11 +63,14 @@ import { TAB_BAR_SCROLL_CLEARANCE, TabBar, type TabKey } from '../navigation/Tab
 import {
   acknowledgeOnboardingStep,
   applyAssessmentPlacement,
+  applyAssessmentSafety,
   applyInactivityRegressionIfDue,
+  applyJointComfortFlags,
   applyProgrammeSessionResults,
   applyOfficialAssessmentToProgrammeJourney,
   assessmentInputsFromCheckUp,
-  baselineCheckupDueAfterStarter,
+  baselineCheckupRequiredBeforeTraining,
+  healthAnswersRequiredBeforeBaseline,
   officialCheckUpAccess,
   completeOnboarding,
   defaultProgrammeState,
@@ -71,11 +80,15 @@ import {
   markFirstSessionStarted,
   onboardingCompletionRoute,
   PELVIC_PHYSIO_SIGNPOST_COPY,
+  PROGRAMME_PREP_ITEM_ID,
   postSessionSurface,
   preSessionPrompt,
   ProgrammeStore,
+  programmeJourneyCheckpointKindForSourceCheckUpId,
   programmeJourneyProgressAt,
   programmeTodayViewModel,
+  programmeVoiceExerciseDefinition,
+  programmeVoiceSafetyProfile,
   recordBandAnswer,
   recordDomingCheck,
   recordGatewayDemoWatched,
@@ -85,6 +98,7 @@ import {
   SKIPPED,
   undoLastOnboardingStep,
   type OnboardingAnswerValue,
+  type ProgrammeOnboardingFlowState,
   type ProgrammePattern,
   type ProgrammeSessionPlan,
   type ProgrammeSessionResults,
@@ -93,7 +107,6 @@ import {
   type PromotionDecision,
   type SessionRpe,
 } from '../programme';
-import type { OnboardingQuestionStepId } from '../programme';
 import {
   onboardingActivityLevel,
   OnlineProfileSyncStore,
@@ -124,7 +137,7 @@ import { CameraSetupScreen } from './CameraSetupScreen';
 import { AuthScreen } from './AuthScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './MovementProfileV2UnifiedResultsScreen';
 import { PlanScreen } from './PlanScreen';
-import { ProgressScreen } from './ProgressScreen';
+import { blockedCheckUpCopy, ProgressScreen } from './ProgressScreen';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
 import { ProgrammeEffortScreen, ProgrammeMomentScreen } from './ProgrammeMomentScreens';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
@@ -141,10 +154,12 @@ import { assessmentStatusAfterHealthChange } from '../settings/healthAnswerPrefe
 type ShellPhase =
   | 'loading'
   | 'onboarding'
+  | 'session_preview'
   | 'home'
   | 'session'
   | 'effort'
   | 'session_done'
+  | 'dev_checkup_done'
   | 'assessment';
 
 type ShellFlow = 'settings' | 'camera-setup' | null;
@@ -171,10 +186,18 @@ export function ProgrammeV2Root() {
     () => new OfficialCheckUpDraftStore(localFs),
     [localFs]
   );
+  // Local-only install → accepted-baseline funnel (2026-07-14 review): the
+  // evidence for the baseline-first and B1 safety-step rulings. Shares the
+  // session-funnel scope so adoption and privacy erasure cover it identically.
+  const onboardingFunnelStore = React.useMemo(
+    () => new OnboardingFunnelStore(createExpoSessionFunnelFs({ userId: backendUserId })),
+    [backendUserId]
+  );
 
   const [phase, setPhase] = React.useState<ShellPhase>('loading');
   const [tab, setTab] = React.useState<TabKey>('today');
   const [flow, setFlow] = React.useState<ShellFlow>(null);
+  const [settingsInitialSection, setSettingsInitialSection] = React.useState<'health' | null>(null);
   // The per-check-up results page (restored 2026-07-08, founder direction):
   // fresh results right after a check-up ('standard' / 'onboarding' for the
   // first-ever), and read-only saved results from Progress ('history'). The
@@ -208,6 +231,10 @@ export function ProgrammeV2Root() {
   const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
   const [cameraPermission, setCameraPermission] = React.useState<CameraPermission>('checking');
   const [onboardingAuthVisible, setOnboardingAuthVisible] = React.useState(false);
+  const replayingOnboardingRef = React.useRef(false);
+  // Settings → Developer → Replay onboarding can enter the real check-up UI
+  // without mutating the established programme, history, or saved draft.
+  const devOnboardingCheckUpRef = React.useRef(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
   // The expectation CTA's promise when Check-up #0 runs first: completing the
   // check-up chains into the first session (abandoning it lands home — the
@@ -355,7 +382,10 @@ export function ProgrammeV2Root() {
           }
         );
         if (applied.kind === 'advanced' || applied.kind === 'completed') {
-          let nextState = reconciledState;
+          let nextState = applyAssessmentSafety(
+            reconciledState,
+            assessmentInputsFromCheckUp(record.record.checkUp)
+          );
           if (
             applied.kind === 'advanced' &&
             applied.startedPhase === 1 &&
@@ -589,9 +619,13 @@ export function ProgrammeV2Root() {
   // pending-first-session promise exactly once.
   const proceedAfterAssessment = React.useCallback(() => {
     const continuationState = assessmentContinuationStateRef.current ?? programmeState;
-    if (pendingFirstSessionRef.current && continuationState) {
+    if (
+      pendingFirstSessionRef.current &&
+      continuationState &&
+      continuationState.journey.status !== 'awaiting_baseline'
+    ) {
       // The onboarding CTA promised a first session; the check-up ran
-      // first, so generate it from the freshly exact placement.
+      // first and was accepted, so generate it from the freshly exact placement.
       pendingFirstSessionRef.current = false;
       setPlan(
         generateProgrammeSession({
@@ -624,6 +658,14 @@ export function ProgrammeV2Root() {
     });
   }, [history, resultsView, prefs]);
 
+  const resultsMilestone = React.useMemo(() => {
+    if (!resultsView || !programmeState) return null;
+    return programmeJourneyCheckpointKindForSourceCheckUpId(
+      programmeState.journey,
+      resultsView.sourceCheckUpId
+    );
+  }, [programmeState, resultsView]);
+
   const voiceSetup: VoiceSetupPrefs = prefs?.settings.voiceSetup ?? DEFAULT_VOICE_SETUP_PREFS;
   const handleVoiceSetupChange = React.useCallback(
     (next: VoiceSetupPrefs) => {
@@ -654,22 +696,56 @@ export function ProgrammeV2Root() {
     [profileStore, queueOnlineProfileSync]
   );
 
+  // Funnel events record locations, never answers; a failed write can never
+  // interrupt onboarding. Dev replays log nothing.
+  const recordOnboardingFunnel = React.useCallback(
+    (...events: readonly OnboardingFunnelEvent[]) => {
+      if (replayingOnboardingRef.current) return;
+      for (const event of events) {
+        try {
+          onboardingFunnelStore.save(
+            buildOnboardingFunnelEvent({ event, atIso: new Date().toISOString() })
+          );
+        } catch (error) {
+          console.warn('[programme-v2] onboarding funnel write failed', error);
+        }
+      }
+    },
+    [onboardingFunnelStore]
+  );
+
+  // Every onboarding flow-state change passes through here, so the recorded
+  // funnel can never disagree with what the flow machine actually did.
+  const applyOnboardingFlowState = React.useCallback(
+    (next: ProgrammeOnboardingFlowState) => {
+      recordOnboardingFunnel(...onboardingFunnelEventsForTransition(flowState, next));
+      setFlowState(next);
+    },
+    [flowState, recordOnboardingFunnel]
+  );
+
   const finishOnboarding = React.useCallback(
     async (
       action: 'start_first_session' | 'schedule',
       completedFlowState: typeof flowState = flowState
     ) => {
       const completion = completeOnboarding(completedFlowState);
+      // Current onboarding cannot finish until the required answers and any
+      // heart-safety confirmation make the starting check-up available.
+      // Fail closed before persisting if a synthetic/incomplete caller tries.
+      if (completion.assessmentIntent !== 'start_now') {
+        setPhase('onboarding');
+        return;
+      }
       const route = onboardingCompletionRoute(completion, action);
       persist(completion.programmeState);
-      // Hand off to the EXISTING profile surfaces (C6/C8).
+      // Hand off the optional retention anchor to the existing profile.
       const currentPrefs = prefs ?? (await profileStore.load());
       const nowIso = new Date().toISOString();
       const nextPrefs = {
         ...currentPrefs,
         profile: {
           ...currentPrefs.profile,
-          menopauseStage: completion.menopauseStage ?? currentPrefs.profile.menopauseStage,
           lifeGoal: completion.lifeGoalCategory
             ? {
                 id: `lifegoal-${Date.now()}`,
@@ -694,23 +770,27 @@ export function ProgrammeV2Root() {
           nowIso
         );
         if (access.allowed) {
+          recordOnboardingFunnel('checkup_started');
           pendingFirstSessionRef.current = route.startFirstSession;
           setPhase('assessment');
         } else if (route.startFirstSession) {
+          // Fail closed: an eligible baseline route never degrades into an
+          // unmeasured Week 1 session when the check-up cannot launch.
           pendingFirstSessionRef.current = false;
-          setPlan(
-            generateProgrammeSession({
-              state: completion.programmeState,
-              template: 'A',
-              preset: 'first_session',
-            })
-          );
-          setPhase('session');
+          setPhase('home');
         } else {
           pendingFirstSessionRef.current = false;
           setPhase('home');
         }
       } else if (route.startFirstSession) {
+        if (healthAnswersRequiredBeforeBaseline(completion.programmeState)) {
+          // Defensive fallback for retained/synthetic decline completions: the
+          // live onboarding UI no longer submits this route.
+          setSettingsInitialSection('health');
+          setFlow('settings');
+          setPhase('home');
+          return;
+        }
         // First session defaults to the 15-minute minimum-dose preset (§7).
         setPlan(
           generateProgrammeSession({
@@ -724,7 +804,7 @@ export function ProgrammeV2Root() {
         setPhase('home');
       }
     },
-    [flowState, persist, persistPrefs, prefs, profileStore]
+    [flowState, persist, persistPrefs, prefs, profileStore, recordOnboardingFunnel]
   );
 
   const startOfficialCheckUp = React.useCallback(() => {
@@ -732,23 +812,39 @@ export function ProgrammeV2Root() {
     const access = officialCheckUpAccess(programmeState, new Date().toISOString(), {
       hasDraft: checkUpDraft !== null,
     });
-    if (access.allowed) setPhase('assessment');
-  }, [programmeState, checkUpDraft]);
+    if (access.allowed) {
+      if (programmeState.journey.status === 'awaiting_baseline') {
+        recordOnboardingFunnel('checkup_started');
+      }
+      setPhase('assessment');
+    }
+  }, [programmeState, checkUpDraft, recordOnboardingFunnel]);
 
   const startSessionFromHome = React.useCallback(() => {
     if (!programmeState) return;
-    if (
-      checkUpDraft &&
-      officialCheckUpAccess(programmeState, new Date().toISOString(), { hasDraft: true }).allowed
-    ) {
+    const checkUpAccess = officialCheckUpAccess(programmeState, new Date().toISOString(), {
+      hasDraft: checkUpDraft !== null,
+    });
+    if (checkUpDraft && checkUpAccess.allowed) {
       setPhase('assessment');
       return;
     }
-    // A deferred baseline permits one low-friction generic starter, not an
-    // unlimited unpersonalized programme. The next Home action resumes the
-    // official check-up so Phase 1 can start from measured Strength/Balance.
-    if (baselineCheckupDueAfterStarter(programmeState)) {
-      setPhase('assessment');
+    // A declined-consent legacy state cannot degrade into an unmeasured Week
+    // 1 session. Restore the two private answers first, then let the normal
+    // safety gate decide whether the baseline is suitable.
+    if (healthAnswersRequiredBeforeBaseline(programmeState)) {
+      setSettingsInitialSection('health');
+      setFlow('settings');
+      return;
+    }
+    // Every eligible route into Week 1 is baseline-first, including Plan and
+    // interrupted/legacy deferred states. Active Gentle Start remains the
+    // safety exception because its effort-based check-up is unavailable.
+    if (baselineCheckupRequiredBeforeTraining(programmeState)) {
+      if (checkUpAccess.allowed) {
+        recordOnboardingFunnel('checkup_started');
+        setPhase('assessment');
+      }
       return;
     }
     // Re-check the inactivity gap at generation time — the app may have sat
@@ -767,7 +863,7 @@ export function ProgrammeV2Root() {
       })
     );
     setPhase('session');
-  }, [programmeState, checkUpDraft, persist]);
+  }, [programmeState, checkUpDraft, persist, recordOnboardingFunnel]);
 
   const handleSessionStart = React.useCallback(() => {
     if (!programmeState || sessionStartRef.current) return;
@@ -839,11 +935,23 @@ export function ProgrammeV2Root() {
     sessionStartRef.current = null;
     pendingFirstSessionRef.current = false;
     assessmentContinuationStateRef.current = null;
+    devOnboardingCheckUpRef.current = false;
     setOnlineProfileSyncState(SIGNED_OUT_ONLINE_PROFILE_STATE);
     if (backendUserId) await signOut();
   }, [backendUserId, profileStore, signOut]);
 
   const handleDataCleared = React.useCallback(() => {
+    replayingOnboardingRef.current = false;
+    devOnboardingCheckUpRef.current = false;
+    setFlow(null);
+    setPhase('onboarding');
+  }, []);
+
+  const handleReplayOnboarding = React.useCallback(() => {
+    replayingOnboardingRef.current = true;
+    devOnboardingCheckUpRef.current = false;
+    setFlowState(initialOnboardingFlowState());
+    setOnboardingAuthVisible(false);
     setFlow(null);
     setPhase('onboarding');
   }, []);
@@ -915,44 +1023,69 @@ export function ProgrammeV2Root() {
       <ProgrammeOnboardingScreen
         flowState={flowState}
         onSelectOption={(step, value) =>
-          setFlowState((current) =>
-            recordOnboardingAnswer(current, { step, value } as OnboardingAnswerValue)
+          applyOnboardingFlowState(
+            recordOnboardingAnswer(flowState, { step, value } as OnboardingAnswerValue)
           )
         }
         onSelectMany={(step, values) =>
-          setFlowState((current) =>
-            recordOnboardingAnswer(current, {
-              step,
-              value: step === 'b3_joints' ? values.filter((v) => v !== 'none') : values,
-            } as OnboardingAnswerValue)
+          applyOnboardingFlowState(
+            recordOnboardingAnswer(flowState, { step, value: values })
           )
         }
-        onSkipQuestion={(step: OnboardingQuestionStepId) =>
-          setFlowState((current) =>
-            recordOnboardingAnswer(current, {
+        onSkipQuestion={(step) =>
+          applyOnboardingFlowState(
+            recordOnboardingAnswer(flowState, {
               step,
               value: SKIPPED,
             } as OnboardingAnswerValue)
           )
         }
         onAcknowledge={(step) => {
-          const next = acknowledgeOnboardingStep(flowState, step);
-          setFlowState(next);
+          applyOnboardingFlowState(acknowledgeOnboardingStep(flowState, step));
         }}
         onComplete={({ assessmentChoice, action }) => {
           const next = recordOnboardingAnswer(flowState, {
             step: 'assessment_offer',
             value: assessmentChoice,
           });
-          setFlowState(next);
+          applyOnboardingFlowState(next);
+          if (replayingOnboardingRef.current) {
+            replayingOnboardingRef.current = false;
+            if (__DEV__ && assessmentChoice === 'now') {
+              // A real UI/camera dry run: the assessment render path below
+              // supplies empty history and no persistence callbacks.
+              devOnboardingCheckUpRef.current = true;
+              pendingFirstSessionRef.current = false;
+              assessmentContinuationStateRef.current = null;
+              setPhase('assessment');
+            } else {
+              setPhase('home');
+            }
+            return;
+          }
           void finishOnboarding(action, next);
         }}
-        onBack={() => setFlowState((current) => undoLastOnboardingStep(current))}
+        onPreviewSession={() => {
+          recordOnboardingFunnel('preview_opened');
+          setPhase('session_preview');
+        }}
+        onBack={() => applyOnboardingFlowState(undoLastOnboardingStep(flowState))}
         onSignIn={
           isOnlineProfilesEnabled() && !isSignedIn
             ? () => setOnboardingAuthVisible(true)
             : undefined
         }
+      />
+    );
+  }
+
+  if (phase === 'session_preview') {
+    return (
+      <ProgrammeSessionPreview
+        voiceId={prefs.settings.voiceId}
+        voiceSetup={voiceSetup}
+        onVoiceSetupChange={handleVoiceSetupChange}
+        onFinish={() => setPhase('onboarding')}
       />
     );
   }
@@ -1106,16 +1239,33 @@ export function ProgrammeV2Root() {
     );
   }
 
+  if (phase === 'dev_checkup_done') {
+    return (
+      <ProgrammeMomentScreen
+        eyebrow="Developer preview"
+        title="Check-up dry run complete"
+        body="Nothing from this check-up was saved, and your existing programme and history are unchanged."
+        actions={[{ label: 'Back to Home', onPress: () => setPhase('home') }]}
+      />
+    );
+  }
+
   if (phase === 'assessment') {
-    const access = officialCheckUpAccess(programmeState, new Date().toISOString(), {
-      hasDraft: checkUpDraft !== null,
-    });
+    const isDevOnboardingCheckUp = __DEV__ && devOnboardingCheckUpRef.current;
+    const access = isDevOnboardingCheckUp
+      ? ({ allowed: true, mode: 'baseline' } as const)
+      : officialCheckUpAccess(programmeState, new Date().toISOString(), {
+          hasDraft: checkUpDraft !== null,
+        });
     if (!access.allowed) {
+      // Tell her the actual cause (same copy as Progress), never a vague
+      // list of everything that could theoretically be wrong.
+      const blocked = blockedCheckUpCopy(access.reason);
       return (
         <ProgrammeMomentScreen
           eyebrow="Movement Check-Up"
-          title="This check-up is not available right now"
-          body="Your current consent, safety, or four-week programme state does not allow an official check-up. No measurement has started or been saved."
+          title={blocked.title}
+          body={`${blocked.body} No measurement has started or been saved.`}
           actions={[{ label: 'Back to Home', onPress: () => setPhase('home') }]}
         />
       );
@@ -1128,15 +1278,20 @@ export function ProgrammeV2Root() {
     return (
       <ProgrammeCheckupZeroScreen
         voiceId={prefs.settings.voiceId}
-        history={history}
-        initialDraft={checkUpDraft?.checkUp}
+        history={isDevOnboardingCheckUp ? [] : history}
+        initialDraft={isDevOnboardingCheckUp ? undefined : checkUpDraft?.checkUp}
         showSymptomLoad={
-          prefs.profile.menopauseStage !== null &&
+          // Pearl is built for women in the menopause transition, so a new
+          // user does not have to classify her stage before this optional
+          // context is useful. Explicit male compatibility profiles and an
+          // explicit prefer-not answer still suppress it.
+          prefs.profile.referenceSex !== 'male' &&
           prefs.profile.menopauseStage !== 'prefer_not_to_say'
         }
         cameraPermissionGranted={cameraPermission === 'granted'}
         onRequestCameraPermission={ensureCameraPermission}
         onRawCheckUpReady={(checkUp) => {
+          if (isDevOnboardingCheckUp) return;
           try {
             const checkupType = officialCheckUpTypeFor(checkUp);
             const updatedAtIso = new Date().toISOString();
@@ -1152,6 +1307,13 @@ export function ProgrammeV2Root() {
           }
         }}
         onComplete={(checkUp) => {
+          if (isDevOnboardingCheckUp) {
+            devOnboardingCheckUpRef.current = false;
+            pendingFirstSessionRef.current = false;
+            assessmentContinuationStateRef.current = null;
+            setPhase('dev_checkup_done');
+            return;
+          }
           const completedAtIso = new Date().toISOString();
           let prepared: ReturnType<typeof prepareOfficialCheckUp>;
           try {
@@ -1183,24 +1345,30 @@ export function ProgrammeV2Root() {
             if (journeyResult.kind === 'advanced' || journeyResult.kind === 'completed') {
               saveAsOfficial = true;
               if (journeyResult.kind === 'advanced' && journeyResult.startedPhase === 1) {
+                // The funnel's terminal goal: an accepted baseline.
+                recordOnboardingFunnel('baseline_accepted');
                 const inputs = assessmentInputsFromCheckUp(checkUp);
                 nextProgrammeState = applyAssessmentPlacement(programmeState, inputs, {
-                  // One generic starter may precede baseline; measured placement
-                  // can then move her up but never erase reported progress.
+                  // New eligible users have no prior workout to protect.
+                  // Preserve upward-only placement for an already-trained
+                  // legacy deferred state encountered during migration.
                   deferred: programmeState.completedSessionCount > 0,
                   completedAtIso,
                 });
               } else {
                 // Retests choose the next phase's focus. Exercise ladders remain
                 // governed by reported sessions, not one camera reading.
-                nextProgrammeState = {
-                  ...programmeState,
-                  profile: {
-                    ...programmeState.profile,
-                    assessmentStatus: 'done',
-                    lastAssessmentAtIso: completedAtIso,
+                nextProgrammeState = applyAssessmentSafety(
+                  {
+                    ...programmeState,
+                    profile: {
+                      ...programmeState.profile,
+                      assessmentStatus: 'done',
+                      lastAssessmentAtIso: completedAtIso,
+                    },
                   },
-                };
+                  assessmentInputsFromCheckUp(checkUp)
+                );
               }
               nextProgrammeState = {
                 ...nextProgrammeState,
@@ -1220,7 +1388,7 @@ export function ProgrammeV2Root() {
             ) {
               // This is still a valid official measurement and belongs in
               // history, but it must not start or advance a phase. At baseline
-              // one gentle starter remains available before a measured retake.
+              // Week 1 remains locked until an accepted measured retake.
               saveAsOfficial = true;
               if (programmeState.journey.status === 'awaiting_baseline') {
                 nextProgrammeState = {
@@ -1310,8 +1478,18 @@ export function ProgrammeV2Root() {
             .catch(() => proceedAfterAssessment());
         }}
         onCancel={() => {
+          if (isDevOnboardingCheckUp) {
+            devOnboardingCheckUpRef.current = false;
+            pendingFirstSessionRef.current = false;
+            assessmentContinuationStateRef.current = null;
+            setPhase('home');
+            return;
+          }
           // A completed movement battery remains a local draft; otherwise
           // cancellation is penalty-free and applies nothing.
+          if (programmeState.journey.status === 'awaiting_baseline') {
+            recordOnboardingFunnel('baseline_checkup_left');
+          }
           pendingFirstSessionRef.current = false;
           assessmentContinuationStateRef.current = null;
           setPhase('home');
@@ -1358,13 +1536,21 @@ export function ProgrammeV2Root() {
         ? programmeState.journey.phasePrescriptions[3] ?? null
         : null;
   const goAssessment = startOfficialCheckUp;
-  const openSettings = () => setFlow('settings');
+  const openSettings = () => {
+    setSettingsInitialSection(null);
+    setFlow('settings');
+  };
+  const openHealthAnswers = () => {
+    setSettingsInitialSection('health');
+    setFlow('settings');
+  };
 
   if (resultsView && resultsViewModel) {
     return (
       <MovementProfileV2UnifiedResultsScreen
         viewModel={resultsViewModel}
         variant={resultsView.variant}
+        milestone={resultsMilestone}
         onDone={() => {
           const fresh = resultsView.variant !== 'history';
           setResultsView(null);
@@ -1382,12 +1568,14 @@ export function ProgrammeV2Root() {
         startingEffort={onboardingActivityLevel(programmeState.profile.activityLevel)}
         safetyPreferences={{
           balanceSupportDefault: programmeState.profile.balanceSupportDefault,
+          balanceSupportPreference: programmeState.profile.balanceSupportPreference,
           balanceSupportRequired: programmeState.profile.balanceSupportRequired,
           lowImpact: programmeState.profile.pelvicRouting === 'low_impact',
           quietMode: programmeState.profile.quietMode,
           hasStairs: programmeState.profile.hasStairs,
           consentHealthData: programmeState.profile.consentHealthData,
           gentleStartActive: programmeState.profile.gentleStartActive,
+          heartSafetyAnswer: programmeState.profile.heartSafetyAnswer,
           gpConfirmed: programmeState.profile.gpConfirmed,
           jointFlags: programmeState.profile.jointFlags,
         }}
@@ -1400,18 +1588,20 @@ export function ProgrammeV2Root() {
             profile: { ...programmeState.profile, activityLevel: level },
           })
         }
-        onSafetyPreferencesChange={(next) =>
-          persist({
+        onSafetyPreferencesChange={(next) => {
+          const updated: ProgrammeState = {
             ...programmeState,
             profile: {
               ...programmeState.profile,
               balanceSupportDefault: next.balanceSupportDefault,
+              balanceSupportPreference: next.balanceSupportPreference,
               balanceSupportRequired: next.balanceSupportRequired,
               pelvicRouting: next.lowImpact ? 'low_impact' : 'none',
               quietMode: next.quietMode,
               hasStairs: next.hasStairs,
               consentHealthData: next.consentHealthData,
               gentleStartActive: next.gentleStartActive,
+              heartSafetyAnswer: next.heartSafetyAnswer,
               gpConfirmed: next.gpConfirmed,
               jointFlags: next.jointFlags,
               assessmentStatus: assessmentStatusAfterHealthChange(
@@ -1419,8 +1609,9 @@ export function ProgrammeV2Root() {
                 next
               ),
             },
-          })
-        }
+          };
+          persist(applyJointComfortFlags(updated, next.jointFlags));
+        }}
         onOpenCameraSetup={() => setFlow('camera-setup')}
         cameraPermission={cameraPermission}
         onRequestCameraPermission={requestCameraPermission}
@@ -1431,14 +1622,17 @@ export function ProgrammeV2Root() {
         onResolveOnlineProfileConflict={(resolution) =>
           queueOnlineProfileSync(prefs, resolution)
         }
+        initialSection={settingsInitialSection ?? undefined}
         onFillSampleData={handleFillSampleData}
         onResetSampleData={handleResetSampleData}
+        onReplayOnboarding={handleReplayOnboarding}
         // No pain-exclusion rows in v2 by the Pain A ruling (2026-07-07):
         // the §12 pain regression is v1's answer to exercise pain. The goal
         // remains a small Settings preference: changing it affects future
         // emphasis and never rewrites frozen check-up artifacts.
         onBack={() => {
           setFlow(null);
+          setSettingsInitialSection(null);
           if (!programmeState.onboardingCompletedAtIso) setPhase('onboarding');
         }}
       />
@@ -1484,6 +1678,7 @@ export function ProgrammeV2Root() {
               checkUpDraftInProgress={checkUpDraft !== null && checkUpAccess.allowed}
               onOpenSettings={openSettings}
               onStartNextSession={startSessionFromHome}
+              onStartCheckUp={checkUpAccess.allowed ? goAssessment : undefined}
             />
           ) : (
             <TodayScreen
@@ -1500,6 +1695,8 @@ export function ProgrammeV2Root() {
               onPrimaryAction={() =>
                 todayVm.primaryAction.type === 'start_baseline_checkup'
                   ? goAssessment()
+                  : todayVm.primaryAction.type === 'review_health_answers'
+                    ? openHealthAnswers()
                   : startSessionFromHome()
               }
               onOpenSettings={openSettings}
@@ -1509,6 +1706,41 @@ export function ProgrammeV2Root() {
       </ScreenScrollClearanceProvider>
       <TabBar active={tab} onChange={setTab} bottomInset={systemInsets.bottom} />
     </View>
+  );
+}
+
+function ProgrammeSessionPreview({
+  voiceId,
+  voiceSetup,
+  onVoiceSetupChange,
+  onFinish,
+}: {
+  voiceId?: string;
+  voiceSetup: VoiceSetupPrefs;
+  onVoiceSetupChange: (next: VoiceSetupPrefs) => void;
+  onFinish: () => void;
+}) {
+  return (
+    <VoiceSessionScreen
+      experience="preview"
+      exerciseIds={[PROGRAMME_PREP_ITEM_ID]}
+      generatedExercises={[
+        {
+          exerciseId: PROGRAMME_PREP_ITEM_ID,
+          sets: 1,
+          secondsPerSet: 30,
+          restSeconds: 0,
+        },
+      ]}
+      resolveExercise={programmeVoiceExerciseDefinition}
+      resolveSafetyProfile={programmeVoiceSafetyProfile}
+      sessionTitle="How sessions work"
+      voiceId={voiceId}
+      voiceSetup={voiceSetup}
+      onVoiceSetupChange={onVoiceSetupChange}
+      onComplete={onFinish}
+      onCancel={onFinish}
+    />
   );
 }
 

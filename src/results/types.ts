@@ -1,9 +1,12 @@
 /**
  * 'standard'   — concise fresh results after a routine check-up.
  * 'onboarding' — the same concise completion layout after the first check-up.
- * 'history'    — a detailed saved profile opened read-only from Progress.
+ * 'history'    — saved read-only results opened from Progress.
  */
 export type UnifiedCheckUpResultsVariant = 'standard' | 'onboarding' | 'history';
+
+/** Journey context supplied by the programme shell for an accepted check-up. */
+export type UnifiedCheckUpMilestone = 'baseline' | 'week4' | 'week8' | 'week12';
 
 export type UnifiedResultDomainId =
   | 'strength_power'
@@ -51,6 +54,7 @@ export interface UnifiedCheckUpResultsPresentation {
     eyebrow?: string;
     title: string;
     subtitle?: string;
+    milestoneLabel?: string;
     completedAtLabel?: string;
     showBackButton?: boolean;
     backAccessibilityLabel?: string;

@@ -157,7 +157,7 @@ describe('TrainingStore persistence', () => {
             recoveryEpisode: null,
             completedTransitionIds: ['transition-1'],
             firedProgressEventIds: ['attempt-1:five'],
-            activeVoiceId: 'marcus',
+            activeVoiceId: 'retired-voice',
             pendingVoiceId: null,
             planFingerprint: 'plan:test',
           },
@@ -168,7 +168,7 @@ describe('TrainingStore persistence', () => {
     expect(parsed?.activeTrainingVoiceRuntime).toMatchObject({
       runtimeMode: 'internal_v21',
       phase: 'item_setup',
-      activeVoiceId: 'marcus',
+      activeVoiceId: 'clara',
       completedTransitionIds: ['transition-1'],
       firedProgressEventIds: ['attempt-1:five'],
     });
@@ -402,4 +402,3 @@ describe('TrainingStore persistence', () => {
     expect(reloaded.planPreferences.preferredIntensity).toBe('gentle');
   });
 });
-

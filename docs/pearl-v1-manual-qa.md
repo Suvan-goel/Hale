@@ -1,10 +1,10 @@
 # Pearl MVP Manual QA Checklist
 
-Date: 2026-07-11
+Date: 2026-07-14
 
 Use this checklist for the simplified MVP. The primary shell is **Home / Plan / Progress**.
 Settings is a full-screen flow opened from the header. There is no Explore, Learn, Family,
-workout browser, or separate session-preview flow in the MVP.
+or workout browser. Onboarding includes one short, non-counted session preview.
 
 ## Preflight
 
@@ -24,22 +24,42 @@ workout browser, or separate session-preview flow in the MVP.
 ## Brand-New User
 
 - Clear the app's local data and relaunch.
-- Confirm the consolidated onboarding follows these user-visible screens:
-  Welcome -> About you -> Health consent -> Heart safety -> Movement comfort -> Setup -> Your start.
-- If the heart-safety answer requires Gentle Start, confirm the advisory appears before
-  Movement comfort and the Movement Check-Up is unavailable.
-- On About you, confirm the life goal, menopause stage, and activity questions fit without
-  clipped options; optional questions can be skipped.
-- Decline health-data consent. Confirm the health questions are omitted, the programme starts
-  conservatively, and the Movement Check-Up is not offered.
-- Accept health-data consent. Confirm joint comfort, pelvic-impact preference, balance support,
-  stairs, and quiet-mode answers affect their stated safety or workout behaviour.
-- Confirm back navigation returns by user-visible screen rather than stepping through every
-  grouped question individually.
+- Confirm the normal onboarding follows four user-visible surfaces:
+  Welcome -> Goal -> Health & privacy -> Your start.
+- If the heart-safety answer is Yes, confirm the safety-step advisory appears before Your start,
+  cannot be skipped, and returns to the same baseline-first path after confirmation.
+- On Goal, confirm the four choices and "I’ll decide later" fit without clipped options.
+- Across every onboarding page, confirm the short section label stays in the top navigation row
+  and the full question or page message wraps as the prominent heading below progress. No title
+  should shrink to fit beside the Back button.
+- On the first Health & privacy question, confirm the disclosure explains that choosing an answer
+  permits Pearl to use both safety answers only on this phone, that they are never uploaded, sold,
+  or shared, and that they can be reviewed or removed in Settings. Confirm there is no separate
+  consent decision or no-health-answer onboarding branch.
+- Confirm the flow reveals only one question at a time: required Yes/No heart safety, then joint
+  comfort. Select each joint area in turn and confirm multi-select, None, and the joint-comfort
+  Prefer not to say route work without clipped content.
+- Confirm the initial programme defaults to level 1, quiet sessions, temporary supported balance,
+  and no stair assumption. Confirm a strong accepted baseline balance result clears temporary
+  support, while a short hold makes support required. An explicit Settings preference must survive
+  a strong result.
+- Confirm a knee answer keeps squat placement at level 1 after a strong chair-stand result. Repeat
+  with hip, shoulder, wrist, and lower-back answers and verify the related ladders stay protected.
+- Confirm back navigation moves through joint comfort -> heart safety -> Goal without
+  retaining answers from a later panel.
 - On Your start, verify the available routes:
-  - Check movement, then start the first session.
-  - Start with one gentle session and defer the check-up.
-  - Go to Home for now.
+  - Start the roughly eight-minute Movement Check-Up, review an accepted result, then enter the
+    first session.
+  - Open "See how a session works," complete or leave the 30-second voice-paced warm-up preview,
+    and return to Your start with the onboarding answers intact.
+  - Confirm the preview does not request microphone access, create programme/session credit,
+    mark the first session as started, or add a persistent session-funnel record.
+- Confirm every completed onboarding route shows “Do my starting check-up”; no route offers
+  “Start my first session” before an accepted baseline.
+- Cancel or produce a needs-retake baseline, then try Home and Plan session actions. Confirm every
+  eligible route returns to the Movement Check-Up and Week 1 remains locked until a baseline is
+  accepted. Confirm a legacy consent-declined profile opens Health answers and cannot start a
+  session. Legacy Gentle Start remains protected until its existing safety step is confirmed.
 - Confirm onboarding never requires an account, equipment purchase, schedule setup, reminder,
   or notification permission.
 
@@ -55,8 +75,8 @@ workout browser, or separate session-preview flow in the MVP.
   - Normal training day.
   - Week-4, week-8, or week-12 check-up due.
   - Clean return after a long gap.
-- Confirm starting a workout goes directly into the voice-guided session flow without an
-  extra workout browser or session-preview page.
+- After an accepted baseline, confirm starting a workout goes directly into the voice-guided
+  session flow without an extra workout browser or preview page.
 - Confirm the Settings icon is reachable, labelled, and returns to the same shell cleanly.
 
 ## Plan
@@ -69,8 +89,9 @@ workout browser, or separate session-preview flow in the MVP.
 - Confirm the weekly message treats three sessions as planned and two as enough.
 - At a four-week checkpoint, confirm Plan identifies the Movement Check-Up as next and directs
   the user back to Home rather than adding a second competing action.
-- With health-data consent declined or Gentle Start active, confirm Plan explains why the
-  camera check-up is unavailable while sessions remain available.
+- With health-data consent declined, confirm Plan says Week 1 is locked and does not preview a
+  next session. With Gentle Start active, confirm Plan explains why the camera check-up is
+  unavailable while the gentlest sessions remain available.
 - After all three phases, confirm Plan shows a calm completed state with no extra controls or
   gamification.
 
@@ -157,6 +178,10 @@ workout browser, or separate session-preview flow in the MVP.
   drafts, and preferences are removed for the current local scope.
 - In a release-like build, confirm developer sample-data controls and diagnostic/internal flags
   are absent.
+- In a development build, choose Replay onboarding and complete the normal health-answer route.
+  Confirm "Do my starting check-up" opens the real check-up UI. Complete or cancel it and verify
+  the pre-existing programme, official history, and saved draft are unchanged; completion should
+  show the explicit dry-run confirmation before returning Home.
 
 ## Routing, Persistence, and Recovery
 

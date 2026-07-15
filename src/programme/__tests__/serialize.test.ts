@@ -26,8 +26,10 @@ describe('conservative defaults', () => {
     expect(profile.consentHealthData).toBe(false);
     expect(profile.activityLevel).toBeNull();
     expect(profile.gentleStartActive).toBe(false);
+    expect(profile.heartSafetyAnswer).toBeNull();
     expect(profile.pelvicRouting).toBe('none');
     expect(profile.balanceSupportRequired).toBe(false);
+    expect(profile.balanceSupportPreference).toBeNull();
     expect(profile.hasStairs).toBeNull();
     expect(profile.hasBand).toBeNull();
     expect(profile.placement).toEqual({});
@@ -57,10 +59,12 @@ describe('round-trip', () => {
       ...defaultProgrammeProfile(),
       consentHealthData: true,
       activityLevel: 'moderately_active',
+      heartSafetyAnswer: 'no',
       pelvicRouting: 'low_impact',
       quietMode: true,
       jointFlags: ['knee', 'wrist'],
       balanceSupportDefault: true,
+      balanceSupportPreference: true,
       balanceSupportRequired: true,
       hasStairs: true,
       placement: { squat: 2, push: 2 },
@@ -98,6 +102,7 @@ describe('defensive parsing', () => {
       profile: {
         consentHealthData: 'yes', // wrong type → false
         activityLevel: 'olympian', // unknown → null
+        heartSafetyAnswer: 'sometimes', // unknown → null
         pelvicRouting: 'high_impact', // unknown → 'none'
         jointFlags: ['knee', 'elbow', 'knee'], // unknown + duplicate dropped
         chosenDays: ['mon', 'someday'],
@@ -115,6 +120,8 @@ describe('defensive parsing', () => {
     expect(state).not.toBeNull();
     expect(state?.profile.consentHealthData).toBe(false);
     expect(state?.profile.activityLevel).toBeNull();
+    expect(state?.profile.heartSafetyAnswer).toBeNull();
+    expect(state?.profile.balanceSupportPreference).toBeNull();
     expect(state?.profile.pelvicRouting).toBe('none');
     expect(state?.profile.jointFlags).toEqual(['knee']);
     expect(state?.profile.chosenDays).toEqual(['mon']);
@@ -135,11 +142,39 @@ describe('defensive parsing', () => {
     const legacy = JSON.parse(serializeProgrammeState(defaultProgrammeState()));
     legacy.profile.balanceSupportDefault = true;
     delete legacy.profile.balanceSupportRequired;
+    delete legacy.profile.balanceSupportPreference;
 
     expect(deserializeProgrammeState(JSON.stringify(legacy))?.profile).toMatchObject({
       balanceSupportDefault: true,
+      balanceSupportPreference: null,
       balanceSupportRequired: true,
     });
+  });
+
+  it('normalizes required or explicitly preferred support to an enabled default', () => {
+    const required = JSON.parse(serializeProgrammeState(defaultProgrammeState()));
+    required.profile.balanceSupportDefault = false;
+    required.profile.balanceSupportPreference = false;
+    required.profile.balanceSupportRequired = true;
+    expect(deserializeProgrammeState(JSON.stringify(required))?.profile.balanceSupportDefault).toBe(true);
+
+    const preferred = JSON.parse(serializeProgrammeState(defaultProgrammeState()));
+    preferred.profile.balanceSupportDefault = false;
+    preferred.profile.balanceSupportPreference = true;
+    expect(deserializeProgrammeState(JSON.stringify(preferred))?.profile.balanceSupportDefault).toBe(true);
+  });
+
+  it('preserves a schema-v2 journey while defaulting new answer provenance', () => {
+    const legacy = JSON.parse(serializeProgrammeState(defaultProgrammeState()));
+    legacy.schemaVersion = 2;
+    legacy.journey = journeyFixture(2);
+    delete legacy.profile.heartSafetyAnswer;
+    delete legacy.profile.balanceSupportPreference;
+
+    const migrated = deserializeProgrammeState(JSON.stringify(legacy));
+    expect(migrated?.journey).toEqual(legacy.journey);
+    expect(migrated?.profile.heartSafetyAnswer).toBeNull();
+    expect(migrated?.profile.balanceSupportPreference).toBeNull();
   });
 
   it('migrates v1 without losing valid programme progress', () => {
