@@ -6420,3 +6420,47 @@ Movement Check-Up, storage, and measurement behavior are unchanged.
   ineligible effort-based check-up or make off-cadence retests available.
 - **Verified:** 191 Jest suites / 1,704 tests, strict TypeScript, Expo public
   config, and `git diff --check`.
+
+## 2026-07-16 — Check-up flow polish: spoken close, side-anchored retest setup, positioning beat
+
+- **Closing bridge (new generated line):** the two-movement official check-up
+  previously ended on "Time. Stop there and rest." with the full-battery
+  "results are ready" line filtered out, then silently switched to the
+  Everyday Clarity questionnaire on a phone propped out of reach. The battery
+  now closes with its own bundled line, `checkup-strength-balance-complete`
+  ("That's both movements done — well done. Take a moment to catch your
+  breath, then pick up your phone. There's one short optional check-in on the
+  screen."), swapped in wherever a non-hinge sequence would have spoken
+  `checkup-complete-v21`. The full battery's outro is unchanged.
+- **Side-anchored retest balance setup (new generated lines):** at a retest
+  the standing leg is anchored to the prior official record, but the only
+  spoken setup line invited a fresh choice ("Choose the leg that feels safest
+  to stand on today"), silently costing a comparable reading if she switched.
+  With a prior standing leg, the voice runtime and the Help replay now speak
+  `checkup-balance-single-leg-retest-left/right` ("Plan to stand on your left
+  leg — the same side as your last check-up — so your results compare
+  fairly…"), which still explicitly permits the other leg if today it feels
+  unsafe (autonomy and the honest comparability downgrade are unchanged).
+  Baseline keeps the free-choice wording. The pre-existing bundled
+  `checkup-balance-single-leg-left/right-v21` files ("lift your right foot
+  slightly") were deliberately NOT reused: they instruct an immediate lift,
+  which contradicts the setup stage's both-feet-down requirement.
+- **Positioning beat:** the host warm-up countdown no longer hard-cuts into
+  the camera flow at zero; a four-second "Nicely done — step back to where the
+  camera can see all of you" beat runs first (host-level, non-measurement,
+  penalty-free exit retained). The 60-second warm-up itself remains fixed and
+  unskippable for comparability.
+- **Dead path removed:** `CheckUpRecordingShell`'s `setupIssue` modal mode,
+  its "Skip this movement" action, and the `onTryAgain`/`onSkip` props were
+  unreachable from the unified check-up screen (`setupIssue` was always
+  false) — and the skip was miswired to leave the whole check-up. The shell
+  is now help-modal-only; reintroducing a per-movement skip must be a
+  deliberate decision with correct wiring.
+- Copy alignment: the battery screen now says "Chair Stands" / "Strength"
+  (matching the guide cards and the measure-Strength-and-Balance vocabulary),
+  and the intro promises "Usually about eight minutes" (the balance section's
+  hard cap can legally exceed the old flat promise).
+- **Verified:** 192 Jest suites / 1,724 tests, strict TypeScript,
+  `npm run verify:audio` (251 required assets), and the three new lines
+  generated with the standard ElevenLabs build step (key from environment,
+  never committed).

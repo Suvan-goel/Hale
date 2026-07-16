@@ -117,10 +117,14 @@ export function visibleInstructionText(profile: CheckUpInstructionProfile): stri
 
 export function movementProfileV2InstructionProfileForStage(
   stage: MovementProfileV2LiveStage,
-  selectedShoulder: BodySide = 'right'
+  selectedShoulder: BodySide = 'right',
+  priorStandingLeg: BodySide | null = null
 ): CheckUpInstructionProfile | null {
   const profile = getCheckUpInstructionProfile(protocolIdForMovementProfileV2Stage(stage));
   if (!profile) return null;
+  if (profile.protocolId === ONE_LEG_BALANCE_V2_ID && priorStandingLeg !== null) {
+    return retestBalanceInstructionProfile(profile, priorStandingLeg);
+  }
   if (profile.protocolId !== ACTIVE_SHOULDER_REACH_V2_ID) return profile;
   const turnCue: VoiceCueKey =
     selectedShoulder === 'left' ? 'checkup-shoulder-turn-left-v21' : 'checkup-shoulder-turn-right-v21';
@@ -134,21 +138,62 @@ export function movementProfileV2InstructionProfileForStage(
   };
 }
 
+/**
+ * At a retest the standing leg is anchored to the prior official record, so
+ * Help must repeat the side-anchored setup line the stage plan spoke — never
+ * the baseline free-choice wording, which would contradict it.
+ */
+function retestBalanceInstructionProfile(
+  profile: CheckUpInstructionProfile,
+  priorStandingLeg: BodySide
+): CheckUpInstructionProfile {
+  const singleLegCue: VoiceCueKey =
+    priorStandingLeg === 'left'
+      ? 'checkup-balance-single-leg-retest-left'
+      : 'checkup-balance-single-leg-retest-right';
+  const singleLegText =
+    `Plan to stand on your ${priorStandingLeg} leg — the same side as your last check-up — ` +
+    "so your results compare fairly. If that side doesn't feel safe today, it's okay to " +
+    'use the other leg. Keep both feet down for now.';
+  const swapCues = (ref: InstructionCueRef): InstructionCueRef => ({
+    ...ref,
+    cueId: ref.cueId === 'checkup-balance-single-leg-v21' ? singleLegCue : ref.cueId,
+    ...(ref.cueIds
+      ? { cueIds: ref.cueIds.map((cue) => (cue === 'checkup-balance-single-leg-v21' ? singleLegCue : cue)) }
+      : {}),
+    text: ref.text.replace(
+      'Choose the leg that feels safest to stand on today, but keep both feet down for now.',
+      singleLegText
+    ),
+  });
+  return {
+    ...profile,
+    firstTime: swapCues(profile.firstTime),
+    help: swapCues(profile.help),
+  };
+}
+
 export function movementProfileV2InstructionCueIdsForStage(input: {
   readonly stage: MovementProfileV2LiveStage;
   readonly selectedShoulder?: BodySide;
+  readonly priorStandingLeg?: BodySide | null;
   readonly repeatedAttempt?: boolean;
 }): VoiceCueKey[] {
-  const profile = movementProfileV2InstructionProfileForStage(input.stage, input.selectedShoulder ?? 'right');
+  const profile = movementProfileV2InstructionProfileForStage(
+    input.stage,
+    input.selectedShoulder ?? 'right',
+    input.priorStandingLeg ?? null
+  );
   if (!profile) return [];
   return instructionCueIds(input.repeatedAttempt ? profile.repeat : profile.help);
 }
 
 export function movementProfileV2InstructionTextForStage(
   stage: MovementProfileV2LiveStage,
-  selectedShoulder: BodySide = 'right'
+  selectedShoulder: BodySide = 'right',
+  priorStandingLeg: BodySide | null = null
 ): string | null {
-  const profile = movementProfileV2InstructionProfileForStage(stage, selectedShoulder);
+  const profile = movementProfileV2InstructionProfileForStage(stage, selectedShoulder, priorStandingLeg);
   return profile ? visibleInstructionText(profile) : null;
 }
 

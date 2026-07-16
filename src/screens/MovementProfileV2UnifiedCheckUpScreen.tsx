@@ -462,7 +462,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
   const openSupportModal = React.useCallback(
     (mode: Exclude<CheckUpShellModalMode, null>) => {
-      if (mode === 'help') replayCurrentInstruction();
+      replayCurrentInstruction();
       setModalMode(mode);
     },
     [replayCurrentInstruction]
@@ -549,7 +549,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
         voiceRuntimeState,
       })}
       modalMode={modalMode}
-      setupIssue={false}
       footerMeta={movementProfileV2FooterMeta(live)}
       stageDisplay={movementProfileV2StageDisplay(live, cameraAvailability)}
       controls={controls}
@@ -557,8 +556,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       backAccessibilityLabel="Leave Movement Check-Up"
       onOpenSupportModal={openSupportModal}
       onCloseSupportModal={closeSupportModal}
-      onTryAgain={closeSupportModal}
-      onSkip={requestClose}
       discardModal={{
         visible: confirmLeaveVisible,
         onKeep: keepCheckUp,
@@ -893,7 +890,8 @@ function movementProfileV2ShellTitle(stage: MovementProfileV2LiveStage): string 
     case 'chair_practice':
     case 'chair_countdown':
     case 'chair_active':
-      return 'Chair Rise';
+      // Matches the pre-battery guide card ("Thirty-second chair stands").
+      return 'Chair Stands';
     case 'balance_setup':
     case 'balance_ready':
     case 'balance_trial':
@@ -1033,7 +1031,9 @@ function movementProfileV2DomainLabel(stage: MovementProfileV2LiveStage): string
     case 'chair_practice':
     case 'chair_countdown':
     case 'chair_active':
-      return 'Strength & power';
+      // Matches the guide card's domain tag (STRENGTH) and the product's
+      // "measure Strength and Balance" vocabulary.
+      return 'Strength';
     case 'balance_setup':
     case 'balance_ready':
     case 'balance_trial':

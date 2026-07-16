@@ -53,6 +53,13 @@ export type VoiceCueKey =
   // Check-Up battery orchestration (between-item transitions).
   | 'checkup-intro'
   | 'checkup-complete'
+  // Two-movement official check-up closing bridge: the Clarity appendix (not
+  // results) comes next, and the phone is propped out of reach.
+  | 'checkup-strength-balance-complete'
+  // Retest balance setup: the standing leg is anchored to the prior official
+  // record, so the spoken setup names the side instead of inviting a choice.
+  | 'checkup-balance-single-leg-retest-left'
+  | 'checkup-balance-single-leg-retest-right'
   | 'turn-side-on'
   | 'face-forward'
   | 'next-exercise'
@@ -240,6 +247,7 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'item-complete':
     case 'checkup-intro':
     case 'checkup-complete':
+    case 'checkup-strength-balance-complete':
     case 'turn-side-on':
     case 'face-forward':
     case 'next-exercise':
@@ -265,6 +273,8 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'balance-tandem':
     case 'balance-single-leg':
     case 'balance-same-leg':
+    case 'checkup-balance-single-leg-retest-left':
+    case 'checkup-balance-single-leg-retest-right':
     case 'close-your-eyes':
     case 'open-your-eyes':
     case 'tug-intro':

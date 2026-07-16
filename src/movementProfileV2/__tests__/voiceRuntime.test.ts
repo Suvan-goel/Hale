@@ -343,7 +343,7 @@ describe('MovementProfileV2VoiceRuntime', () => {
     expect(runtime.state.completionReady).toBe(true);
   });
 
-  it('does not play the full-battery results-ready line before the monthly Clarity appendix', async () => {
+  it('closes the two-movement battery with its own bridge, never the full-battery results-ready line', async () => {
     const runtime = createRuntime();
     const base = snapshot('raw_complete');
     const monthly: MovementProfileV2LiveSnapshot = {
@@ -362,11 +362,70 @@ describe('MovementProfileV2VoiceRuntime', () => {
     runtime.sync(monthly);
     players[0].finish();
     await flushAsync();
+    players[players.length - 1].finish();
+    await flushAsync();
     const started = runtime.state.diagnostics
       .filter((event) => event.event === 'cue_playback_start_evidence')
       .map((event) => event.cueKey);
+    // The Everyday Clarity appendix (not results) comes next, and the phone is
+    // propped out of reach — the battery closes with its own spoken bridge.
     expect(started).not.toContain('checkup-complete-v21');
+    expect(started).toContain('checkup-strength-balance-complete');
     expect(runtime.state.completionReady).toBe(true);
+  });
+
+  it('anchors the spoken balance setup to the prior standing leg at a retest', async () => {
+    const runtime = createRuntime();
+    const base = snapshot('balance_setup', {
+      attemptEpochId: null,
+      lastTransition: {
+        atMs: 0,
+        from: 'standing_frame_check',
+        to: 'balance_setup',
+        reason: 'frame_check_passed',
+      },
+    });
+    const retest: MovementProfileV2LiveSnapshot = {
+      ...base,
+      flow: { ...base.flow, priorStandingLeg: 'right', standingLeg: 'right' },
+    };
+    runtime.sync(retest);
+    for (let index = 0; index < 3; index++) {
+      players[players.length - 1].finish();
+      await flushAsync();
+    }
+    const started = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    // Side-consistency is measurement hygiene: the retest names the anchored
+    // side instead of re-inviting the baseline free choice.
+    expect(started).toContain('checkup-balance-single-leg-retest-right');
+    expect(started).not.toContain('checkup-balance-single-leg-v21');
+    expect(runtimeActions.map((entry) => entry.action.type)).toContain('balance_setup_voice_completed');
+  });
+
+  it('keeps the free-choice balance setup line at baseline (no prior standing leg)', async () => {
+    const runtime = createRuntime();
+    const baseline = snapshot('balance_setup', {
+      attemptEpochId: null,
+      lastTransition: {
+        atMs: 0,
+        from: 'standing_frame_check',
+        to: 'balance_setup',
+        reason: 'frame_check_passed',
+      },
+    });
+    runtime.sync(baseline);
+    for (let index = 0; index < 3; index++) {
+      players[players.length - 1].finish();
+      await flushAsync();
+    }
+    const started = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(started).toContain('checkup-balance-single-leg-v21');
+    expect(started).not.toContain('checkup-balance-single-leg-retest-left');
+    expect(started).not.toContain('checkup-balance-single-leg-retest-right');
   });
 
   it('keeps the no-measurement final reach completion on the no-measurement cue', async () => {

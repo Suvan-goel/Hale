@@ -233,6 +233,7 @@ export class MovementProfileV2VoiceRuntime {
     const cues = movementProfileV2InstructionCueIdsForStage({
       stage: snapshot.stage,
       selectedShoulder: snapshot.flow.shoulderSide,
+      priorStandingLeg: snapshot.flow.priorStandingLeg,
       repeatedAttempt: snapshot.stage === 'balance_ready' || snapshot.stage === 'balance_trial',
     });
     if (cues.length === 0) return false;
@@ -766,14 +767,14 @@ function baseVoicePlanForSnapshot(
           snapshot.lastTransition.reason === 'frame_check_passed'
             ? ['framing-ready', 'checkup-balance-intro-v21', 'checkup-balance-single-leg-v21']
             : ['checkup-balance-intro-v21', 'checkup-balance-single-leg-v21'];
-        return plan(scopeId, 'blocking_transition', framedCues, [
+        return plan(scopeId, 'blocking_transition', cuesForBalanceSetup(snapshot, framedCues), [
           { type: 'balance_setup_voice_completed' },
         ]);
       }
-      return plan(scopeId, 'blocking_transition', cuesForCurrentTransition(snapshot, [
+      return plan(scopeId, 'blocking_transition', cuesForBalanceSetup(snapshot, cuesForCurrentTransition(snapshot, [
         'checkup-balance-intro-v21',
         'checkup-balance-single-leg-v21',
-      ]), [{ type: 'balance_setup_voice_completed' }]);
+      ])), [{ type: 'balance_setup_voice_completed' }]);
     }
     case 'balance_ready':
       return plan(scopeId, 'blocking_prerequisite', cuesForCurrentTransition(snapshot, [
@@ -907,6 +908,31 @@ function cuesForChairSetup(
   return cues.map((cue) => (cue === 'checkup-chair-stand-intro-v21' ? 'chair-stand-intro' : cue));
 }
 
+/**
+ * At a retest the standing leg is anchored to the prior official record
+ * (side-consistency is measurement hygiene), so the spoken setup names the
+ * side — "the same side as your last check-up" — instead of inviting a fresh
+ * choice that would quietly cost her a comparable reading. Baseline keeps the
+ * free-choice line. The line still allows the other leg if today it feels
+ * unsafe; the comparability layer records any switch honestly.
+ */
+function cuesForBalanceSetup(
+  snapshot: MovementProfileV2LiveSnapshot,
+  cues: readonly VoiceCueKey[]
+): readonly VoiceCueKey[] {
+  const retestCue = retestBalanceSingleLegCue(snapshot.flow.priorStandingLeg);
+  if (!retestCue) return cues;
+  return cues.map((cue) => (cue === 'checkup-balance-single-leg-v21' ? retestCue : cue));
+}
+
+export function retestBalanceSingleLegCue(
+  priorStandingLeg: BodySide | null
+): VoiceCueKey | null {
+  if (priorStandingLeg === 'left') return 'checkup-balance-single-leg-retest-left';
+  if (priorStandingLeg === 'right') return 'checkup-balance-single-leg-retest-right';
+  return null;
+}
+
 function cuesForHingeSetup(snapshot: MovementProfileV2LiveSnapshot): readonly VoiceCueKey[] {
   const cues = cuesForCurrentTransition(snapshot, [
     'item-complete-v21',
@@ -938,11 +964,13 @@ function cuesForRawComplete(snapshot: MovementProfileV2LiveSnapshot): readonly V
     : ['item-complete-v21', 'checkup-complete-v21'];
   const cues = cuesForCurrentTransition(snapshot, fallback);
   if (!sequenceHasHinge) {
-    // Pearl's programme-checkpoint host offers optional Everyday Clarity after the movement
-    // battery, so the bundled full-battery "results are ready" line would be
-    // premature here. The generic completion cue already says guidance
-    // continues and requires no new generated audio.
-    return cues.filter((cue) => cue !== 'checkup-complete-v21');
+    // Pearl's programme-checkpoint host offers optional Everyday Clarity after
+    // the movement battery, so the full-battery "results are ready" line would
+    // be premature here. Close the two-movement battery with its own bridge:
+    // effort acknowledged, pick the phone up, one optional check-in ahead.
+    return cues.map((cue): VoiceCueKey =>
+      cue === 'checkup-complete-v21' ? 'checkup-strength-balance-complete' : cue
+    );
   }
   if (!sequenceHasHinge || !snapshot.diagnostics.hinge.captureValid) return cues;
   return ['stand-tall', ...cues.filter((cue) => cue !== 'mpv2_hinge_complete')];

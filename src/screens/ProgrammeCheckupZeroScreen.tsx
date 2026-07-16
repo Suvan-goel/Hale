@@ -40,6 +40,10 @@ import { MovementProfileV2UnifiedCheckUpScreen } from './MovementProfileV2Unifie
 import { ClarityCheckInScreen } from './ClarityCheckInScreen';
 
 const WARM_UP_SECONDS = 60;
+/** Breath between the warm-up hitting zero and the camera flow starting, so
+ * Clara's intro never begins while she is still mid-march. Measurement is
+ * already protected (the frame check requires stillness); this is courtesy. */
+const POSITION_BEAT_MS = 4000;
 
 /** Follow-along list so she has something to track mid-countdown instead of
  * recalling a sentence read once. The warm-up itself stays fixed (comparability). */
@@ -124,7 +128,7 @@ export function ProgrammeCheckupZeroScreen({
   onRequestCameraPermission: () => Promise<boolean>;
 }) {
   const [phase, setPhase] = React.useState<
-    'intro' | 'warmup' | 'guides' | 'battery' | 'clarity'
+    'intro' | 'warmup' | 'position' | 'guides' | 'battery' | 'clarity'
   >(() => (initialDraft ? 'clarity' : 'intro'));
   const [measuredCheckUp, setMeasuredCheckUp] = React.useState<CheckUp | null>(
     initialDraft ?? null
@@ -139,13 +143,19 @@ export function ProgrammeCheckupZeroScreen({
       setWarmupRemaining((remaining) => {
         if (remaining <= 1) {
           clearInterval(interval);
-          setPhase('battery');
+          setPhase('position');
           return 0;
         }
         return remaining - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
+  }, [phase]);
+
+  React.useEffect(() => {
+    if (phase !== 'position') return;
+    const timer = setTimeout(() => setPhase('battery'), POSITION_BEAT_MS);
+    return () => clearTimeout(timer);
   }, [phase]);
 
   const prepareCheckup = React.useCallback(async () => {
@@ -173,7 +183,7 @@ export function ProgrammeCheckupZeroScreen({
     }
     return (
       <CheckupZeroMessage
-        title="About eight minutes, at your pace"
+        title="Usually about eight minutes, at your pace"
         subtitle="A fixed warm-up, a balance hold, thirty seconds of chair stands, then an optional Everyday Clarity check-in."
         checklist={CHECKUP_SETUP_CHECKLIST}
         panelText="Your phone measures Strength and Balance without showing your video. Everything stays on this device."
@@ -191,6 +201,17 @@ export function ProgrammeCheckupZeroScreen({
         subtitle="Follow along gently — the same warm-up at every check-up helps make your results more comparable."
         countdownSeconds={warmupRemaining}
         countdownSequence={WARM_UP_MOVES}
+      >
+        <GhostButton title="Leave check-up" onPress={onCancel} />
+      </CheckupZeroMessage>
+    );
+  }
+
+  if (phase === 'position') {
+    return (
+      <CheckupZeroMessage
+        title="Nicely done"
+        subtitle="Take a breath and step back to where the camera can see all of you. Clara will take it from here."
       >
         <GhostButton title="Leave check-up" onPress={onCancel} />
       </CheckupZeroMessage>

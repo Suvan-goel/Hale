@@ -39,8 +39,8 @@ import {
 import { BRAND } from '../brand';
 const IOS_RECORDING_TOP_CLEARANCE = 44;
 
-export type CheckUpShellModalMode = 'help' | 'setupIssue' | null;
-export type CheckUpShellNoticeAction = 'help' | 'setupIssue';
+export type CheckUpShellModalMode = 'help' | null;
+export type CheckUpShellNoticeAction = 'help';
 
 export interface CheckUpShellNotice {
   text: string;
@@ -83,7 +83,6 @@ export interface CheckUpRecordingShellProps {
   onAvailabilityChange?: (availability: CameraAvailability) => void;
   sessionNotice: CheckUpShellNotice | null;
   modalMode: CheckUpShellModalMode;
-  setupIssue: boolean;
   footerMeta: CheckUpShellFooterMeta;
   stageDisplay: CheckUpShellStageDisplay | null;
   controls: readonly CheckUpShellControl[];
@@ -91,8 +90,6 @@ export interface CheckUpRecordingShellProps {
   backAccessibilityLabel?: string;
   onOpenSupportModal: (mode: Exclude<CheckUpShellModalMode, null>) => void;
   onCloseSupportModal: () => void;
-  onTryAgain: () => void;
-  onSkip: () => void;
   discardModal?: {
     visible: boolean;
     onKeep: () => void;
@@ -101,10 +98,6 @@ export interface CheckUpRecordingShellProps {
   latencyOverlay?: React.ReactNode;
   renderRecordingArea: (context: CheckUpRecordingAreaContext) => React.ReactNode;
 }
-
-const CHECKUP_SETUP_ISSUE_TITLE = `${BRAND.appName} cannot see this movement clearly`;
-const CHECKUP_SETUP_ISSUE_BODY =
-  'Step back or adjust the phone, then try again. You can also skip this movement.';
 
 const CHECKUP_SETUP_HELP_STEPS: readonly { title: string; body: string }[] = [
   {
@@ -132,7 +125,6 @@ export function CheckUpRecordingShell({
   onAvailabilityChange,
   sessionNotice,
   modalMode,
-  setupIssue,
   footerMeta,
   stageDisplay,
   controls,
@@ -140,8 +132,6 @@ export function CheckUpRecordingShell({
   backAccessibilityLabel = 'Leave Movement Check-Up',
   onOpenSupportModal,
   onCloseSupportModal,
-  onTryAgain,
-  onSkip,
   discardModal,
   latencyOverlay,
   renderRecordingArea,
@@ -156,8 +146,8 @@ export function CheckUpRecordingShell({
     Math.min(windowSize.width, spacing.pageMaxWidth) - responsive.horizontalPadding * 2
   );
   const cameraViewport = React.useMemo(
-    () => recordingCameraViewportSize(viewportWidth, windowSize.height, setupIssue || modalMode !== null),
-    [modalMode, setupIssue, viewportWidth, windowSize.height]
+    () => recordingCameraViewportSize(viewportWidth, windowSize.height, modalMode !== null),
+    [modalMode, viewportWidth, windowSize.height]
   );
   const poseWindow = React.useMemo(
     () => poseEstimationWindowSize(cameraViewport.width, cameraViewport.height),
@@ -251,7 +241,7 @@ export function CheckUpRecordingShell({
                   modalMode !== null && styles.helpIconButtonSelected,
                   pressed && styles.controlPressed,
                 ]}
-                onPress={() => onOpenSupportModal(setupIssue ? 'setupIssue' : 'help')}
+                onPress={() => onOpenSupportModal('help')}
                 accessibilityRole="button"
                 accessibilityLabel="Open help"
                 accessibilityState={{ selected: modalMode !== null }}
@@ -291,13 +281,7 @@ export function CheckUpRecordingShell({
         </View>
       </ScrollView>
 
-      <CheckupSupportModal
-        visible={modalMode !== null}
-        mode={modalMode ?? 'help'}
-        onClose={onCloseSupportModal}
-        onTryAgain={onTryAgain}
-        onSkip={onSkip}
-      />
+      <CheckupSupportModal visible={modalMode !== null} onClose={onCloseSupportModal} />
       <DiscardCheckupModal
         visible={discardModal?.visible ?? false}
         onKeep={discardModal?.onKeep ?? onCloseSupportModal}
@@ -345,26 +329,12 @@ function RecordingSetupNotice({
 
 function CheckupSupportModal({
   visible,
-  mode,
   onClose,
-  onTryAgain,
-  onSkip,
 }: {
   visible: boolean;
-  mode: Exclude<CheckUpShellModalMode, null>;
   onClose: () => void;
-  onTryAgain: () => void;
-  onSkip: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const [expanded, setExpanded] = React.useState(mode === 'help');
-  const isSetupIssue = mode === 'setupIssue';
-
-  React.useEffect(() => {
-    if (visible) {
-      setExpanded(mode === 'help');
-    }
-  }, [mode, visible]);
 
   return (
     <Modal
@@ -377,81 +347,40 @@ function CheckupSupportModal({
         <View style={[styles.helpModal, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.helpModalHeader}>
             <HeaderLogo size={26} />
-            <Text style={styles.modalEyebrow}>{isSetupIssue ? 'Setup issue' : 'Setup help'}</Text>
+            <Text style={styles.modalEyebrow}>Setup help</Text>
           </View>
           <View style={styles.helpIntro}>
-            <Text style={styles.modalTitle}>
-              {isSetupIssue ? CHECKUP_SETUP_ISSUE_TITLE : `Help ${BRAND.appName} see you clearly`}
-            </Text>
-            <Text style={styles.modalBody}>
-              {isSetupIssue
-                ? CHECKUP_SETUP_ISSUE_BODY
-                : 'Use these quick checks before each movement.'}
+            <Text style={styles.modalTitle}>{`Help ${BRAND.appName} see you clearly`}</Text>
+            <Text style={styles.modalBody}>Use these quick checks before each movement.</Text>
+          </View>
+
+          <View style={styles.helpStepList}>
+            {CHECKUP_SETUP_HELP_STEPS.map((step, index) => (
+              <View key={step.title} style={styles.helpStepRow}>
+                <Text style={styles.helpStepNumber}>{index + 1}</Text>
+                <View style={styles.helpStepCopy}>
+                  <Text style={styles.helpStepTitle}>{step.title}</Text>
+                  <Text style={styles.helpStepBody}>{step.body}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <View style={styles.helpSafetyLine}>
+            <Text style={styles.helpSafetyLineText}>
+              <Text style={styles.helpSafetyLineStrong}>Keep support nearby. </Text>
+              Stop if you feel dizzy, sharp pain, or unsteady.
             </Text>
           </View>
 
-          {expanded ? (
-            <>
-              <View style={styles.helpStepList}>
-                {CHECKUP_SETUP_HELP_STEPS.map((step, index) => (
-                  <View key={step.title} style={styles.helpStepRow}>
-                    <Text style={styles.helpStepNumber}>{index + 1}</Text>
-                    <View style={styles.helpStepCopy}>
-                      <Text style={styles.helpStepTitle}>{step.title}</Text>
-                      <Text style={styles.helpStepBody}>{step.body}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-              <View style={styles.helpSafetyLine}>
-                <Text style={styles.helpSafetyLineText}>
-                  <Text style={styles.helpSafetyLineStrong}>Keep support nearby. </Text>
-                  Stop if you feel dizzy, sharp pain, or unsteady.
-                </Text>
-              </View>
-            </>
-          ) : null}
-
           <View style={styles.modalActions}>
-            {isSetupIssue ? (
-              <>
-                <Pressable
-                  style={({ pressed }) => [styles.modalButton, styles.modalKeepButton, pressed && styles.controlPressed]}
-                  onPress={onTryAgain}
-                  accessibilityRole="button"
-                  accessibilityLabel="Try setup again"
-                >
-                  <Text style={styles.modalKeepText}>Try again</Text>
-                </Pressable>
-                {!expanded ? (
-                  <Pressable
-                    style={({ pressed }) => [styles.modalButton, styles.modalSecondaryButton, pressed && styles.controlPressed]}
-                    onPress={() => setExpanded(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Show setup tips"
-                  >
-                    <Text style={styles.modalSecondaryText}>Setup tips</Text>
-                  </Pressable>
-                ) : null}
-                <Pressable
-                  style={({ pressed }) => [styles.modalButton, styles.modalSecondaryButton, pressed && styles.controlPressed]}
-                  onPress={onSkip}
-                  accessibilityRole="button"
-                  accessibilityLabel="Skip this movement"
-                >
-                  <Text style={styles.modalSecondaryText}>Skip this movement</Text>
-                </Pressable>
-              </>
-            ) : (
-              <Pressable
-                style={({ pressed }) => [styles.modalButton, styles.modalKeepButton, pressed && styles.controlPressed]}
-                onPress={onClose}
-                accessibilityRole="button"
-                accessibilityLabel="Close help"
-              >
-                <Text style={styles.modalKeepText}>Close</Text>
-              </Pressable>
-            )}
+            <Pressable
+              style={({ pressed }) => [styles.modalButton, styles.modalKeepButton, pressed && styles.controlPressed]}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close help"
+            >
+              <Text style={styles.modalKeepText}>Close</Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -929,11 +858,6 @@ const styles = StyleSheet.create({
   modalKeepButton: {
     backgroundColor: colors.accent,
   },
-  modalSecondaryButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   modalDiscardButton: {
     backgroundColor: colors.cautionSoft,
     borderWidth: 1,
@@ -942,10 +866,6 @@ const styles = StyleSheet.create({
   modalKeepText: {
     ...type.button,
     color: colors.onAccent,
-  },
-  modalSecondaryText: {
-    ...type.button,
-    color: colors.accentDeep,
   },
   modalDiscardText: {
     ...type.button,

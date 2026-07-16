@@ -136,6 +136,25 @@ const LINES: Record<string, string> = {
     "Just follow my voice — you won't need to touch the screen. Let's begin.",
   'checkup-complete':
     "That's the whole check-up — really well done. Your results are ready on the screen.",
+  // Two-movement official check-up closing bridge: plays after "Time. Stop
+  // there and rest." — the Everyday Clarity appendix (not results) comes next,
+  // and the phone is propped out of reach.
+  'checkup-strength-balance-complete':
+    "That's both movements done — well done. Take a moment to catch your breath, " +
+    "then pick up your phone. There's one short optional check-in on the screen.",
+  // Retest balance setup: the standing leg is anchored to the prior official
+  // record (side-consistency keeps results comparable); the free-choice line
+  // remains the baseline wording.
+  'checkup-balance-single-leg-retest-left':
+    'Start with both feet flat on the floor. Plan to stand on your left leg — the ' +
+    "same side as your last check-up — so your results compare fairly. If that side " +
+    "doesn't feel safe today, it's okay to use the other leg. Keep both feet down " +
+    "for now. We'll begin once you're standing still.",
+  'checkup-balance-single-leg-retest-right':
+    'Start with both feet flat on the floor. Plan to stand on your right leg — the ' +
+    "same side as your last check-up — so your results compare fairly. If that side " +
+    "doesn't feel safe today, it's okay to use the other leg. Keep both feet down " +
+    "for now. We'll begin once you're standing still.",
   'turn-side-on': 'For the next movement, please turn so your side faces the phone.',
   'face-forward': 'For the next movement, please turn to face the phone.',
   'next-exercise': "Nice work. Let's set up the next movement.",
