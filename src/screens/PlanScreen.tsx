@@ -1,7 +1,8 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PageHeader } from '../components/PageHeader';
-import { PrimaryButton, Screen } from '../components/ui';
+import { NoticeCard, PrimaryButton, Screen } from '../components/ui';
+import { formatPearlDate } from '../lib/dates';
 import type {
   OfficialCheckUpBlockedReason,
   PhysicalTrainingFocus,
@@ -87,6 +88,9 @@ export function PlanScreen({
   );
 }
 
+// The human words lead: the phase name and week sit in the eyebrow, the phase
+// intent ("Build foundations") is the headline. "Phase 1" is system
+// vocabulary and never appears as user copy.
 function ActivePlan({
   today,
   journey,
@@ -104,46 +108,39 @@ function ActivePlan({
   const programmeWeek = (phase - 1) * 4 + week;
   const credited = Math.min(3, progress.currentWeekSummary?.creditedSessions ?? 0);
   const checkUpIsNext = today.primaryAction.type === 'start_baseline_checkup';
+  // Plan cannot launch a retest (Home owns that), so the row says where to go
+  // instead of a bare "Ready".
   const checkUpLabel = checkUpDraftInProgress
-    ? 'Continue'
+    ? 'Continue from Home'
     : progress.retestDue
-    ? 'Ready'
+    ? 'Ready — start from Home'
     : progress.retestDueAtIso
       ? formatPlanDate(progress.retestDueAtIso)
       : null;
 
   return (
     <>
-      <JourneyProgress currentPhase={phase} />
-
       <View style={styles.programmeStatus}>
-        <Text style={styles.eyebrow}>WEEK {programmeWeek} OF 12</Text>
-        <Text style={styles.phaseHeading}>Phase {phase}</Text>
-        <Text style={styles.phaseSubtitle}>{phaseSubtitle(phase)}</Text>
+        <Text style={styles.eyebrow}>
+          {journeyPhaseName(phase)} · WEEK {programmeWeek} OF 12
+        </Text>
+        <Text style={styles.planHeadline}>{phaseSubtitle(phase)}</Text>
         {physicalFocus ? <FocusPill label={`${planFocusLabel(physicalFocus)} focus`} /> : null}
       </View>
 
+      <JourneyProgress currentPhase={phase} />
+
       <PlanJourneyHero />
 
-      <View style={styles.weekSection}>
-        <View style={styles.weekHeading}>
-          <Text style={styles.eyebrow}>This week</Text>
-          <Text style={styles.weekProgress}>{credited} of 3 complete</Text>
-        </View>
-        <View style={styles.sessionRows}>
-          {planWeekSessionRows(credited, checkUpIsNext).map((row, index, rows) => (
-            <SessionRow
-              key={row.session}
-              row={row}
-              isFirst={index === 0}
-              isLast={index === rows.length - 1}
-              description={sessionDescription(row, today, physicalFocus, checkUpIsNext)}
-              detail={sessionMeta(row, today)}
-              onStart={row.state === 'next' ? onStartNextSession : undefined}
-            />
-          ))}
-        </View>
-      </View>
+      <WeekSection
+        credited={credited}
+        showProgress
+        rows={planWeekSessionRows(credited, checkUpIsNext)}
+        today={today}
+        focus={physicalFocus}
+        checkUpIsNext={checkUpIsNext}
+        onStartNextSession={onStartNextSession}
+      />
 
       {checkUpLabel ? <SummaryRow label="Next check-up" value={checkUpLabel} /> : null}
     </>
@@ -200,6 +197,8 @@ function PreBaselinePlan({
   );
 }
 
+// Blocked states share the app-wide quiet notice pattern (NoticeCard) so every
+// "not available, here's why" moment looks the same across Plan and Progress.
 function BlockedPlan({
   today,
   title,
@@ -213,9 +212,7 @@ function BlockedPlan({
 }) {
   return (
     <View style={styles.blockedSection}>
-      <Text style={styles.eyebrow}>YOUR PLAN</Text>
-      <Text style={styles.planTitle}>{title}</Text>
-      <Text style={styles.body}>{body}</Text>
+      <NoticeCard title={title} body={body} />
       {showSessionPreview ? (
         <View style={styles.blockedNextSession}>
           <Text style={styles.eyebrow}>Next session</Text>
@@ -237,37 +234,74 @@ function CompletedPlan({
 }) {
   return (
     <>
-      <JourneyProgress completedAll />
-
       <View style={styles.programmeStatus}>
         <Text style={styles.eyebrow}>12-WEEK JOURNEY</Text>
-        <Text style={styles.phaseHeading}>Programme complete</Text>
+        <Text style={styles.planHeadline}>Programme complete</Text>
         {focus ? <FocusPill label={`Continuing focus · ${planFocusLabel(focus)}`} /> : null}
       </View>
 
+      <JourneyProgress completedAll />
+
       <PlanJourneyHero />
 
-      <View style={styles.weekSection}>
-        <View style={styles.weekHeading}>
-          <Text style={styles.eyebrow}>This week</Text>
-        </View>
-        <View style={styles.sessionRows}>
-          {planWeekSessionRows(0).map((row, index, rows) => (
-            <SessionRow
-              key={row.session}
-              row={row}
-              isFirst={index === 0}
-              isLast={index === rows.length - 1}
-              description={sessionDescription(row, today, focus, false)}
-              detail={sessionMeta(row, today)}
-              onStart={row.state === 'next' ? onStartNextSession : undefined}
-            />
-          ))}
-        </View>
-      </View>
+      <WeekSection
+        credited={0}
+        showProgress={false}
+        rows={planWeekSessionRows(0)}
+        today={today}
+        focus={focus}
+        checkUpIsNext={false}
+        onStartNextSession={onStartNextSession}
+      />
 
       <SummaryRow label="Movement Check-Ups" value="Saved in Progress" />
     </>
+  );
+}
+
+function WeekSection({
+  credited,
+  showProgress,
+  rows,
+  today,
+  focus,
+  checkUpIsNext,
+  onStartNextSession,
+}: {
+  credited: number;
+  showProgress: boolean;
+  rows: readonly PlanWeekSessionRow[];
+  today: ProgrammeTodayViewModel;
+  focus: PhysicalTrainingFocus | null;
+  checkUpIsNext: boolean;
+  onStartNextSession: () => void;
+}) {
+  return (
+    <View style={styles.weekSection}>
+      <View style={styles.weekHeading}>
+        <Text style={styles.eyebrow}>This week</Text>
+        {/* The rule needs a caption to balance it; alone it reads as a stray line. */}
+        {showProgress ? (
+          <>
+            <View style={styles.headingRule} />
+            <Text style={styles.weekProgress}>{credited} of 3 complete</Text>
+          </>
+        ) : null}
+      </View>
+      <View style={styles.sessionRows}>
+        {rows.map((row, index) => (
+          <SessionRow
+            key={row.session}
+            row={row}
+            isFirst={index === 0}
+            isLast={index === rows.length - 1}
+            description={sessionDescription(row, today, focus, checkUpIsNext)}
+            detail={sessionMeta(row, today)}
+            onStart={row.state === 'next' ? onStartNextSession : undefined}
+          />
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -327,6 +361,9 @@ function FocusPill({ label }: { label: string }) {
   return <Text style={styles.focusLabel}>{label}</Text>;
 }
 
+// The editorial illustration anchors the page between the journey heading and
+// the week's sessions (restored 2026-07-15 after review: an all-text Plan read
+// as sparse, not airy).
 function PlanJourneyHero() {
   return (
     <View style={styles.heroFrame}>
@@ -460,38 +497,72 @@ function nextSessionDetail(today: ProgrammeTodayViewModel): string {
 }
 
 function formatPlanDate(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime())
-    ? 'Scheduled'
-    : new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short' }).format(date);
+  return formatPearlDate(iso, { year: false }) ?? 'Scheduled';
 }
 
 const styles = StyleSheet.create({
   screenContent: { flexGrow: 1, gap: spacing.xl },
-  eyebrow: { ...type.cardCaption, color: colors.textPrimary, fontFamily: fonts.sansMedium, letterSpacing: 1.5, fontSize: 12, textTransform: 'uppercase' },
+  eyebrow: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansMedium,
+    letterSpacing: 1.3,
+    fontSize: 13,
+    lineHeight: 18,
+    textTransform: 'uppercase',
+  },
+  headingRule: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+  },
   journeyProgress: { gap: spacing.sm },
   journeyLabels: { flexDirection: 'row', alignItems: 'center' },
-  journeyLabel: { ...type.cardCaption, flex: 1, color: colors.textTertiary, fontFamily: fonts.sansMedium, fontSize: 10, lineHeight: 14, letterSpacing: 0.4, textAlign: 'center', textTransform: 'uppercase' },
+  journeyLabel: {
+    ...type.cardCaption,
+    flex: 1,
+    color: colors.textTertiary,
+    fontFamily: fonts.sansMedium,
+    // 12px floor: these were 10px, illegible for the 50+ audience.
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.3,
+    textAlign: 'center',
+    textTransform: 'none',
+  },
   journeyLabelComplete: { color: colors.accentGold },
   journeyLabelCurrent: { color: colors.accentDeep },
   journeyTrack: { flexDirection: 'row', gap: spacing.xs },
   journeySegment: { flex: 1, height: 4, borderRadius: radius.pill, backgroundColor: colors.bgElevated },
   journeySegmentComplete: { backgroundColor: colors.accentGold },
   journeySegmentCurrent: { backgroundColor: colors.accentDeep },
-  programmeStatus: { gap: spacing.xs },
-  phaseHeading: { fontFamily: fonts.serifMedium, fontSize: 24, lineHeight: 30, color: colors.textPrimary },
-  phaseSubtitle: { ...type.bodySmall, color: colors.textSecondary },
-  focusLabel: { ...type.bodySmall, color: colors.accentDeep, fontFamily: fonts.sansMedium, marginTop: spacing.xs },
+  programmeStatus: { gap: spacing.sm },
+  planHeadline: {
+    color: colors.textPrimary,
+    fontFamily: fonts.serifRegular,
+    fontSize: 30,
+    lineHeight: 37,
+    letterSpacing: -0.3,
+  },
+  focusLabel: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 21,
+  },
   heroFrame: { width: '100%', aspectRatio: 1.9 },
   heroImage: { width: '100%', height: '100%' },
-  planTitle: { fontFamily: fonts.serifMedium, fontSize: 26, lineHeight: 32, color: colors.textPrimary },
-  body: { ...type.bodySmall, color: colors.textSecondary },
   summaryRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg, paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderHairline },
   summaryLabel: { ...type.cardBody, color: colors.textSecondary },
   summaryValue: { ...type.cardBody, color: colors.textPrimary, fontFamily: fonts.sansMedium, textAlign: 'right', flexShrink: 1 },
-  weekSection: { gap: 0 },
-  weekHeading: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingBottom: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider },
-  weekProgress: { ...type.cardCaption, color: colors.textSecondary },
+  weekSection: { gap: spacing.sm },
+  weekHeading: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  weekProgress: { ...type.cardCaption, color: colors.textSecondary, fontSize: 13, lineHeight: 18 },
   sessionRows: { gap: 0 },
   sessionRow: { minHeight: 104, flexDirection: 'row', alignItems: 'stretch', gap: spacing.md },
   timelineRail: { width: 36, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
@@ -507,7 +578,7 @@ const styles = StyleSheet.create({
   markerTextNext: { color: colors.accentDeep },
   sessionCopy: { flex: 1, minWidth: 0, gap: spacing.xs, justifyContent: 'center', paddingVertical: spacing.md },
   sessionTitle: { ...type.bodySmall, color: colors.textPrimary, fontFamily: fonts.sansMedium },
-  sessionDescription: { ...type.cardCaption, color: colors.textSecondary, fontSize: 12, lineHeight: 17 },
+  sessionDescription: { ...type.cardCaption, color: colors.textSecondary, fontSize: 13, lineHeight: 18 },
   sessionDetail: { ...type.cardCaption, color: colors.textSecondary, fontSize: 13, lineHeight: 18 },
   sessionDetailNext: { color: colors.accentDeep, fontFamily: fonts.sansMedium },
   startButton: { minWidth: 70, minHeight: 48, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.accent },

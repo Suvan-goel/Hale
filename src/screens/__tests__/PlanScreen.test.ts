@@ -37,6 +37,21 @@ describe('Home / Plan / Progress information architecture', () => {
     expect(planSource).not.toContain('successful week');
   });
 
+  it('leads with the phase name and intent, never system vocabulary', () => {
+    // 2026-07-15 visual pass: the eyebrow carries the phase name + week, the
+    // serif headline carries the phase intent. "Phase 1" is never user copy.
+    expect(planSource).toContain('{journeyPhaseName(phase)} · WEEK {programmeWeek} OF 12');
+    expect(planSource).toContain('styles.planHeadline}>{phaseSubtitle(phase)}');
+    expect(planSource).not.toContain('Phase {phase}');
+  });
+
+  it('tells her where a due check-up starts instead of a bare status word', () => {
+    // Plan cannot launch a retest (Home owns that), so the row must say so.
+    expect(planSource).toContain("'Ready — start from Home'");
+    expect(planSource).toContain("'Continue from Home'");
+    expect(planSource).not.toContain("? 'Continue'");
+  });
+
   it('uses a Plan-specific editorial hero and connected vertical session timeline', () => {
     expect(planSource).toContain("pearl-plan-supported-split-squat-transparent-v13.png");
     expect(planSource).toContain('<PlanJourneyHero />');
@@ -45,6 +60,14 @@ describe('Home / Plan / Progress information architecture', () => {
     expect(planSource).toContain('styles.timelineRail');
     expect(planSource).toContain('styles.timelineLineTop');
     expect(planSource).toContain('styles.timelineLineBottom');
+    // The illustration anchors the page between the journey heading and the
+    // week's sessions (restored after review — an all-text Plan read as sparse).
+    expect(planSource.indexOf('<PlanJourneyHero />')).toBeGreaterThan(
+      planSource.indexOf('<JourneyProgress')
+    );
+    expect(planSource.indexOf('<PlanJourneyHero />')).toBeLessThan(
+      planSource.indexOf('<WeekSection')
+    );
   });
 
   it('describes sessions honestly and starts only the next session', () => {
@@ -56,10 +79,13 @@ describe('Home / Plan / Progress information architecture', () => {
     expect(programmeRootSource).toContain('onStartNextSession={startSessionFromHome}');
   });
 
-  it('keeps every Plan section directly on the page background', () => {
-    expect(planSource).not.toContain('<Card');
+  it('keeps Plan sections on the page background, with the shared notice for blocked states', () => {
+    // Only the app-wide NoticeCard may introduce a card surface here — the
+    // programme story itself stays directly on the background.
+    expect(planSource).not.toContain('<Card ');
     expect(planSource).not.toContain('backgroundColor: colors.bgSurface');
     expect(planSource).not.toContain('styles.focusPill');
+    expect(planSource).toContain('<NoticeCard title={title} body={body} />');
   });
 
   it('keeps the completed state concise but gives it useful journey context', () => {
