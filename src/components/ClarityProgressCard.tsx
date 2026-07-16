@@ -1,10 +1,12 @@
-import { StyleSheet, View } from 'react-native';
+import * as React from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import type {
   ClaritySeries,
   ClarityTrendViewModel,
 } from '../pearlFlow/clarityTrend';
-import { colors, fonts, spacing } from '../theme';
+import { formatPearlDate } from '../lib/dates';
+import { colors, fonts, radius, spacing } from '../theme';
 import { PearlText } from './ui';
 
 interface ClarityProgressSeriesPresentation {
@@ -121,44 +123,71 @@ function ClaritySeriesBlock({
     .filter((part): part is string => Boolean(part))
     .join('. ');
 
+  const hasBasis = Boolean(series.comparisonText || series.basisText);
+  const [basisExpanded, setBasisExpanded] = React.useState(false);
+
   return (
-    <View
-      style={[styles.series, showDivider && styles.seriesDivider]}
-      accessible
-      accessibilityLabel={accessibilityLabel}
-    >
-      {showLabel ? <PearlText variant="cardRowTitle">{series.label}</PearlText> : null}
-      <PearlText variant="cardBody" style={styles.relationText}>
-        {displayRelation(series.relationText)}
-      </PearlText>
-
-      {series.comparisonText ? (
-        <PearlText variant="cardCaption" style={styles.explanationText}>
-          {series.comparisonText}
+    <View style={[styles.series, showDivider && styles.seriesDivider]}>
+      <View accessible accessibilityLabel={accessibilityLabel}>
+        {showLabel ? <PearlText variant="cardRowTitle">{series.label}</PearlText> : null}
+        <PearlText variant="cardBody" style={styles.relationText}>
+          {displayRelation(series.relationText)}
         </PearlText>
-      ) : null}
 
-      {series.basisText ? (
-        <PearlText variant="cardCaption" style={styles.explanationText}>
-          {series.basisText}
-        </PearlText>
-      ) : null}
-
-      <View style={styles.metaRow}>
-        {series.latestCheckInDate ? (
+        <View style={styles.metaRow}>
+          {series.latestCheckInDate ? (
+            <PearlText variant="cardCaption" style={styles.metaText}>
+              Latest check-in · {series.latestCheckInDate}
+            </PearlText>
+          ) : null}
           <PearlText variant="cardCaption" style={styles.metaText}>
-            Latest check-in · {series.latestCheckInDate}
+            {series.checkInCount} {series.checkInCount === 1 ? 'check-in' : 'check-ins'} recorded
+          </PearlText>
+        </View>
+
+        {series.supportCopy ? (
+          <PearlText variant="cardCaption" style={styles.supportCopy}>
+            {series.supportCopy}
           </PearlText>
         ) : null}
-        <PearlText variant="cardCaption" style={styles.metaText}>
-          {series.checkInCount} {series.checkInCount === 1 ? 'check-in' : 'check-ins'} recorded
-        </PearlText>
       </View>
 
-      {series.supportCopy ? (
-        <PearlText variant="cardCaption" style={styles.supportCopy}>
-          {series.supportCopy}
-        </PearlText>
+      {hasBasis ? (
+        <View>
+          <Pressable
+            style={({ pressed }) => [styles.basisToggle, pressed && styles.basisTogglePressed]}
+            onPress={() => setBasisExpanded((current) => !current)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: basisExpanded }}
+            accessibilityLabel="What this is based on"
+            accessibilityHint={basisExpanded ? 'Hides the explanation' : 'Shows the explanation'}
+          >
+            <PearlText variant="cardCaption" style={styles.basisToggleText}>
+              What this is based on
+            </PearlText>
+            <PearlText
+              variant="cardCaption"
+              style={[styles.basisChevron, basisExpanded && styles.basisChevronOpen]}
+            >
+              ›
+            </PearlText>
+          </Pressable>
+
+          {basisExpanded ? (
+            <View style={styles.basisBody}>
+              {series.comparisonText ? (
+                <PearlText variant="cardCaption" style={styles.explanationText}>
+                  {series.comparisonText}
+                </PearlText>
+              ) : null}
+              {series.basisText ? (
+                <PearlText variant="cardCaption" style={styles.explanationText}>
+                  {series.basisText}
+                </PearlText>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -178,9 +207,7 @@ function clarityRelationText(series: ClaritySeries): string {
 }
 
 function formatCheckInDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return 'Saved';
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(date);
+  return formatPearlDate(iso) ?? 'Saved';
 }
 
 function ContextNote({ label, body }: { label: string; body: string }) {
@@ -197,12 +224,17 @@ function ContextNote({ label, body }: { label: string; body: string }) {
 }
 
 const styles = StyleSheet.create({
+  // A visibly different container from the measured domains above it: Clarity
+  // is a separate observational track (Product Law 8) and the tinted card
+  // signals that without needing hierarchy copy.
   card: {
     gap: spacing.md,
-    borderTopColor: colors.divider,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderHairline,
+    borderRadius: radius.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
   },
   eyebrow: {
     color: colors.textPrimary,
@@ -215,7 +247,7 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   series: {
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingTop: spacing.sm,
   },
   seriesDivider: {
@@ -242,6 +274,33 @@ const styles = StyleSheet.create({
     columnGap: spacing.lg,
     rowGap: spacing.xs,
     marginTop: spacing.sm,
+  },
+  basisToggle: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  basisTogglePressed: {
+    opacity: 0.78,
+  },
+  basisToggleText: {
+    color: colors.accentDark,
+    fontFamily: fonts.sansMedium,
+  },
+  basisChevron: {
+    color: colors.accentDark,
+    fontFamily: fonts.sansMedium,
+    fontSize: 18,
+    lineHeight: 20,
+    transform: [{ rotate: '0deg' }],
+  },
+  basisChevronOpen: {
+    transform: [{ rotate: '90deg' }],
+  },
+  basisBody: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   metaText: {
     color: colors.textSecondary,

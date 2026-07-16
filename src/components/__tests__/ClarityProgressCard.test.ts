@@ -75,7 +75,7 @@ describe('ClarityProgressCard presentation', () => {
         relationText: '2 saved. A few more build your own baseline.',
         basisText:
           'Based on five questions about word-finding, concentration, mental fatigue, and everyday lapses.',
-        latestCheckInDate: '1 Jul',
+        latestCheckInDate: '1 Jul 2026',
         checkInCount: 2,
       }),
       expect.objectContaining({
@@ -119,7 +119,7 @@ describe('ClarityProgressCard presentation', () => {
     expect(presentation?.series[0]).toMatchObject({
       relationText: 'You reported clearer thinking than usual',
       comparisonText: 'Compared with your previous programme check-ins.',
-      latestCheckInDate: '12 Jul',
+      latestCheckInDate: '12 Jul 2026',
       checkInCount: 4,
     });
     expect(JSON.stringify(presentation)).not.toMatch(/score|percentile|population/i);

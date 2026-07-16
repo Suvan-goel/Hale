@@ -4,6 +4,9 @@ import { join } from 'node:path';
 // The old Plan/manual-check-up surfaces retired with promotion commit 2.
 // A smaller informational Plan returned on 2026-07-10; these pins keep
 // Progress focused on measured results rather than programme structure.
+// 2026-07-15 visual pass: both measured domains render stacked in one scroll
+// (no hidden domain tabs), the chart labels its endpoints directly, and every
+// non-ready state shares one quiet notice pattern.
 describe('Progress UI restoration', () => {
   it('keeps the no-profile state informational so Home owns the check-up action', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
@@ -22,27 +25,44 @@ describe('Progress UI restoration', () => {
     expect(progress).not.toContain('Plan preparation steps');
     expect(progress).not.toContain('<ProgressEmptyStep');
     expect(progress).not.toContain('actionLabel: \'Start check-up\'');
-    expect(progress).toContain('Opens camera setup for your Movement Check-Up.');
+  });
+
+  it('shares one quiet notice pattern across blocked, recovery, and retake states', () => {
+    const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
+    const sharedUi = readFileSync(join(process.cwd(), 'src/components/ui.tsx'), 'utf8');
+
+    // The notice pattern lives in shared UI so Plan and Progress render
+    // identical "not available, here's why" moments.
+    expect(sharedUi).toContain('export function NoticeCard');
+    // The optional continuation stays quiet (secondary), never a hero action.
+    expect(sharedUi).toContain('<SecondaryButton title={actionLabel} onPress={onPress} />');
+    expect(progress).toContain('<NoticeCard');
+    expect(progress).toContain('Check-up results need attention');
+    expect(progress).toContain('blockedCheckUpCopy(checkUpBlockedReason)');
+    expect(progress).not.toContain('<ProgressActionRow');
+    expect(progress).not.toContain('<ProgressPictogram');
   });
 
   it('keeps the V2 Progress dashboard personal, comparable, and free of technical summary copy', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
     const profileCard = progress.slice(
       progress.indexOf('function MovementProfileCard'),
-      progress.indexOf('function DomainTabs')
+      progress.indexOf('function DomainSection')
     );
 
-    // The Progress tab: one domain-switching personal-change hero, collapsed
-    // history, and observational Clarity. Plan owns journey structure;
-    // unscheduled extra official check-ups are deliberately absent:
-    // they would break the frozen monthly comparison cadence.
+    // The Progress tab: both measured domains stacked (Strength then Balance,
+    // never behind tabs), collapsed history, and observational Clarity. Plan
+    // owns journey structure; unscheduled extra official check-ups are
+    // deliberately absent: they would break the frozen comparison cadence.
     expect(progress).toContain('<MovementProfileCard');
-    expect(progress).toContain('<DomainTabs');
+    expect(progress).toContain('<DomainSection');
+    expect(progress).toContain('availableDomains.map');
+    expect(progress).not.toContain('<DomainTabs');
     expect(progress).toContain('<ProgressChart');
-    expect(progress).toContain('supportingText={`Latest check-up · ${hero.dateLabel}`}');
+    expect(progress).toContain('Latest check-up · ${dateLabel}');
     expect(progress).toContain("'30-second chair stand'");
     expect(progress).toContain("'One-leg balance'");
-    expect(progress).toContain('label="Current level"');
+    expect(progress).toContain('Current level');
     expect(progress).not.toContain('label={change ? `Change since');
     expect(progress).toContain('change.series');
     expect(progress).not.toContain('<MovementProfileV2NextCheckUpCard');
@@ -53,10 +73,10 @@ describe('Progress UI restoration', () => {
     expect(progress).toContain('<ClarityProgressCard');
     expect(progress).toContain("progress?.status === 'ready' && progress.officialHistory.length >= 1");
     expect(progress).toContain('history.map((entry, index)');
-    expect(progress).toContain("expanded ? 'Hide check-up history' : 'Check-up details and history'");
+    // The disclosure label stays fixed while the chevron rotates.
+    expect(progress).toContain('Check-up details and history</Text>');
+    expect(progress).not.toContain("expanded ? 'Hide check-up history'");
     expect(progress).toContain('accessibilityState={{ expanded }}');
-    expect(progress).toContain('<Text style={styles.eyebrow}>YOUR CHECK-UPS</Text>');
-    expect(progress).toContain('styles.domainTabTrackActive');
     expect(progress).toContain("'Stronger'} than in ${sinceMonth(change)}");
     expect(progress.indexOf('<ClarityProgressCard')).toBeLessThan(
       progress.indexOf('<MovementProfileV2HistoryCard')
@@ -75,5 +95,18 @@ describe('Progress UI restoration', () => {
     expect(progress).not.toContain('{card.interpretation}');
     expect(progress).toContain("readiness.status !== 'ready'");
     expect(progress).not.toContain('Your current plan is based on your previous Movement Profile');
+  });
+
+  it('labels the chart endpoints directly with system-scaling text instead of a y-axis', () => {
+    const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
+
+    // Endpoint values are native Text (respects the system font-size setting,
+    // unlike SVG text) and there is no tick axis for her to decode.
+    expect(progress).toContain('<ChartPointLabel');
+    expect(progress).toContain('<ChartMonthLabel');
+    expect(progress).not.toContain('SvgText');
+    expect(progress).not.toContain('tickStep');
+    // A single check-up never draws a chart frame around a lone dot.
+    expect(progress).toContain('if (series.length < 2) return null');
   });
 });
