@@ -326,15 +326,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  // App-wide flow panel recipe: card radius, hairline, no shadow.
   panel: {
     gap: spacing.md,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
-    borderRadius: radius.sm,
+    borderRadius: radius.card,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    ...shadow.soft,
   },
   panelBody: {
     ...type.bodySmall,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   notePanel: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
-    borderRadius: radius.sm,
+    borderRadius: radius.card,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,

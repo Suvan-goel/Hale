@@ -17,7 +17,7 @@ import {
   PROGRAMME_SESSION_RPE_OPTIONS,
   type SessionRpe,
 } from '../programme';
-import { colors, radius, shadow, spacing, type } from '../theme';
+import { colors, radius, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
 export interface ProgrammeMomentAction {
@@ -102,15 +102,15 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: spacing.xl,
   },
+  // App-wide flow panel recipe: card radius, hairline, no shadow.
   panel: {
     gap: spacing.md,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
-    borderRadius: radius.sm,
+    borderRadius: radius.card,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    ...shadow.soft,
   },
   panelBody: {
     ...type.bodySmall,
