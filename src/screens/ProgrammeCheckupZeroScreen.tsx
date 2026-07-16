@@ -34,12 +34,20 @@ import { checkupZeroBatterySequence } from '../programme';
 import { createMovementProfileV2InternalFlow } from '../movementProfileV2/internalCheckupFlow';
 import type { CheckUp } from '../checkup';
 import type { StoredCheckUp } from '../history';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { MovementProfileV2UnifiedCheckUpScreen } from './MovementProfileV2UnifiedCheckUpScreen';
 import { ClarityCheckInScreen } from './ClarityCheckInScreen';
 
 const WARM_UP_SECONDS = 60;
+
+/** Follow-along list so she has something to track mid-countdown instead of
+ * recalling a sentence read once. The warm-up itself stays fixed (comparability). */
+const WARM_UP_MOVES: readonly string[] = [
+  'March gently on the spot',
+  'Roll your shoulders',
+  'Add a few easy arm reaches',
+];
 
 /**
  * The setup a check-up actually needs, stated at the moment of commitment so
@@ -180,10 +188,11 @@ export function ProgrammeCheckupZeroScreen({
     return (
       <CheckupZeroMessage
         title="Easy does it"
-        subtitle="March gently on the spot, roll your shoulders, then add a few easy arm reaches. The same warm-up at every check-up helps make your results more comparable."
+        subtitle="Follow along gently — the same warm-up at every check-up helps make your results more comparable."
         countdownSeconds={warmupRemaining}
+        countdownSequence={WARM_UP_MOVES}
       >
-        <GhostButton title="Stop for now" onPress={onCancel} />
+        <GhostButton title="Leave check-up" onPress={onCancel} />
       </CheckupZeroMessage>
     );
   }
@@ -214,7 +223,11 @@ export function ProgrammeCheckupZeroScreen({
                 <View style={checkupStyles.guideMetaRow}>
                   <Text style={checkupStyles.guideStep}>{guide.step}</Text>
                   <Text style={checkupStyles.guideDomain}>{guide.domain}</Text>
-                  <Text style={checkupStyles.guidePhoneView}>{guide.phoneView}</Text>
+                  {/* Where the phone goes is the make-or-break setup fact —
+                      it earns a tag, not a whisper. */}
+                  <View style={checkupStyles.guidePhonePill}>
+                    <Text style={checkupStyles.guidePhonePillText}>{guide.phoneView}</Text>
+                  </View>
                 </View>
                 <Text style={checkupStyles.guideTitle}>{guide.title}</Text>
                 <Text style={checkupStyles.guideBody}>{guide.body}</Text>
@@ -228,7 +241,9 @@ export function ProgrammeCheckupZeroScreen({
         </Text>
         <View style={checkupStyles.actions}>
           <PrimaryButton title="Begin the one-minute warm-up" onPress={() => setPhase('warmup')} />
-          <GhostButton title="Stop for now" onPress={onCancel} />
+          {/* Honest exit label: this leaves the whole check-up (penalty-free),
+              so it must not read as a pause. */}
+          <GhostButton title="Leave check-up" onPress={onCancel} />
         </View>
       </Screen>
     );
@@ -283,6 +298,7 @@ function CheckupZeroMessage({
   panelText,
   checklist,
   countdownSeconds,
+  countdownSequence,
   children,
 }: {
   title: string;
@@ -291,6 +307,8 @@ function CheckupZeroMessage({
   /** One-glance setup rows shown above the panel text. */
   checklist?: readonly string[];
   countdownSeconds?: number;
+  /** Follow-along moves listed beneath the countdown. */
+  countdownSequence?: readonly string[];
   children: React.ReactNode;
 }) {
   const responsive = useResponsiveLayout();
@@ -306,6 +324,16 @@ function CheckupZeroMessage({
             {countdownSeconds}
             <Text style={checkupStyles.countdownUnit}>s</Text>
           </Text>
+          {countdownSequence ? (
+            <View style={checkupStyles.countdownSequence} accessibilityRole="list">
+              {countdownSequence.map((move, index) => (
+                <View key={move} style={checkupStyles.countdownSequenceRow}>
+                  <Text style={checkupStyles.countdownSequenceNumber}>{index + 1}</Text>
+                  <Text style={checkupStyles.countdownSequenceText}>{move}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
       ) : null}
       {checklist ? (
@@ -322,11 +350,9 @@ function CheckupZeroMessage({
           ))}
         </View>
       ) : null}
-      {panelText ? (
-        <View style={[checkupStyles.panel, responsive.isCompactPhone && checkupStyles.compactCardPadding]}>
-          <Text style={checkupStyles.panelBody}>{panelText}</Text>
-        </View>
-      ) : null}
+      {/* Reassurance copy reads as a quiet caption, not a second panel
+          competing with the checklist. */}
+      {panelText ? <Text style={checkupStyles.panelNote}>{panelText}</Text> : null}
       <View style={checkupStyles.actions}>{children}</View>
     </Screen>
   );
@@ -338,23 +364,26 @@ const checkupStyles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: spacing.xl,
   },
+  // One panel recipe across the check-up flow's message surfaces: card
+  // radius, hairline, no shadow — matching the guide cards and the app's
+  // flat editorial language.
   panel: {
     gap: spacing.md,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
-    borderRadius: radius.sm,
+    borderRadius: radius.card,
     backgroundColor: colors.focusSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    ...shadow.soft,
   },
   compactCardPadding: {
     paddingHorizontal: 14,
     paddingVertical: 16,
   },
-  panelBody: {
+  panelNote: {
     ...type.bodySmall,
     color: colors.textSecondary,
+    maxWidth: 540,
   },
   guideCard: {
     overflow: 'hidden',
@@ -397,11 +426,20 @@ const checkupStyles = StyleSheet.create({
     ...type.label,
     color: colors.accentDeep,
   },
-  guidePhoneView: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
+  guidePhonePill: {
     marginLeft: 'auto',
-    textAlign: 'right',
+    minHeight: 28,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgGold,
+  },
+  guidePhonePillText: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
   },
   guideTitle: {
     fontFamily: fonts.serifMedium,
@@ -415,8 +453,11 @@ const checkupStyles = StyleSheet.create({
     maxWidth: 520,
   },
   guideNote: {
+    // Trust copy ("a preview, not a form assessment") stays at the 13px floor.
     ...type.cardCaption,
-    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
     maxWidth: 540,
   },
   checklistTitle: {
@@ -455,6 +496,34 @@ const checkupStyles = StyleSheet.create({
     fontFamily: fonts.sansRegular,
     fontSize: 20,
     lineHeight: 26,
+  },
+  countdownSequence: {
+    alignSelf: 'stretch',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+  },
+  countdownSequenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  countdownSequenceNumber: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    textAlign: 'center',
+    lineHeight: 26,
+    backgroundColor: colors.bgElevated,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    fontVariant: ['tabular-nums'],
+    overflow: 'hidden',
+  },
+  countdownSequenceText: {
+    ...type.bodySmall,
+    flex: 1,
+    color: colors.textPrimary,
   },
   actions: {
     gap: spacing.md,

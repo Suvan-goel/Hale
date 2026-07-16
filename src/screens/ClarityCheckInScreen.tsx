@@ -106,7 +106,11 @@ export function ClarityCheckInScreen({
         </Text>
         {CLARITY_ITEMS.map((item, index) => (
           <View key={item.id} style={styles.itemBlock}>
-            <Text style={styles.itemText}>{item.text}</Text>
+            {/* Numbered so five similar blocks give a felt sense of place. */}
+            <View style={styles.itemHeading}>
+              <Text style={styles.itemNumber}>{index + 1}</Text>
+              <Text style={[styles.itemText, styles.itemHeadingText]}>{item.text}</Text>
+            </View>
             <View style={styles.chipRow}>
               {CLARITY_SCALE.map((option) => (
                 <Chip
@@ -256,8 +260,8 @@ const styles = StyleSheet.create({
   optionalContextCard: {
     overflow: 'hidden',
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     backgroundColor: colors.surface,
   },
   contextDisclosure: {
@@ -304,9 +308,31 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingBottom: spacing.sm,
   },
+  itemHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  itemNumber: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    textAlign: 'center',
+    lineHeight: 26,
+    backgroundColor: colors.bgElevated,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    fontVariant: ['tabular-nums'],
+    overflow: 'hidden',
+  },
   itemText: {
     ...type.cardBody,
     color: colors.textPrimary,
+  },
+  itemHeadingText: {
+    flex: 1,
+    minWidth: 0,
   },
   optionalHeading: {
     gap: spacing.xs,
@@ -358,6 +384,9 @@ const styles = StyleSheet.create({
   },
   skipText: {
     ...type.caption,
+    // The primary escape route stays quiet but never small.
+    fontSize: 15,
+    lineHeight: 21,
     color: colors.textSecondary,
     textDecorationLine: 'underline',
   },

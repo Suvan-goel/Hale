@@ -207,6 +207,9 @@ function DomainAreaRow({
   return <CompactDomainResultRow domain={domain} isLast={isLast} />;
 }
 
+// Stacked left-aligned hierarchy matching the Progress "Current level" stat:
+// title leads, the takeaway explains, the metric sits beneath — never a value
+// right-aligned across a gap from its label.
 function CompactDomainResultRow({
   domain,
   isLast,
@@ -221,25 +224,17 @@ function CompactDomainResultRow({
       accessible
       accessibilityLabel={domain.accessibilityLabel}
     >
-      <View style={styles.domainTitleCopy}>
-        <Text style={styles.domainTitle}>{domain.title}</Text>
-        {domain.interpretation ? (
-          <Text style={styles.domainTakeaway}>{domain.interpretation}</Text>
-        ) : null}
-      </View>
-      <Text
-        style={styles.domainMetricValue}
-        accessibilityLabel={domain.metricValue}
-        numberOfLines={2}
-        adjustsFontSizeToFit
-        minimumFontScale={0.82}
-      >
+      <Text style={styles.domainTitle}>{domain.title}</Text>
+      {domain.interpretation ? (
+        <Text style={styles.domainTakeaway}>{domain.interpretation}</Text>
+      ) : null}
+      <Text style={styles.domainMetricValue} accessibilityLabel={domain.metricValue}>
         {metricDisplay ? (
           <>
             <Text style={styles.domainMetricNumber}>{metricDisplay.value}</Text>
             {metricDisplay.unit ? (
               <Text style={styles.domainMetricUnit}>
-                {metricDisplay.separator}
+                {' '}
                 {metricDisplay.unit}
               </Text>
             ) : null}
@@ -315,10 +310,7 @@ const styles = StyleSheet.create({
   },
   domainRow: {
     minHeight: 88,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
+    gap: spacing.xs,
     paddingVertical: spacing.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
@@ -326,15 +318,10 @@ const styles = StyleSheet.create({
   domainRowLast: {
     borderBottomWidth: 0,
   },
-  domainTitleCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
   domainTitle: {
     fontFamily: fonts.serifMedium,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 28,
     color: colors.textPrimary,
   },
   domainTakeaway: {
@@ -345,16 +332,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   domainMetricValue: {
-    flex: 1,
-    minWidth: 0,
     color: colors.textPrimary,
     fontVariant: ['tabular-nums'],
-    textAlign: 'right',
+    paddingTop: spacing.xs,
   },
   domainMetricNumber: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 24,
-    lineHeight: 29,
+    fontFamily: fonts.sansRegular,
+    fontSize: 30,
+    lineHeight: 36,
     letterSpacing: 0,
     color: colors.textPrimary,
     fontVariant: ['tabular-nums'],
