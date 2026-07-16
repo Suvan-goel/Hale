@@ -38,7 +38,7 @@ import {
   VOICE_OPTIONS,
   getVoice,
 } from '../profile';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import type { JointFlag } from '../programme';
 import type {
@@ -73,7 +73,7 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   },
   safety: {
     title: 'Safety & camera',
-    subtitle: 'Review movement support and private camera setup.',
+    subtitle: 'Movement support and private camera setup.',
   },
   health: {
     title: 'Health answers',
@@ -224,15 +224,20 @@ function SettingsScreenContent({
     const exactAge = ageFromDateOfBirth(dateOfBirth);
     if (dateOfBirth === null || exactAge === null) return;
     const ageBand = ageBandForAge(exactAge);
+    // All users are assumed female for now (audience decision, 2026-07-15):
+    // the reference-group choice is no longer offered in the UI, and a
+    // missing value resolves to the female reference tables. Saved results
+    // keep the reference recorded at their time.
+    const resolvedReferenceSex = nextReferenceSex ?? 'female';
     const now = new Date().toISOString();
     onProfileChange({
       ...profile,
       dateOfBirth,
       exactAge,
-      referenceSex: nextReferenceSex,
+      referenceSex: resolvedReferenceSex,
       // The stage and symptom questions only apply to the female reference group.
-      menopauseStage: nextReferenceSex === 'female' ? nextMenopauseStage : null,
-      symptomPicture: nextReferenceSex === 'female' ? nextSymptomPicture : null,
+      menopauseStage: resolvedReferenceSex === 'female' ? nextMenopauseStage : null,
+      symptomPicture: resolvedReferenceSex === 'female' ? nextSymptomPicture : null,
       age: exactAge,
       ageBand,
       safetyProfile: profile.safetyProfile
@@ -249,10 +254,6 @@ function SettingsScreenContent({
     setDatePickerVisible(false);
     setDateOfBirthText(dateOfBirthInputLabel(dateOfBirth));
     commitReferenceDetails(dateOfBirth);
-  };
-  const updateReferenceSex = (next: ProfileReferenceSex) => {
-    setReferenceSex(next);
-    commitReferenceDetails(dateOfBirthText, next);
   };
   const updateMenopauseStage = (next: MenopauseStage) => {
     setMenopauseStage(next);
@@ -280,8 +281,7 @@ function SettingsScreenContent({
             onNameBlur={commitName}
             dateOfBirthText={dateOfBirthText}
             onOpenDateOfBirthPicker={() => setDatePickerVisible(true)}
-            referenceSex={referenceSex}
-            onReferenceSexChange={updateReferenceSex}
+            showMenopauseStage={(referenceSex ?? 'female') === 'female'}
             menopauseStage={menopauseStage}
             onMenopauseStageChange={updateMenopauseStage}
             symptomPicture={symptomPicture}
@@ -371,9 +371,7 @@ function SettingsScreenContent({
     if (openSection === 'privacy') {
       return (
         <>
-          <PrivacyPromiseCard syncState={onlineProfileSyncState} />
-
-          <PrivacyStorageCard
+          <PrivacyOverviewCard
             consentHealthData={safetyPreferences.consentHealthData}
             hasMenopauseContext={menopauseStage !== null}
             hasSymptomInformation={symptomPicture !== null}
@@ -387,7 +385,7 @@ function SettingsScreenContent({
             <Text style={styles.detailCardTitle}>Results</Text>
             <ToggleRow
               label="Compare with published values"
-              description="Show results next to published values for your age and sex, where a result supports it. Off by default — your own trend leads."
+              description="Adds published values for your age where a result supports it. Off by default — your own trend leads."
               value={settings.comparisonOptIn}
               onValueChange={(value) => onSettingsChange({ ...settings, comparisonOptIn: value })}
             />
@@ -580,6 +578,8 @@ function ProfileMenuRow({
   );
 }
 
+// Detail sections sit flat on the page background like the Settings hub and
+// the rest of the app — hairline-ruled sections, not nested white cards.
 function DetailCard({
   title,
   body,
@@ -589,9 +589,8 @@ function DetailCard({
   body?: string;
   children: React.ReactNode;
 }) {
-  const responsive = useResponsiveLayout();
   return (
-    <View style={[styles.detailCard, responsive.isCompactPhone && styles.compactCardPadding]}>
+    <View style={styles.detailCard}>
       <Text style={styles.detailCardTitle}>{title}</Text>
       {body ? <Text style={styles.detailCardBody}>{body}</Text> : null}
       <View style={styles.detailCardContent}>{children}</View>
@@ -608,27 +607,48 @@ function VoiceSelectorCard({
   onSelectVoice: (voiceId: string) => void;
   onPreviewVoice: (voiceId: string) => void;
 }) {
-  const responsive = useResponsiveLayout();
+  const availableVoices = VOICE_OPTIONS.filter((voice) => voice.available);
+  const singleVoice = availableVoices.length === 1 ? availableVoices[0] : null;
   return (
-    <View style={[styles.voiceSelectorCard, responsive.isCompactPhone && styles.compactCardPadding]}>
+    <View style={styles.voiceSelectorCard}>
       <View style={styles.voiceSelectorHeader}>
         <Text style={styles.detailCardTitle}>Trainer voice</Text>
         <Text style={styles.voiceSelectorBody}>
           {`Clara is ${BRAND.appName}'s trainer voice. Tap the speaker to hear a preview.`}
         </Text>
       </View>
-      <View style={styles.voiceOptionList}>
-        {VOICE_OPTIONS.map((voice, index) => (
-          <VoiceOptionRow
-            key={voice.id}
-            voice={voice}
-            selected={voice.id === selectedVoiceId}
-            showDivider={index > 0}
-            onSelect={() => voice.available && onSelectVoice(voice.id)}
-            onPreview={() => voice.available && onPreviewVoice(voice.id)}
-          />
-        ))}
-      </View>
+      {singleVoice ? (
+        // One voice ships today: an informational row, never a one-option
+        // radio list implying a choice that doesn't exist. The selection
+        // machinery below returns the moment a second voice becomes available.
+        <View style={styles.voiceSingleRow}>
+          <Pressable
+            style={({ pressed }) => [styles.voicePreviewButton, pressed && styles.pressed]}
+            onPress={() => onPreviewVoice(singleVoice.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Preview ${singleVoice.label}`}
+          >
+            <MenuIcon name="volume" />
+          </Pressable>
+          <View style={styles.voiceOptionCopy}>
+            <Text style={styles.voiceOptionTitle}>{singleVoice.label}</Text>
+            <Text style={styles.voiceSingleDescription}>{singleVoice.description}</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.voiceOptionList}>
+          {VOICE_OPTIONS.map((voice, index) => (
+            <VoiceOptionRow
+              key={voice.id}
+              voice={voice}
+              selected={voice.id === selectedVoiceId}
+              showDivider={index > 0}
+              onSelect={() => voice.available && onSelectVoice(voice.id)}
+              onPreview={() => voice.available && onPreviewVoice(voice.id)}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -696,6 +716,8 @@ const HEALTH_JOINT_OPTIONS: readonly { value: JointFlag; label: string }[] = [
   { value: 'low_back', label: 'Lower back' },
 ];
 
+// One tappable row, not a heading + paragraph + status + button doing one job.
+// The full explanation lives in the editor where she makes the decision.
 function HealthAnswersCard({
   value,
   onReview,
@@ -707,37 +729,40 @@ function HealthAnswersCard({
 }) {
   const gentleStartPending = value.gentleStartActive && !value.gpConfirmed;
   return (
-    <DetailCard
-      title="Health and safety answers"
-      body={
-        value.consentHealthData
-          ? `Used only on this device to choose conservative starting levels, support, and quieter variations.`
-          : `Health answers are off. The private Movement Check-Up remains unavailable, and a new programme cannot begin without an accepted starting result.`
-      }
-    >
-      <View style={styles.healthAnswerActions}>
-        <View style={styles.healthAnswerStatusRow}>
-          <Text style={styles.healthAnswerStatusLabel}>Health answers</Text>
-          <Text style={styles.healthAnswerStatusValue}>
-            {value.consentHealthData ? 'Used on this device' : 'Off'}
+    <View style={styles.detailCard}>
+      <Pressable
+        style={({ pressed }) => [styles.healthAnswersRow, pressed && styles.pressed]}
+        onPress={onReview}
+        accessibilityRole="button"
+        accessibilityLabel={
+          value.consentHealthData ? 'Review or remove health answers' : 'Review health questions'
+        }
+      >
+        <View style={styles.healthAnswersRowCopy}>
+          <Text style={styles.healthAnswersRowTitle}>Health answers</Text>
+          <Text style={styles.healthAnswersRowCaption}>
+            {value.consentHealthData
+              ? 'Stays on this phone. Shapes safer starting levels and support.'
+              : 'Check-ups stay off, and a new programme cannot begin without an accepted starting result.'}
           </Text>
         </View>
-        <Button
-          title={value.consentHealthData ? 'Review or remove health answers' : 'Review health questions'}
-          variant="secondary"
-          onPress={onReview}
-        />
-        {gentleStartPending ? (
-          <View style={styles.gentleStartNotice}>
-            <Text style={styles.gentleStartNoticeTitle}>Gentle Start is active</Text>
-            <Text style={styles.gentleStartNoticeBody}>
-              Workouts remain available at the gentlest start. Complete the recommended safety step before enabling the Movement Check-Up.
-            </Text>
-            <Button title="Review Gentle Start" variant="secondary" onPress={onReviewGentleStart} />
-          </View>
-        ) : null}
-      </View>
-    </DetailCard>
+        <View style={styles.profileRowValueGroup}>
+          <Text style={styles.profileRowValue}>
+            {value.consentHealthData ? 'On this device' : 'Off'}
+          </Text>
+          <Text style={styles.profileRowChevron}>›</Text>
+        </View>
+      </Pressable>
+      {gentleStartPending ? (
+        <View style={styles.gentleStartNotice}>
+          <Text style={styles.gentleStartNoticeTitle}>Gentle Start is active</Text>
+          <Text style={styles.gentleStartNoticeBody}>
+            Workouts stay available at the gentlest start. Complete the safety step to enable check-ups.
+          </Text>
+          <Button title="Review Gentle Start" variant="secondary" onPress={onReviewGentleStart} />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -974,13 +999,13 @@ function SafetyPreferencesCard({
   return (
     <DetailCard
       title="Movement support"
-      body="These choices change upcoming sessions immediately. You can still stop or skip any movement."
+      body="Applies from your next session. You can always stop or skip a movement."
     >
       <View style={styles.safetyPreferenceStack}>
         {value.balanceSupportRequired ? (
           <LockedSafetyRow
             label="Keep support nearby for balance"
-            description="Your latest check-up requires supported balance variations. A future check-up can review this protection."
+            description="Required by your latest check-up. A future check-up can review this protection."
             status="Required"
           />
         ) : (
@@ -988,8 +1013,8 @@ function SafetyPreferencesCard({
             label="Keep support nearby for balance"
             description={
               value.balanceSupportPreference === null
-                ? `${BRAND.appName} is using a temporary supported start until a check-up or your choice resolves it.`
-                : 'Use supported balance variations by default. You can change this choice at any time.'
+                ? 'A supported start applies until a check-up or your choice sets this.'
+                : 'Supported balance variations by default.'
             }
             value={value.balanceSupportDefault}
             onValueChange={(balanceSupportDefault) =>
@@ -1003,7 +1028,7 @@ function SafetyPreferencesCard({
         )}
         <ToggleRow
           label="Avoid stomping sounds"
-          description="Leaves out the stomping finisher and keeps sessions quieter."
+          description="Leaves out the stomping finisher."
           value={value.quietMode}
           onValueChange={(quietMode) => onChange({ ...value, quietMode })}
         />
@@ -1047,17 +1072,10 @@ function SafetyReadinessCard({
   onOpenCameraSetup: () => void;
   onRequestCameraPermission: () => void;
 }) {
-  const responsive = useResponsiveLayout();
   return (
-    <View style={[styles.safetyCard, responsive.isCompactPhone && styles.compactCardPadding]}>
-      <View style={styles.safetyCardHeader}>
-        <View style={styles.safetyCardTitleGroup}>
-          <Text style={styles.safetyCardTitle}>Phone placement</Text>
-          <Text style={styles.safetyCardBody}>
-            Place your phone on a steady stand, shelf, or stack of books so it will not slide.
-          </Text>
-        </View>
-      </View>
+    <View style={styles.safetyCard}>
+      {/* The rows below say everything the old heading + paragraph repeated. */}
+      <Text style={styles.detailCardTitle}>Camera</Text>
 
       <View style={styles.safetyActionList}>
         <SafetyActionRow
@@ -1071,7 +1089,7 @@ function SafetyReadinessCard({
           <SafetyActionRow
             icon="lock"
             title={cameraPermission === 'denied' ? 'Review camera access' : 'Allow camera access'}
-            body="Camera access is needed only for a private Movement Check-Up. Video is never shown or saved."
+            body="Needed only for the private Movement Check-Up. Video is never shown or saved."
             onPress={onRequestCameraPermission}
           />
         ) : null}
@@ -1122,8 +1140,7 @@ function PersonalDetailsCard({
   onNameBlur,
   dateOfBirthText,
   onOpenDateOfBirthPicker,
-  referenceSex,
-  onReferenceSexChange,
+  showMenopauseStage,
   menopauseStage,
   onMenopauseStageChange,
   symptomPicture,
@@ -1136,8 +1153,8 @@ function PersonalDetailsCard({
   onNameBlur: () => void;
   dateOfBirthText: string;
   onOpenDateOfBirthPicker: () => void;
-  referenceSex: ProfileReferenceSex | null;
-  onReferenceSexChange: (value: ProfileReferenceSex) => void;
+  /** All users are assumed female for now (audience decision, 2026-07-15). */
+  showMenopauseStage: boolean;
   menopauseStage: MenopauseStage | null;
   onMenopauseStageChange: (value: MenopauseStage) => void;
   symptomPicture: MenopauseSymptomPicture | null;
@@ -1145,57 +1162,110 @@ function PersonalDetailsCard({
   lifeGoal: LifeGoal | null;
   onLifeGoalChange: (category: LifeGoalCategory) => void;
 }) {
-  const responsive = useResponsiveLayout();
-  const dateOfBirth = normalizeDateOfBirth(dateOfBirthText);
-  const exactAge = ageFromDateOfBirth(dateOfBirth);
   const [goalPickerOpen, setGoalPickerOpen] = React.useState(false);
+  const [stagePickerOpen, setStagePickerOpen] = React.useState(false);
+  const stageLabel =
+    MENOPAUSE_STAGE_OPTIONS.find((option) => option.value === menopauseStage)?.label ?? null;
   return (
-    <View style={[styles.personalCard, responsive.isCompactPhone && styles.compactCardPadding]}>
-      <View style={styles.personalCardIntro}>
-        <Text style={styles.personalCardTitle}>Details</Text>
-        <Text style={styles.personalCardDescription}>
-          {BRAND.appName} uses these details to personalize your plan and explain your results.
-        </Text>
+    <View style={styles.personalCard}>
+      {/* One list language for the whole form: label left, value right,
+          pickers expanding in place beneath their row. */}
+      <View style={styles.profileFieldRow}>
+        <Text style={styles.profileRowLabel}>Name</Text>
+        <TextInput
+          style={styles.profileNameInput}
+          value={name}
+          onChangeText={onNameChange}
+          onBlur={onNameBlur}
+          placeholder="Add"
+          placeholderTextColor={colors.textTertiary}
+          returnKeyType="done"
+          autoCapitalize="words"
+          autoCorrect={false}
+          accessibilityLabel="Name"
+        />
       </View>
 
-      <View style={styles.personalFieldGroup}>
-        <View style={[styles.personalIdentityPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
-          <View style={styles.personalIdentityRow}>
-            <View style={styles.personalNameField}>
-              <Text style={styles.personalFieldLabel}>Name</Text>
-              <TextInput
-                style={styles.personalFieldInput}
-                value={name}
-                onChangeText={onNameChange}
-                onBlur={onNameBlur}
-                placeholder="Enter your name"
-                placeholderTextColor={colors.textTertiary}
-                returnKeyType="done"
-                autoCapitalize="words"
-                autoCorrect={false}
-                accessibilityLabel="Name"
-              />
-            </View>
-          </View>
-        </View>
+      <ProfileValueRow
+        label="Date of birth"
+        value={dateOfBirthText || null}
+        onPress={onOpenDateOfBirthPicker}
+        accessibilityLabel="Select date of birth"
+      />
 
-        <View style={[styles.personalAgeRangePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
-          <View style={styles.personalAgeRangeHeader}>
-            <Text style={styles.personalFieldLabel}>What I want to stay strong for</Text>
-            <Text style={styles.personalAgeRangeValue}>{lifeGoal ? 'Selected' : 'Not set'}</Text>
-          </View>
-          <Text style={styles.currentGoalText}>
-            {lifeGoal ? getLifeGoalDisplayText(lifeGoal) : 'Choose a goal when you are ready.'}
-          </Text>
-          <Text style={styles.personalFieldHint}>
-            This can shape future plan emphasis and messaging. It never changes a measured result or rewrites an earlier check-up.
-          </Text>
-          <Button
-            title={goalPickerOpen ? 'Hide goal choices' : lifeGoal ? 'Change goal' : 'Choose a goal'}
-            variant="secondary"
-            onPress={() => setGoalPickerOpen((open) => !open)}
+      {showMenopauseStage ? (
+        <>
+          <ProfileValueRow
+            label="Menopause stage"
+            value={stageLabel}
+            expanded={stagePickerOpen}
+            onPress={() => setStagePickerOpen((open) => !open)}
+            accessibilityLabel="Change menopause stage"
           />
-          {goalPickerOpen ? (
+          {stagePickerOpen ? (
+            <View style={styles.profilePickerWell}>
+              <View style={styles.personalAgeOptionGrid}>
+                {MENOPAUSE_STAGE_OPTIONS.map((option) => {
+                  const selected = menopauseStage === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      style={({ pressed }) => [
+                        styles.personalAgeOption,
+                        styles.personalAgeOptionWide,
+                        selected && styles.personalAgeOptionSelected,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => {
+                        onMenopauseStageChange(option.value);
+                        setStagePickerOpen(false);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={option.label}
+                      accessibilityState={{ selected }}
+                    >
+                      <Text
+                        style={[styles.personalAgeOptionText, selected && styles.personalAgeOptionTextSelected]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.88}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.personalFieldHint}>
+                Shapes {BRAND.appName}'s guidance — never how your results are measured.
+              </Text>
+            </View>
+          ) : null}
+        </>
+      ) : null}
+
+      <Pressable
+        style={({ pressed }) => [styles.profileGoalRow, pressed && styles.pressed]}
+        onPress={() => setGoalPickerOpen((open) => !open)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: goalPickerOpen }}
+        accessibilityLabel={lifeGoal ? 'Change goal' : 'Choose a goal'}
+      >
+        <View style={styles.profileGoalCopy}>
+          <Text style={styles.profileRowLabel}>What I want to stay strong for</Text>
+          <Text
+            style={[styles.profileGoalValue, !lifeGoal && styles.profileRowPlaceholder]}
+            numberOfLines={2}
+          >
+            {lifeGoal ? getLifeGoalDisplayText(lifeGoal) : 'Choose a goal'}
+          </Text>
+        </View>
+        <Text style={[styles.profileRowChevron, goalPickerOpen && styles.profileRowChevronOpen]}>
+          ›
+        </Text>
+      </Pressable>
+      {goalPickerOpen ? (
+        <View style={styles.profilePickerWell}>
             <View style={styles.lifeGoalList}>
               {LIFE_GOAL_PRESETS.map((option, index) => {
                 const selected = lifeGoal?.category === option.category;
@@ -1227,140 +1297,69 @@ function PersonalDetailsCard({
                 );
               })}
             </View>
-          ) : null}
-        </View>
-
-        <View style={[styles.personalAgeRangePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
-          <View style={styles.personalAgeRangeHeader}>
-            <Text style={styles.personalFieldLabel}>Reference details</Text>
-            <Text style={styles.personalAgeRangeValue}>
-              {exactAge !== null && referenceSex ? `${exactAge} · ${referenceSexSummary(referenceSex)}` : 'Required'}
-            </Text>
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.personalDateButton, pressed && styles.pressed]}
-            onPress={onOpenDateOfBirthPicker}
-            accessibilityRole="button"
-            accessibilityLabel="Select date of birth"
-          >
-            <Text
-              style={[
-                styles.personalFieldInput,
-                !dateOfBirthText && styles.personalFieldPlaceholder,
-              ]}
-              numberOfLines={1}
-            >
-              {dateOfBirthText || 'Select date of birth'}
-            </Text>
-            <Text style={styles.personalDateButtonAction}>{dateOfBirthText ? 'Change' : 'Select'}</Text>
-          </Pressable>
-          <View style={styles.personalAgeOptionGrid}>
-            {(['female', 'male'] as const).map((option) => {
-              const selected = referenceSex === option;
-              return (
-                <Pressable
-                  key={option}
-                  style={({ pressed }) => [
-                    styles.personalAgeOption,
-                    styles.personalAgeOptionWide,
-                    selected && styles.personalAgeOptionSelected,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => onReferenceSexChange(option)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Use ${option} reference group`}
-                  accessibilityState={{ selected }}
-                >
-                  <Text
-                    style={[styles.personalAgeOptionText, selected && styles.personalAgeOptionTextSelected]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.88}
-                  >
-                    {referenceSexSummary(option)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
           <Text style={styles.personalFieldHint}>
-            These details select published reference tables; they do not change what the camera measures. Changes apply to future check-ups, while saved results keep the reference recorded at the time.
+            This can shape future plan emphasis and messaging. It never changes a measured result or rewrites an earlier check-up.
           </Text>
-          {referenceSex === 'female' ? (
-            <>
-              <Text style={styles.personalFieldLabel}>Menopause stage</Text>
-              <View style={styles.personalAgeOptionGrid}>
-                {MENOPAUSE_STAGE_OPTIONS.map((option) => {
-                  const selected = menopauseStage === option.value;
-                  return (
-                    <Pressable
-                      key={option.value}
-                      style={({ pressed }) => [
-                        styles.personalAgeOption,
-                        styles.personalAgeOptionWide,
-                        selected && styles.personalAgeOptionSelected,
-                        pressed && styles.pressed,
-                      ]}
-                      onPress={() => onMenopauseStageChange(option.value)}
-                      accessibilityRole="button"
-                      accessibilityLabel={option.label}
-                      accessibilityState={{ selected }}
-                    >
-                      <Text
-                        style={[styles.personalAgeOptionText, selected && styles.personalAgeOptionTextSelected]}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.88}
-                      >
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <Text style={styles.personalFieldHint}>
-                Shapes {BRAND.appName}'s guidance — never how your results are measured.
-              </Text>
-              {symptomPicture !== null ? (
-                <View style={styles.savedSymptomPanel}>
-                  <Text style={styles.personalFieldLabel}>Saved symptom information</Text>
-                  <Text style={styles.personalFieldHint}>
-                    This optional information is not currently used by your results or workouts. You can remove it now.
-                  </Text>
-                  <Button title="Remove symptom information" variant="secondary" onPress={onRemoveSymptomPicture} />
-                </View>
-              ) : null}
-            </>
-          ) : null}
         </View>
-      </View>
+      ) : null}
+
+      {symptomPicture !== null ? (
+        <View style={styles.savedSymptomPanel}>
+          <Text style={styles.profileRowLabel}>Saved symptom information</Text>
+          <Text style={styles.personalFieldHint}>
+            This optional information is not currently used by your results or workouts. You can remove it now.
+          </Text>
+          <Button title="Remove symptom information" variant="secondary" onPress={onRemoveSymptomPicture} />
+        </View>
+      ) : null}
+
+      <Text style={styles.profileFootnote}>
+        These details select published reference tables; they do not change what the camera measures. Changes apply to future check-ups, while saved results keep the reference recorded at the time.
+      </Text>
     </View>
   );
 }
 
-function referenceSexSummary(referenceSex: ProfileReferenceSex): string {
-  return referenceSex === 'female' ? 'Female' : 'Male';
-}
-
-function PrivacyPromiseCard({ syncState }: { syncState: OnlineProfileSyncState }) {
-  const body = syncState.status === 'signed_out'
-    ? 'Your profile, health choices, programme, workouts, check-ups, Everyday Clarity, and camera data stay on this device.'
-    : syncState.status === 'synced'
-      ? 'Your private non-health profile is saved to Supabase. Health choices, programme, workouts, check-ups, Everyday Clarity, and camera data stay on this device.'
-      : 'Your Supabase account stores your sign-in identity and may hold your last successfully synced non-health profile. Current profile changes remain safe on this device until sync completes. Health and programme data are never uploaded.';
+// One row shape for every stored value: label left, value (or an inviting
+// "Add") right, chevron indicating it opens something.
+function ProfileValueRow({
+  label,
+  value,
+  onPress,
+  accessibilityLabel,
+  expanded,
+}: {
+  label: string;
+  value: string | null;
+  onPress: () => void;
+  accessibilityLabel: string;
+  expanded?: boolean;
+}) {
   return (
-    <DetailCard
-      title="Private by default"
-      body={`${BRAND.appName} uses the camera to measure movement. You never see a live video, and ${BRAND.appName} does not save it.`}
+    <Pressable
+      style={({ pressed }) => [styles.profileFieldRow, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      {...(expanded !== undefined ? { accessibilityState: { expanded } } : {})}
+      accessibilityLabel={`${accessibilityLabel}. ${value ?? 'Not set'}`}
     >
-      <Text style={styles.privacyPromiseText}>
-        {body}
-      </Text>
-    </DetailCard>
+      <Text style={styles.profileRowLabel}>{label}</Text>
+      <View style={styles.profileRowValueGroup}>
+        <Text
+          style={[styles.profileRowValue, !value && styles.profileRowPlaceholder]}
+          numberOfLines={1}
+        >
+          {value ?? 'Add'}
+        </Text>
+        <Text style={[styles.profileRowChevron, expanded && styles.profileRowChevronOpen]}>›</Text>
+      </View>
+    </Pressable>
   );
 }
 
-function PrivacyStorageCard({
+// One privacy story: the camera promise leads and the ledger below is the
+// single list of what Pearl keeps — no paragraph enumerating it twice.
+function PrivacyOverviewCard({
   consentHealthData,
   hasMenopauseContext,
   hasSymptomInformation,
@@ -1371,16 +1370,22 @@ function PrivacyStorageCard({
   hasSymptomInformation: boolean;
   syncState: OnlineProfileSyncState;
 }) {
+  const accountLine =
+    syncState.status === 'signed_out'
+      ? ''
+      : syncState.status === 'synced'
+        ? ' Your non-health profile is also saved to your account.'
+        : ' Your account may hold your last saved non-health profile; recent changes stay safe on this phone until saving completes.';
   return (
     <DetailCard
-      title={`What ${BRAND.appName} saves`}
-      body={`${BRAND.appName} saves only what it needs for your plan and results.`}
+      title="Private by default"
+      body={`You never see camera video, and ${BRAND.appName} never saves it.${accountLine}`}
     >
       <View style={styles.privacyLedger}>
         <PrivacyLedgerRow
           icon="sliders"
           label="Check-up and workout results"
-          body="Saved so you can track progress."
+          body="Your progress record."
           value="On device"
           first
         />
@@ -1388,35 +1393,35 @@ function PrivacyStorageCard({
           <PrivacyLedgerRow
             icon="account"
             label="Account identity"
-            body="Your email and sign-in provider are stored by Supabase Auth."
+            body="Email and sign-in provider."
             value="Supabase"
           />
         ) : null}
         <PrivacyLedgerRow
           icon="account"
           label="Profile information"
-          body="Name, date of birth, reference group, selected movement-goal category, trainer voice, and comparison preference."
+          body="Name, date of birth, reference group, goal, voice, and comparison preference."
           value={onlineProfileStorageLabel(syncState)}
         />
         {hasMenopauseContext ? (
           <PrivacyLedgerRow
             icon="shield"
             label="Menopause context"
-            body="Used only for local wording and context. It is never uploaded."
+            body="Shapes wording only. Never uploaded."
             value="On device"
           />
         ) : null}
         <PrivacyLedgerRow
           icon="shield"
           label="Health answers"
-          body="Used only to choose conservative starting levels, support, and low-impact guidance."
+          body="Shapes safer starting levels and support."
           value={consentHealthData ? 'On device' : 'Off'}
         />
         {hasSymptomInformation ? (
           <PrivacyLedgerRow
             icon="account"
             label="Optional symptom information"
-            body="Saved profile context that is not currently used by results or workouts. It can be removed in Your profile."
+            body="Not used by results or workouts. Remove it in Your profile."
             value="On device"
           />
         ) : null}
@@ -1428,8 +1433,8 @@ function PrivacyStorageCard({
         />
         <PrivacyLedgerRow
           icon="shield"
-          label="Microphone — session and safety words"
-          body="Listens for a few words during workouts and converts them on your phone into short commands. Nothing you say is saved or uploaded."
+          label="Microphone"
+          body="Listens for a few command and safety words during workouts, on your phone only. Nothing you say is saved or uploaded."
           value="Never saved"
         />
       </View>
@@ -1507,10 +1512,10 @@ function ClearDeviceDataCard({
           : disabled
             ? 'Wait for your online profile to finish saving before clearing this device.'
             : profileConfirmedOnline
-            ? `Your programme, check-ups, workout progress, and health choices are stored on this device. Your non-health profile is also saved online.`
+            ? 'Removes everything listed above from this phone. Your online profile remains.'
             : hasOnlineAccount
-              ? `Your programme, check-ups, workout progress, and health choices are stored on this device. Your Supabase account may hold your last successfully saved non-health profile.`
-            : `Your ${BRAND.appName} profile, check-ups, workout progress, and settings are stored on this device.`
+              ? 'Removes everything listed above from this phone. Your account may hold your last saved non-health profile.'
+            : 'Removes everything listed above from this phone.'
       }
     >
       {error ? (
@@ -1594,12 +1599,11 @@ function PreferenceCard({
   meta: string;
   children: React.ReactNode;
 }) {
-  const responsive = useResponsiveLayout();
   return (
-    <View style={[styles.preferenceCard, responsive.isCompactPhone && styles.compactCardPadding]}>
+    <View style={styles.preferenceCard}>
       <View style={styles.preferenceHeader}>
         <View style={styles.preferenceHeaderCopy}>
-          <Text style={styles.preferenceTitle}>{title}</Text>
+          <Text style={styles.detailCardTitle}>{title}</Text>
           <Text style={styles.preferenceSubtitle}>{subtitle}</Text>
         </View>
         <View style={styles.preferenceMetaPill}>
@@ -1690,12 +1694,13 @@ function SelectionIndicator({ selected }: { selected: boolean }) {
   );
 }
 
+// The reference group is assumed female (2026-07-15), so the hub summary
+// leads with the details she actually edits: age and goal.
 function profileReferenceSummary(profile: UserProfile): string {
   const parts: string[] = [];
   if (profile.exactAge !== null && profile.exactAge !== undefined) {
     parts.push(`Age ${profile.exactAge}`);
   }
-  if (profile.referenceSex) parts.push(`${referenceSexSummary(profile.referenceSex)} reference`);
   if (profile.lifeGoal) parts.push(getLifeGoalDisplayText(profile.lifeGoal));
   return parts.length > 0 ? parts.join(' · ') : 'Review your profile details';
 }
@@ -1944,12 +1949,13 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   sectionLabel: {
+    // App eyebrow recipe (13px floor for the 50+ audience).
     ...type.cardCaption,
     fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 17,
-    letterSpacing: 1.5,
-    color: colors.primaryText,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 1.3,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
   },
   menuRow: {
@@ -1983,8 +1989,8 @@ const styles = StyleSheet.create({
   },
   menuSubtitle: {
     fontFamily: fonts.sansRegular,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.textSecondary,
   },
   rowChevron: {
@@ -1996,22 +2002,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 16,
   },
+  // Flat section recipe shared by every detail surface: content on the page
+  // background with a hairline rule above, matching the Settings hub.
   detailCard: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
   },
+  // Section titles are quiet eyebrows on utility pages — serif headings were
+  // one more voice on already text-heavy screens.
   detailCardTitle: {
-    ...type.cardTitle,
-    color: colors.primaryText,
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 1.3,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
   },
   detailCardBody: {
     ...type.cardBody,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   detailCardContent: {
     marginTop: spacing.lg,
@@ -2046,13 +2057,9 @@ const styles = StyleSheet.create({
   },
   voiceSelectorCard: {
     gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
   },
   voiceSelectorHeader: {
     gap: spacing.xs,
@@ -2063,10 +2070,22 @@ const styles = StyleSheet.create({
   },
   voiceOptionList: {
     borderRadius: radius.input,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     overflow: 'hidden',
     backgroundColor: colors.bgSurface,
+  },
+  voiceSingleRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  voiceSingleDescription: {
+    ...type.cardCaption,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
   },
   voiceOptionRow: {
     minHeight: 76,
@@ -2121,32 +2140,9 @@ const styles = StyleSheet.create({
   },
   safetyCard: {
     gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
-  },
-  safetyCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  safetyCardTitleGroup: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.xs,
-  },
-  safetyCardTitle: {
-    ...type.cardTitle,
-    color: colors.primaryText,
-  },
-  safetyCardBody: {
-    ...type.cardBody,
-    color: colors.textSecondary,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
   },
   safetyActionList: {
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -2189,94 +2185,108 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   personalCard: {
-    gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
   },
-  personalCardIntro: {
-    gap: spacing.xs,
-  },
-  personalCardTitle: {
-    ...type.cardTitle,
-    color: colors.primaryText,
-  },
-  personalCardDescription: {
-    ...type.cardBody,
-    color: colors.textSecondary,
-  },
-  personalFieldGroup: {
-    gap: spacing.md,
-  },
-  personalIdentityPanel: {
-    borderRadius: radius.panel,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: 'transparent',
-    overflow: 'hidden',
-  },
-  personalIdentityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  personalNameField: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-  },
-  personalAgeRangePanel: {
-    gap: spacing.sm,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    backgroundColor: 'transparent',
-  },
-  personalAgeRangeHeader: {
+  // The profile is a list, not a form: label left, value right, hairlines
+  // between rows — the same language as the Settings hub.
+  profileFieldRow: {
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.md,
+    gap: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
   },
-  personalAgeRangeValue: {
+  profileRowLabel: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+  },
+  profileNameInput: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
+    textAlign: 'right',
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 22,
+    letterSpacing: 0,
+    color: colors.primaryText,
+    padding: 0,
+    backgroundColor: 'transparent',
+  },
+  profileRowValueGroup: {
+    flexShrink: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  profileRowValue: {
+    flexShrink: 1,
+    minWidth: 0,
     fontFamily: fonts.sansMedium,
     fontSize: 15,
-    lineHeight: 20,
+    lineHeight: 21,
     letterSpacing: 0,
-    color: colors.accentDeep,
+    color: colors.primaryText,
     textAlign: 'right',
-    flexShrink: 0,
-    fontVariant: ['tabular-nums'],
   },
-  personalFieldLabel: {
+  profileRowPlaceholder: {
+    color: colors.accentDeep,
+  },
+  profileRowChevron: {
+    color: colors.textSecondary,
     fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 20,
+    lineHeight: 24,
+    transform: [{ rotate: '0deg' }],
+  },
+  profileRowChevronOpen: {
+    transform: [{ rotate: '90deg' }],
+  },
+  profileGoalRow: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  profileGoalCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  profileGoalValue: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 21,
     letterSpacing: 0,
-    color: colors.sageDeep,
-    textTransform: 'uppercase',
+    color: colors.primaryText,
+  },
+  profilePickerWell: {
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  profileFootnote: {
+    ...type.caption,
+    color: colors.textSecondary,
+    paddingTop: spacing.lg,
   },
   personalFieldHint: {
     ...type.caption,
     color: colors.textSecondary,
   },
-  currentGoalText: {
-    ...type.bodySmall,
-    color: colors.primaryText,
-    fontFamily: fonts.sansMedium,
-  },
   lifeGoalList: {
     borderRadius: radius.input,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     overflow: 'hidden',
     backgroundColor: colors.bgSurface,
@@ -2288,42 +2298,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
-  },
-  personalFieldInput: {
-    fontFamily: fonts.sansRegular,
-    fontSize: 20,
-    lineHeight: 25,
-    letterSpacing: 0,
-    minHeight: 26,
-    padding: 0,
-    paddingVertical: 0,
-    includeFontPadding: false,
-    marginTop: 1,
-    color: colors.primaryText,
-    backgroundColor: 'transparent',
-  },
-  personalDateButton: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    borderRadius: radius.input,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.bgSurface,
-  },
-  personalFieldPlaceholder: {
-    color: colors.textTertiary,
-  },
-  personalDateButtonAction: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 19,
-    letterSpacing: 0,
-    color: colors.accentDeep,
   },
   personalAgeOptionGrid: {
     flexDirection: 'row',
@@ -2350,11 +2324,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentDeep,
   },
   personalAgeOptionText: {
-    fontFamily: fonts.serifRegular,
+    // Matches the Clarity check-in chips so selection reads identically
+    // everywhere in the app.
+    fontFamily: fonts.sansMedium,
     fontSize: 14,
     lineHeight: 20,
     letterSpacing: 0,
-    color: colors.textSecondary,
+    color: colors.textPrimary,
     textAlign: 'center',
     fontVariant: ['tabular-nums'],
   },
@@ -2364,13 +2340,9 @@ const styles = StyleSheet.create({
   },
   preferenceCard: {
     gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
   },
   preferenceHeader: {
     flexDirection: 'row',
@@ -2382,10 +2354,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  preferenceTitle: {
-    ...type.cardTitle,
-    color: colors.primaryText,
-  },
   preferenceSubtitle: {
     ...type.cardBody,
     marginTop: spacing.xs,
@@ -2395,8 +2363,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.bgGold,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2408,7 +2375,7 @@ const styles = StyleSheet.create({
   },
   sessionFeelList: {
     borderRadius: radius.input,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     overflow: 'hidden',
     backgroundColor: colors.bgSurface,
@@ -2503,10 +2470,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     textAlign: 'right',
   },
-  privacyPromiseText: {
-    ...type.cardBody,
-    color: colors.textSecondary,
-  },
   appVersion: {
     ...type.caption,
     color: colors.textTertiary,
@@ -2516,24 +2479,25 @@ const styles = StyleSheet.create({
   healthAnswerActions: {
     gap: spacing.sm,
   },
-  healthAnswerStatusRow: {
-    minHeight: 44,
+  healthAnswersRow: {
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    paddingBottom: spacing.sm,
+    gap: spacing.lg,
   },
-  healthAnswerStatusLabel: {
+  healthAnswersRowCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  healthAnswersRowTitle: {
     ...type.bodySmall,
     color: colors.primaryText,
     fontFamily: fonts.sansMedium,
   },
-  healthAnswerStatusValue: {
+  healthAnswersRowCaption: {
     ...type.caption,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    textAlign: 'right',
+    color: colors.textSecondary,
   },
   gentleStartNotice: {
     gap: spacing.sm,
