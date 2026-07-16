@@ -278,6 +278,51 @@ export function GhostButton({ title, onPress }: { title: string; onPress: () => 
   return <Button title={title} onPress={onPress} variant="ghost" />;
 }
 
+/**
+ * One quiet notice pattern for every "not available, here's why" state
+ * (blocked check-up, data recovery, retake…). Copy varies per state; the
+ * layout never does, so these moments feel intentional rather than like
+ * error screens. The optional continuation stays secondary — a notice never
+ * carries a hero action.
+ */
+export function NoticeCard({
+  title,
+  body,
+  actionLabel,
+  onPress,
+}: {
+  title: string;
+  body: string;
+  actionLabel?: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Card style={noticeStyles.card}>
+      <Text style={noticeStyles.title}>{title}</Text>
+      <Text style={noticeStyles.body}>{body}</Text>
+      {actionLabel && onPress ? (
+        <SecondaryButton title={actionLabel} onPress={onPress} />
+      ) : null}
+    </Card>
+  );
+}
+
+const noticeStyles = StyleSheet.create({
+  card: {
+    gap: spacing.md,
+  },
+  title: {
+    color: colors.textPrimary,
+    fontFamily: fonts.serifRegular,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  body: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+});
+
 export function Input({
   label,
   helperText,

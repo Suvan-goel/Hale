@@ -128,8 +128,9 @@ const styles = StyleSheet.create({
   label: {
     ...type.cardCaption,
     color: colors.textTertiary,
-    fontSize: 11,
-    lineHeight: 14,
+    // 13px floor for the 50+ audience — 11px labels tested too small to read.
+    fontSize: 13,
+    lineHeight: 17,
     textTransform: 'none',
   },
   labelActive: {

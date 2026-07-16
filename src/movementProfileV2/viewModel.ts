@@ -14,6 +14,7 @@ import type {
 } from '../reference/movementProfileV2';
 
 import { BRAND } from '../brand';
+import { formatPearlDate } from '../lib/dates';
 
 export type MovementProfileV2Domain = MovementDomain;
 export type MovementProfileV2ReportableDomain = Extract<MovementProfileV2Domain, 'strength_power' | 'balance'>;
@@ -298,11 +299,5 @@ function formatNumber(value: number | undefined): string {
 }
 
 function formatDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return 'Saved check-up';
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date);
+  return formatPearlDate(iso) ?? 'Saved check-up';
 }

@@ -83,7 +83,9 @@ export const colors = {
   cautionSoft: palette.softGoldFill,
   cautionBorder: palette.strongBorder,
   error: '#A44747',
-  imageScrim: 'rgba(8,9,11,0.58)',
+  // Warm ivory wash over hero photography so ink text stays readable —
+  // the old dark scrim was a dark-theme leftover under white text.
+  imageScrim: 'rgba(250,248,247,0.8)',
   overlaySurface: 'rgba(250,248,247,0.98)',
   navigationDivider: 'rgba(48,39,33,0.14)',
   modalBackdrop: 'rgba(0,0,0,0.76)',

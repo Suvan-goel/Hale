@@ -1,6 +1,6 @@
 import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-import { MenuIcon } from '../navigation/icons';
+import { SettingsIcon } from '../navigation/icons';
 import { colors, fonts, radius, spacing } from '../theme';
 import { BackArrowButton } from './BackArrowButton';
 import { PearlBrandMark } from './PearlBrandMark';
@@ -49,7 +49,7 @@ export function PageHeader({
           accessibilityRole="button"
           accessibilityLabel="Open settings"
         >
-          <MenuIcon size={24} color={colors.textPrimary} strokeWidth={1.55} />
+          <SettingsIcon size={24} color={colors.textPrimary} strokeWidth={1.55} />
         </Pressable>
       ) : null}
     </View>

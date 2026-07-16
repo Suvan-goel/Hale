@@ -52,10 +52,12 @@ its form-coaching product model.
 ## Product laws (non-negotiable design rules, validated in user interviews)
 
 1. **Never show self-view camera video.** Render a clean figure; Pearl's users want presence
-   without a mirror. Everyday screens use a true-black canvas, `#181818` graphite cards,
-   white as the primary action/text accent, and dusty-orchid `#B77BC3` as Pearl's secondary
-   brand accent. Active camera/session focus surfaces remain separately controlled. All
-   tokens live in `src/theme`; no screen hardcodes colour.
+   without a mirror. The visual language is quiet editorial wellness: a warm ivory canvas
+   (`#FAF8F7`), near-white `#FFFDFC` cards with hairline borders, near-black ink `#171714`
+   typography (Fraunces serif for display, Inter for UI), burgundy `#7C405D` as the primary
+   action accent with deep blush `#8E3158` for emphasis, and restrained warm-gold `#9B7B4D`
+   details. Active camera/session focus surfaces remain separately controlled. All tokens
+   live in `src/theme`; no screen hardcodes colour.
 2. **Voice-paced training.** Daily sessions use bundled voice guidance and a tiny on-device
    command vocabulary with complete tap parity. Pearl waits for the user before work begins.
    The camera is reserved for official measurement, not daily workouts.
