@@ -9,10 +9,12 @@
  * programmeResultsFromVoiceSession maps the player's TrainingSessionResult
  * back into ProgrammeSessionResults. Data honesty (C10/N5): every achieved
  * value is REPORTED — the prescribed target confirmed on "done", carrying any
- * ±rep adjustment she made — never a measurement. Timed sets end on the
- * player's clock (an interrupted in-flight set is discarded by the player and
- * the item redone), so a timed set present in results was completed: its
- * achieved value is the plan's per-side target by construction.
+ * ±rep adjustment she made — never a measurement. Timed sets normally end on
+ * the player's clock (an interrupted in-flight set is discarded by the player
+ * and the item redone), but "done" may close one early — so a timed set's
+ * achieved value credits only the seconds the player recorded as held (per
+ * side for per-side windows, net of the switch buffer); a full window credits
+ * exactly the plan's per-side target.
  *
  * Pain: a safety-word or "something hurts" halt marks the item skipped with
  * skipReason 'pain'; that becomes painFlag on the pattern outcome (keeping
@@ -22,6 +24,7 @@
  * (the finisher shares no promotion state).
  */
 
+import type { VoiceCueKey } from '../audio/cues';
 import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
 import type {
   TrainingItemResult,
@@ -56,6 +59,18 @@ const BALANCE_FOCUS_IDS = new Set<string>([
   BALANCE_TANDEM_ID,
   BALANCE_SINGLE_LEG_ID,
 ]);
+
+/**
+ * The registry's generic hold line promises "the position I describe", but in
+ * this voice-only session nothing else describes it — so each hold appends
+ * the bundled check-up stance cue (already recorded for every voice and
+ * hot-phrase-safe; verified against the intent matcher's fuzzy neighborhood).
+ */
+const BALANCE_STANCE_CUES: Readonly<Record<string, VoiceCueKey>> = {
+  [BALANCE_FEET_TOGETHER_ID]: 'balance-feet-together',
+  [BALANCE_TANDEM_ID]: 'balance-tandem',
+  [BALANCE_SINGLE_LEG_ID]: 'balance-single-leg',
+};
 
 export interface ProgrammeVoiceSessionInputs {
   exerciseIds: string[];
@@ -141,9 +156,15 @@ function balanceFocusDose(
 }
 
 function exerciseDefinitionForPlan(exerciseId: string): ExerciseDefinition {
-  return BALANCE_FOCUS_IDS.has(exerciseId)
-    ? getExercise(exerciseId)
-    : programmeVoiceExerciseDefinition(exerciseId);
+  if (!BALANCE_FOCUS_IDS.has(exerciseId)) return programmeVoiceExerciseDefinition(exerciseId);
+  const definition = getExercise(exerciseId);
+  return {
+    ...definition,
+    voice: {
+      ...definition.voice,
+      instructions: [...definition.voice.instructions, BALANCE_STANCE_CUES[exerciseId]],
+    },
+  };
 }
 
 function safetyProfileForPlan(exerciseId: string): PlannedExerciseSafetyCueProfile {
@@ -274,8 +295,18 @@ function achievedForSet(
     // reportedReps carries any ±adjustment in place (player semantics).
     return Math.max(0, set.reportedReps ?? exercise.repTargetPerSet);
   }
-  // Timed sets present in results ran their full window (module header).
-  return exercise.repTargetPerSet;
+  // Timed sets: "done" may close the window early, so credit only the seconds
+  // the player recorded as held — never the full target for a cut-short hold
+  // (C10; an inflated hold would feed top-of-range promotion). A full window
+  // credits exactly the per-side target; a legacy set without a recorded
+  // duration keeps the historical full-target reading.
+  const target = exercise.repTargetPerSet;
+  if (!Number.isFinite(set.holdSec)) return target;
+  const heldSec =
+    exercise.scheme.kind === 'seconds_per_side'
+      ? (set.holdSec - PER_SIDE_SWITCH_BUFFER_SEC) / 2
+      : set.holdSec;
+  return Math.min(target, Math.max(0, Math.floor(heldSec)));
 }
 
 export function programmeResultsFromVoiceSession(

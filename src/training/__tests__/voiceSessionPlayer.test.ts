@@ -12,6 +12,7 @@
 
 import { VoiceCueKey } from '../../audio/cues';
 import { BALANCE_FEET_TOGETHER_ID, STS_STANDARD_ID, getExercise } from '../../exercises';
+import { SAFETY_CUE_SCHEMA_VERSION } from '../safetyCueDefinitions';
 import {
   type TrainingFrameUpdate,
   VoiceSessionPlayer as TrainingSessionPlayer,
@@ -360,6 +361,152 @@ describe('±rep windows after a final set (founder fix 2026-07-06)', () => {
     expect(sets[sets.length - 1].repsAdjusted).toBe(2);
     // done = delivered; the summary screen's own control takes over from here.
     expect(player.adjustReportedReps(1)).toBe(false);
+  });
+});
+
+describe('bonus-offer pause (fix 2026-07-18)', () => {
+  const OFFER = { exerciseIds: [STS_STANDARD_ID], offerCue: 'prog-bonus-set-offer' as const };
+
+  /** Completes every planned STS set, landing in the offer rest. */
+  function reachOfferRest(run: VoiceRun): TrainingFrameUpdate {
+    const sts = getExercise(STS_STANDARD_ID);
+    for (let set = 0; set < sts.prescription.sets; set++) {
+      run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+      run.player.confirmReady(run.ts);
+      run.tickUntil((u) => u.phase === 'set');
+      run.player.completeCurrentSet((run.ts += 5000));
+      if (set < sts.prescription.sets - 1) {
+        run.tickUntil((u) => u.phase === 'rest');
+        run.player.skipRest(run.ts);
+      }
+    }
+    const offer = run.tickUntil((u) => u.phase === 'rest');
+    expect(offer.bonusOfferPending).toBe(true);
+    return offer;
+  }
+
+  it('pausing over the offer withdraws it; resume completes the item — no phantom set', () => {
+    const player = new TrainingSessionPlayer(
+      '2026-07-06T09:00:00.000Z',
+      [STS_STANDARD_ID, BALANCE_FEET_TOGETHER_ID],
+      { bonusSetOffer: OFFER }
+    );
+    const run = startRun(player);
+    reachOfferRest(run);
+
+    expect(player.handleSessionIntent('pause', run.ts)).toBe(true);
+    const paused = run.tick();
+    expect(paused.phase).toBe('voice_paused');
+    expect(paused.bonusOfferPending).toBe(false);
+
+    expect(player.resumeVoiceSession(run.ts)).toBe(true);
+    const next = run.tickUntil((u) => u.currentExerciseId === BALANCE_FEET_TOGETHER_ID);
+    expect(next.phase).not.toBe('done');
+
+    const items = player.completedItemsSnapshot();
+    expect(items[0].exerciseId).toBe(STS_STANDARD_ID);
+    expect(items[0].status).toBe('completed');
+    expect(items[0].sets).toHaveLength(getExercise(STS_STANDARD_ID).prescription.sets);
+  });
+
+  it('accepting from the offer rest still grants exactly one extra set', () => {
+    const player = new TrainingSessionPlayer('2026-07-06T09:00:00.000Z', [STS_STANDARD_ID], {
+      bonusSetOffer: OFFER,
+    });
+    const run = startRun(player);
+    reachOfferRest(run);
+
+    expect(player.confirmReady(run.ts)).toBe(true); // "I'm ready" accepts
+    const bonus = run.tickUntil((u) => u.phase === 'set');
+    expect(bonus.totalSets).toBe(getExercise(STS_STANDARD_ID).prescription.sets + 1);
+    player.completeCurrentSet((run.ts += 5000));
+    run.tickUntil((u) => u.phase === 'done');
+    expect(player.result!.items[0].sets).toHaveLength(
+      getExercise(STS_STANDARD_ID).prescription.sets + 1
+    );
+  });
+});
+
+describe('repAdjustAvailable surface (fix 2026-07-18)', () => {
+  it('opens in a rep-set rest and through the post-final-set transition; never for timed sets', () => {
+    const player = makeVoicePlayer([STS_STANDARD_ID, BALANCE_FEET_TOGETHER_ID]);
+    const run = startRun(player);
+    const sts = getExercise(STS_STANDARD_ID);
+
+    // First rep set → rest: the ±rep window is open on the frame update.
+    run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+    player.confirmReady(run.ts);
+    run.tickUntil((u) => u.phase === 'set');
+    player.completeCurrentSet((run.ts += 5000));
+    const rest = run.tickUntil((u) => u.phase === 'rest');
+    expect(rest.repAdjustAvailable).toBe(true);
+    player.skipRest(run.ts);
+
+    // Between sets at the ready prompt the window is closed (pinned rule).
+    const ready = run.tickUntil((u) => u.phase === 'waiting_ready');
+    expect(ready.repAdjustAvailable).toBe(false);
+
+    // Remaining STS sets → the post-final-set transition keeps it open.
+    for (let set = 1; set < sts.prescription.sets; set++) {
+      run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+      player.confirmReady(run.ts);
+      run.tickUntil((u) => u.phase === 'set');
+      player.completeCurrentSet((run.ts += 5000));
+      if (set < sts.prescription.sets - 1) {
+        run.tickUntil((u) => u.phase === 'rest');
+        player.skipRest(run.ts);
+      }
+    }
+    const transition = run.tick();
+    expect(transition.phase).toBe('transition');
+    expect(transition.repAdjustAvailable).toBe(true);
+
+    // Timed hold rest: nothing rep-shaped to adjust — surface stays hidden.
+    run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+    player.confirmReady(run.ts);
+    // The 'go' tick reports NaN; runSet stamps remainingMs on the next tick.
+    const holdSet = run.tickUntil((u) => u.phase === 'set' && Number.isFinite(u.remainingMs));
+    run.ts += holdSet.remainingMs;
+    const holdRest = run.tickUntil((u) => u.phase === 'rest');
+    expect(holdRest.repAdjustAvailable).toBe(false);
+  });
+});
+
+describe('repeated-set safety cadence (founder ruling 2026-07-18)', () => {
+  it('speaks repeated-set cues at the first rest only; later rests stay quiet', () => {
+    const player = new TrainingSessionPlayer('2026-07-06T09:00:00.000Z', [STS_STANDARD_ID], {
+      generatedExercises: [
+        { exerciseId: STS_STANDARD_ID, sets: 3, repsPerSet: 8, restSeconds: 30 },
+      ],
+      resolveSafetyProfile: (exerciseId) => ({
+        schemaVersion: SAFETY_CUE_SCHEMA_VERSION,
+        exerciseId,
+        setupCueIds: [],
+        activeCueIds: ['comfortable_range_only'],
+        repeatedSetCueIds: ['comfortable_range_only'],
+        recoveryCueIds: [],
+      }),
+    });
+    const run = startRun(player);
+    const safetySpoken = () =>
+      run.spoken.filter((cue) => cue === 'comfortable_range_only').length;
+
+    // Set 1 → first rest: instructions spoke the cue once, the rest repeats it.
+    run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+    player.confirmReady(run.ts);
+    run.tickUntil((u) => u.phase === 'set');
+    player.completeCurrentSet((run.ts += 5000));
+    run.tickUntil((u) => u.phase === 'rest' && run.spoken.includes('rest-now'));
+    expect(safetySpoken()).toBe(2);
+    player.skipRest(run.ts);
+
+    // Set 2 → second rest: only the rest line, no safety repeat.
+    run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+    player.confirmReady(run.ts);
+    run.tickUntil((u) => u.phase === 'set');
+    player.completeCurrentSet((run.ts += 5000));
+    run.tickUntil((u) => u.phase === 'rest' && run.spoken.includes('last-set'));
+    expect(safetySpoken()).toBe(2);
   });
 });
 

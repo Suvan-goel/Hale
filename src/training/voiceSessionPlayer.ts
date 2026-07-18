@@ -60,6 +60,8 @@ export interface TrainingFrameUpdate {
   tapPromptHighlighted: boolean;
   stopRequested: boolean;
   bonusOfferPending: boolean;
+  /** A just-finished rep set is open for the ±rep correction right now. */
+  repAdjustAvailable: boolean;
   safetyCueIds: readonly SafetyCueId[];
   safetyText: readonly string[];
 }
@@ -123,6 +125,7 @@ export class VoiceSessionPlayer {
   private lastTimestampMs = 0;
   private voicePauseContext: 'rest' | 'active' | null = null;
   private voicePausedMidRepSet = false;
+  private voicePausedDuringBonusOffer = false;
   private stopRequested = false;
   private bonusOfferPending = false;
   private bonusSetsGranted = 0;
@@ -175,6 +178,7 @@ export class VoiceSessionPlayer {
       tapPromptHighlighted: this.tapPromptHighlighted,
       stopRequested: this.stopRequested,
       bonusOfferPending: this.bonusOfferPending,
+      repAdjustAvailable: false,
       safetyCueIds: [],
       safetyText: [],
     };
@@ -246,6 +250,7 @@ export class VoiceSessionPlayer {
     update.tapPromptHighlighted = this.tapPromptHighlighted;
     update.stopRequested = this.stopRequested;
     update.bonusOfferPending = this.bonusOfferPending;
+    update.repAdjustAvailable = this.adjustableLastSet()?.reportedReps !== undefined;
     return update;
   }
 
@@ -342,6 +347,11 @@ export class VoiceSessionPlayer {
     }
     this.voicePauseContext = this.phase === 'rest' ? 'rest' : 'active';
     this.voicePausedMidRepSet = this.phase === 'set' && this.voiceSetOpenEnded;
+    // A pause that rides over a pending bonus offer withdraws it: the planned
+    // sets are done, and resume must never start a set she was no longer
+    // being asked about.
+    this.voicePausedDuringBonusOffer = this.phase === 'rest' && this.bonusOfferPending;
+    if (this.voicePausedDuringBonusOffer) this.bonusOfferPending = false;
     this.phase = 'voice_paused';
     this.stopRequested = stopRequested;
     this.tapPromptHighlighted = false;
@@ -352,9 +362,18 @@ export class VoiceSessionPlayer {
 
   resumeVoiceSession(atMs: number = this.lastTimestampMs): boolean {
     if (this.phase !== 'voice_paused') return false;
+    this.stopRequested = false;
+    if (this.voicePauseContext === 'rest' && this.voicePausedDuringBonusOffer) {
+      // The pause declined the offer; resuming completes the item instead of
+      // treating the offer rest as an ordinary between-sets rest.
+      this.voicePausedDuringBonusOffer = false;
+      this.voicePauseContext = null;
+      this.voicePausedMidRepSet = false;
+      this.completeCurrentItem(atMs);
+      return true;
+    }
     if (this.voicePauseContext === 'rest') this.setIndex++;
     this.voicePauseContext = null;
-    this.stopRequested = false;
     this.enterWaitingReady(atMs, null);
     if (this.voicePausedMidRepSet) {
       this.pendingVoiceLine = cueSequence(['voice-resume-counts', 'voice-say-ready']);
@@ -500,14 +519,18 @@ export class VoiceSessionPlayer {
     const definition = this.definitions[this.itemIndex];
     if (!this.restSpoken && !busy && !update.voice) {
       this.restSpoken = true;
-      const safetyCueIds = this.currentSafetyProfile()?.repeatedSetCueIds ?? [];
+      // Founder ruling 2026-07-18: repeated-set safety cues speak at the
+      // item's FIRST rest only — later rests stay quiet ("silence by
+      // default"); the screen keeps the cues readable throughout.
+      const safetyCueIds =
+        this.setIndex === 0 ? this.currentSafetyProfile()?.repeatedSetCueIds ?? [] : [];
       const restCue = this.bonusOfferPending
         ? this.options.bonusSetOffer!.offerCue
         : this.setIndex + 2 === this.effectiveDose(definition).sets + this.bonusSetsGranted
           ? 'last-set'
           : 'rest-now';
       update.voice = cueSequence([restCue, ...safetyCueIds]);
-      this.emitSafety(update, safetyCueIds);
+      if (safetyCueIds.length > 0) this.emitSafety(update, safetyCueIds);
     }
     update.remainingMs = Math.max(0, this.restDurationMs - (ts - this.restEnteredMs));
     if (this.restSpoken && !busy && ts - this.restEnteredMs >= this.restDurationMs) {
@@ -542,6 +565,7 @@ export class VoiceSessionPlayer {
     this.currentSets = [];
     this.bonusOfferPending = false;
     this.bonusSetsGranted = 0;
+    this.voicePausedDuringBonusOffer = false;
     this.phase = 'transition';
     this.transitionEnteredMs = ts;
     this.transitionCuePending = index === 0 ? null : 'next-up';

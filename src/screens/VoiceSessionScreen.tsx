@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   ExpoVoiceCommandsModule,
@@ -48,6 +48,7 @@ import {
 import { VoiceSessionController, type VoiceSessionControllerOptions } from '../voice/voiceSessionController';
 
 const TICK_MS = 250;
+const NO_SAFETY_LINES: readonly string[] = [];
 
 interface Snapshot {
   phase: TrainingPhase;
@@ -58,6 +59,9 @@ interface Snapshot {
   tapPromptHighlighted: boolean;
   stopRequested: boolean;
   bonusOfferPending: boolean;
+  repAdjustAvailable: boolean;
+  /** Spoken safety cues for the current exercise, latched for the eyes too. */
+  safetyLines: readonly string[];
 }
 
 function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
@@ -69,7 +73,9 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.remainingSec === b.remainingSec &&
     a.tapPromptHighlighted === b.tapPromptHighlighted &&
     a.stopRequested === b.stopRequested &&
-    a.bonusOfferPending === b.bonusOfferPending
+    a.bonusOfferPending === b.bonusOfferPending &&
+    a.repAdjustAvailable === b.repAdjustAvailable &&
+    a.safetyLines === b.safetyLines
   );
 }
 
@@ -151,6 +157,15 @@ export function VoiceSessionScreen({
     tapPromptHighlighted: false,
     stopRequested: false,
     bonusOfferPending: false,
+    repAdjustAvailable: false,
+    safetyLines: NO_SAFETY_LINES,
+  });
+  // Safety cues are emitted on the tick they are spoken; latch them per
+  // exercise so the guidance also stays readable (spoken-only would exclude
+  // anyone who cannot hear Clara).
+  const safetyLatchRef = React.useRef<{ exerciseId: string | null; lines: readonly string[] }>({
+    exerciseId: null,
+    lines: NO_SAFETY_LINES,
   });
   const [permission, setPermission] = React.useState<VoicePermissionResponse | null>(null);
   const [availability, setAvailability] = React.useState<OnDeviceAvailability | null>(null);
@@ -169,6 +184,11 @@ export function VoiceSessionScreen({
     const id = setInterval(() => {
       const u = controller.tick(Date.now(), voice.busy);
       if (u.voice) voice.speak(u.voice.cues, u.voice.priority);
+      if (u.safetyText.length > 0) {
+        safetyLatchRef.current = { exerciseId: u.currentExerciseId, lines: u.safetyText };
+      } else if (safetyLatchRef.current.exerciseId !== u.currentExerciseId) {
+        safetyLatchRef.current = { exerciseId: u.currentExerciseId, lines: NO_SAFETY_LINES };
+      }
       const next: Snapshot = {
         phase: u.phase,
         exerciseId: u.currentExerciseId,
@@ -178,6 +198,8 @@ export function VoiceSessionScreen({
         tapPromptHighlighted: u.tapPromptHighlighted,
         stopRequested: u.stopRequested,
         bonusOfferPending: u.bonusOfferPending,
+        repAdjustAvailable: u.repAdjustAvailable,
+        safetyLines: safetyLatchRef.current.lines,
       };
       setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
     }, TICK_MS);
@@ -218,6 +240,17 @@ export function VoiceSessionScreen({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gate.kind, controller, voice]);
+
+  // A backgrounded app stops ticking but the player's wall-clock timers keep
+  // counting, so a call or app switch would fast-forward sets and rests to
+  // instant full credit on return. Pause instead — the app waits for her, and
+  // she resumes with the same tap/voice controls as any other pause.
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'background') controller.autoPause(Date.now());
+    });
+    return () => subscription.remove();
+  }, [controller]);
 
   // Side contract: any exit without completion is an abandonment (idempotent).
   React.useEffect(() => {
@@ -347,6 +380,19 @@ export function VoiceSessionScreen({
                 </Text>
               </View>
             ) : null}
+            {snapshot.safetyLines.length > 0 ? (
+              <View
+                style={styles.safetyNotes}
+                accessible
+                accessibilityLabel={`Safety guidance: ${snapshot.safetyLines.join('. ')}`}
+              >
+                {snapshot.safetyLines.map((line) => (
+                  <Text key={line} style={styles.safetyNoteText}>
+                    {line}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
           </>
         ) : exerciseName || Number.isFinite(snapshot.remainingSec) ? (
           <View style={styles.stage}>
@@ -453,25 +499,30 @@ export function VoiceSessionScreen({
                   onPress={() => controller.handleTap('skip_rest', Date.now())}
                 />
               )}
-              <View style={styles.adjustPanel}>
-                <View style={styles.adjustCopy}>
-                  <Text style={styles.adjustEyebrow}>ADJUST LAST SET</Text>
-                  <Text style={styles.adjustHelp}>Correct the reps you just completed.</Text>
-                </View>
-                <View style={styles.adjustRow}>
-                  <SecondaryButton
-                    style={[styles.secondaryAction, styles.adjustButton]}
-                    title="− rep"
-                    onPress={() => controller.handleTap('adjust_reps_down')}
-                  />
-                  <SecondaryButton
-                    style={[styles.secondaryAction, styles.adjustButton]}
-                    title="+ rep"
-                    onPress={() => controller.handleTap('adjust_reps_up')}
-                  />
-                </View>
-              </View>
             </>
+          ) : null}
+          {snapshot.repAdjustAvailable ? (
+            // Rendered exactly when the player's ±rep window is open: rep-set
+            // rests, plus the post-final-set moment until the next exercise
+            // announces (founder fix 2026-07-06). Timed sets never show it.
+            <View style={styles.adjustPanel}>
+              <View style={styles.adjustCopy}>
+                <Text style={styles.adjustEyebrow}>ADJUST LAST SET</Text>
+                <Text style={styles.adjustHelp}>Correct the reps you just completed.</Text>
+              </View>
+              <View style={styles.adjustRow}>
+                <SecondaryButton
+                  style={[styles.secondaryAction, styles.adjustButton]}
+                  title="− rep"
+                  onPress={() => controller.handleTap('adjust_reps_down')}
+                />
+                <SecondaryButton
+                  style={[styles.secondaryAction, styles.adjustButton]}
+                  title="+ rep"
+                  onPress={() => controller.handleTap('adjust_reps_up')}
+                />
+              </View>
+            </View>
           ) : null}
           {snapshot.phase === 'voice_paused' ? (
             <PrimaryButton
@@ -760,6 +811,18 @@ const styles = StyleSheet.create({
   doseRow: {
     alignItems: 'center',
     paddingTop: spacing.sm,
+  },
+  // The spoken safety cues, kept readable: quiet captions under the demo.
+  safetyNotes: {
+    gap: spacing.xs,
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+  },
+  safetyNoteText: {
+    ...type.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   doseText: {
     ...type.cardCaption,

@@ -6645,3 +6645,98 @@ generation, player, voice, results). Every item below is headless-tested;
   contract text before regenerating trips the physical-audio readiness guard
   (verified: it flips V2.1 selection to legacy), so it must land WITH its
   audio run.
+
+## 2026-07-18 — Voice session correctness pass: honest timed-set credit, background pause, offer/pause edge, visible safety text
+
+**Context.** A full read-only audit of the training session flow (Home →
+plan generation → bridge → VoiceSessionController/VoiceSessionPlayer →
+effort → promotion) surfaced one data-honesty bug, one robustness gap, and
+several smaller seams. All fixed in this pass; two flagged items were
+deliberately NOT changed (see end).
+
+- **Timed sets closed early by "done" now credit only the seconds held
+  (C10):** `completeCurrentSet` accepts during any set, including holds and
+  carries, and the screen shows Done for them — but the bridge's
+  `achievedForSet` credited the full per-set target for any timed set present
+  in results, so a plank ended at 3 s of 40 read as 40 and could feed
+  top-of-range promotion. The bridge now reads the player's recorded
+  `holdSec`: 'seconds' schemes credit `floor(holdSec)`; 'seconds_per_side'
+  credits `floor((holdSec − switch buffer) / 2)` — a full window still lands
+  exactly on the plan's per-side target, so clock-completed sets are
+  unchanged. Legacy sets without a recorded duration keep the historical
+  full-target reading. Ending a timed set early via Done remains allowed
+  (agency), it just cannot over-credit. Pinned by a bridge test; the test
+  harness now runs timed windows out on the clock like real sessions.
+- **App backgrounding auto-pauses the session:** the live player runs on
+  wall-clock timestamps with no AppState handling (the camera player's
+  shiftTiming discipline was never carried over), so a phone call or app
+  switch stopped the tick loop while the clock kept counting — on return,
+  in-flight timed sets and rests completed instantly with full credit. The
+  screen now listens for the 'background' AppState and calls a new
+  `VoiceSessionController.autoPause()` (same player path as the pause tap,
+  deliberately NOT counted in tapActionCounts — voice-vs-tap instrumentation
+  stays user-authored). She returns to the ordinary voice_paused surface and
+  resumes herself; brief iOS 'inactive' blips (notification shade, control
+  centre) do not pause because JS keeps running there and timers stay honest.
+- **Pausing over the bonus-set offer no longer produces a phantom set:**
+  pause during the offer rest left `bonusOfferPending` dangling; resume took
+  the ordinary rest path (`setIndex++` → waiting_ready), so "resume" then
+  "I'm ready" ran an EXTRA set that was never accepted, with
+  `bonusSetsGranted` still 0 and the set label clamped. A pause that rides
+  over a pending offer now withdraws it (a paused offer is a declined offer —
+  the bonus is reward-framed and never required), and resuming completes the
+  item and moves on. Accepting from the offer rest is unchanged (pinned).
+- **The ±rep window is now rendered exactly where the player allows it:** the
+  2026-07-06 founder window (rep-set rests, plus post-final-set through the
+  transition until the next exercise announces) existed only in the player;
+  the screen drew the panel solely during rests — so the final set of every
+  exercise was uncorrectable in practice, while timed-set rests showed a
+  dead panel whose buttons did nothing. `TrainingFrameUpdate` gains
+  `repAdjustAvailable` (true iff the adjustable set has `reportedReps`), and
+  the screen gates the panel on it — no change to the pinned window
+  semantics.
+- **Balance focus holds now describe their stance by voice:** the registry's
+  generic `ex-balance` line promises "the position I describe", but nothing
+  in the voice-only session described feet-together vs tandem vs single-leg
+  (the stance lived only in the on-screen name). The bridge appends the
+  bundled check-up stance cues (`balance-feet-together` / `balance-tandem` /
+  `balance-single-leg`) after `ex-balance`; already recorded for every voice
+  and verified against the hot-phrase fuzzy neighborhood. No new audio run
+  needed.
+- **Spoken safety cues are now readable:** the player has always emitted
+  `safetyText` with every safety cue sequence and the screen dropped it —
+  spoken-only guidance excluded anyone hard of hearing. The screen latches
+  the current exercise's safety lines and renders them as quiet captions
+  under the demo during setup (instructions/waiting_ready), clearing on
+  exercise change. Styling is deliberately minimal pending the visual pass.
+- **Parked-machinery signposts:** `training/sessionPlayer.ts` and
+  `training/sessionResume.ts` (camera-conducted player + its resume slice,
+  mounted by no screen) now open with a PARKED note pointing to the live
+  counterparts (`voiceSessionPlayer.ts` + `programme/sessionSnapshot.ts`), so
+  a future session cannot wire the wrong player or resume system.
+
+**Deliberately unchanged (flagged for product review, not defects):**
+repeated-set safety cues still speak the full active list at EVERY rest and
+the five global safety lines open every session — a tone/repetition call
+against "silence by default" that belongs to the founder; and a deliberate
+"Skip exercise" still discards that item's already-completed sets from
+ladder outcomes (spec: deliberate skip → no outcome), which sits slightly
+oddly beside "everything you've finished still counts" and deserves a
+conscious ruling.
+
+## 2026-07-18 — Founder rulings on the two flagged calls: quieter rests, skip stays neutral
+
+- **Repeated-set safety cues: first rest only.** The correctness pass flagged
+  that every rest of every exercise re-spoke the full repeated-cue list.
+  Founder ruling: speak repeated-set cues at each item's FIRST rest only;
+  later rests get just the rest line ("silence by default"). Setup and
+  instruction cues, and the five session-start global lines, are unchanged.
+  The on-screen safety captions (added the same day) keep the guidance
+  readable at every point, so nothing is lost for anyone who cannot hear
+  Clara. Pinned by a cadence test.
+- **Deliberate skip stays neutral (as-is confirmed).** Completed sets inside
+  a skipped item continue to record no ladder outcome — the spec's ruling,
+  now explicitly confirmed: a partial outcome could never be top-of-range,
+  so counting it would reset her promotion streak and turn skipping into a
+  punishment. The "everything you've finished is saved" promise refers to
+  completed items on the leave path, which is true.

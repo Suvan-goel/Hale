@@ -162,6 +162,24 @@ describe('day-one instrumentation', () => {
     expect(record.voiceIntentCounts?.pain).toBe(1);
   });
 
+  it('autoPause (app backgrounded) pauses via the player without polluting tap counts', () => {
+    const h = makeHarness([STS_STANDARD_ID]);
+    h.tickUntil((u) => u.phase === 'waiting_ready' && h.ts >= h.voiceBusyUntil);
+    h.controller.handleTap('ready', h.ts);
+    h.tickUntil((u) => u.phase === 'set');
+
+    expect(h.controller.autoPause(h.ts)).toBe(true);
+    expect(h.tick().phase).toBe('voice_paused');
+    h.controller.handleTap('resume', h.ts);
+    runToCompletion(h);
+
+    const record = deserializeSessionFunnel([...h.files.values()][0])!;
+    expect(record.outcome).toBe('completed');
+    // The system pause is not user tap usage; only her resume is counted.
+    expect(record.tapActionCounts?.pause).toBeUndefined();
+    expect(record.tapActionCounts?.resume).toBe(1);
+  });
+
   it('rest-screen rep adjustment maps to reportedReps/repsAdjusted', () => {
     const h = makeHarness([STS_STANDARD_ID]);
     h.tickUntil((u) => u.phase === 'waiting_ready' && h.ts >= h.voiceBusyUntil);

@@ -163,6 +163,16 @@ export class VoiceSessionController {
     }
   }
 
+  /**
+   * System-initiated pause (app backgrounded): the same player path as the
+   * pause tap, but never counted as tap usage — the voice-vs-tap counts must
+   * stay user-authored. Returns false when the current phase has nothing to
+   * pause (intro, transitions, already paused, terminal).
+   */
+  autoPause(atMs?: number): boolean {
+    return this.player.haltVoiceSession(false, atMs);
+  }
+
   /** Screen unmount / discard — any exit without completion is abandonment. */
   recordAbandonment(): void {
     this.recordFunnel('abandoned');

@@ -1,4 +1,8 @@
 /**
+ * PARKED — camera-conducted daily training (2026-07-05 direction): no screen
+ * mounts this player. The LIVE daily session is src/training/voiceSessionPlayer.ts
+ * driven by src/voice/voiceSessionController.ts; change behaviour there first.
+ *
  * Training session player — the voice-guided home-workout orchestrator, the
  * training-side analogue of the Check-Up's CheckUpOrchestrator. Pure-TS,
  * frame-timestamp-driven state machine (so a recorded session replays the whole

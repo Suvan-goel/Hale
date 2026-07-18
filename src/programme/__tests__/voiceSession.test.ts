@@ -91,6 +91,8 @@ interface RunOptions {
   skipOn?: ReadonlySet<string>;
   /** ±rep adjustment applied right after completing this exercise's last set. */
   adjustAfter?: Map<string, number>;
+  /** Timed exerciseIds to close early via "done" instead of running the window out. */
+  endTimedEarlyOn?: ReadonlySet<string>;
 }
 
 /** Drives a full voice session through the real player; returns its result. */
@@ -139,9 +141,15 @@ function runVoiceSession(plan: ProgrammeSessionPlan, options: RunOptions = {}): 
       if (options.skipOn?.has(id)) controller.handleTap('skip', ts);
       else controller.handleTap('ready', ts);
     } else if (update.phase === 'set') {
+      // One extra tick: the 'go' tick reports remainingMs as NaN; runSet
+      // stamps the real window on the following tick.
+      const setUpdate = tick();
       ts += 4000;
       if (options.painOn?.has(id)) {
         controller.handleTap('pain', ts);
+      } else if (Number.isFinite(setUpdate.remainingMs) && !options.endTimedEarlyOn?.has(id)) {
+        // Timed sets end on the player's clock — run the window out.
+        ts += setUpdate.remainingMs;
       } else {
         const lastSet = update.setIndex + 1 >= update.totalSets;
         controller.handleTap('done', ts);
@@ -338,6 +346,12 @@ describe('plan → voice-player inputs', () => {
       restSeconds: 30,
     });
     expect(inputs.resolveExercise(focus.exerciseId).family).toBe('balance');
+    // The generic hold line promises "the position I describe" — the bundled
+    // stance cue must follow it so the stance is actually described by voice.
+    expect(inputs.resolveExercise(focus.exerciseId).voice.instructions).toEqual([
+      'ex-balance',
+      'balance-feet-together',
+    ]);
     const safety = inputs.resolveSafetyProfile(focus.exerciseId);
     expect(safety.setupCueIds).toContain('balance_support_within_reach');
     expect(safety.activeCueIds).toContain('balance_stop_if_unsteady');
@@ -378,6 +392,27 @@ describe('real voice session → programme results (reported-only, C10/N5)', () 
     const outcome = mapped.outcomes.find((o) => o.pattern === repsExercise.pattern)!;
     const lastSet = outcome.sets[outcome.sets.length - 1];
     expect(lastSet.achieved).toBe(repsExercise.repTargetPerSet - 2);
+  });
+
+  it('a timed set closed early by "done" credits only the seconds held (C10 fix 2026-07-18)', () => {
+    // Core at L4 (knee plank) puts a 'seconds'-scheme exercise in the plan.
+    const state = onboardedState();
+    state.ladders.core = freshPatternLadderState('core', 4);
+    const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
+    const timed = plan.main.find((exercise) => exercise.scheme.kind === 'seconds');
+    expect(timed).toBeDefined();
+    const result = runVoiceSession(plan, { endTimedEarlyOn: new Set([timed!.exerciseId]) });
+    const mapped = programmeResultsFromVoiceSession(plan, result, '2026-07-06T09:40:00.000Z');
+
+    // The cut-short hold credits the 4 s actually held, never the full target.
+    const timedOutcome = mapped.outcomes.find((o) => o.pattern === timed!.pattern)!;
+    expect(timedOutcome.sets.length).toBeGreaterThan(0);
+    for (const set of timedOutcome.sets) expect(set.achieved).toBe(4);
+
+    // Exercises that ran their full window still credit the plan's target.
+    const untouched = plan.main.find((exercise) => exercise.pattern !== timed!.pattern)!;
+    const untouchedOutcome = mapped.outcomes.find((o) => o.pattern === untouched.pattern)!;
+    for (const set of untouchedOutcome.sets) expect(set.achieved).toBe(untouched.repTargetPerSet);
   });
 
   it('pain mid-exercise → painFlag outcome keeping completed sets; deliberate skip → no outcome', () => {

@@ -1,4 +1,8 @@
 /**
+ * PARKED — resume slice for the camera-conducted player (sessionPlayer.ts),
+ * which no screen mounts. The LIVE voice-session resume slice is
+ * src/programme/sessionSnapshot.ts; change behaviour there first.
+ *
  * Mid-session recovery for planned training sessions.
  *
  * While a planned session runs, a snapshot of completed items is written at
