@@ -29,9 +29,14 @@ import {
 } from 'react-native';
 
 import { BRAND } from '../brand';
+import { voicePriority, type VoiceCueKey } from '../audio/cues';
+import { VoiceChannel } from '../audio/voicePlayer';
 import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { checkupZeroBatterySequence } from '../programme';
-import { createMovementProfileV2InternalFlow } from '../movementProfileV2/internalCheckupFlow';
+import {
+  createMovementProfileV2InternalFlow,
+  type MovementProfileV2InternalFlowState,
+} from '../movementProfileV2/internalCheckupFlow';
 import type { CheckUp } from '../checkup';
 import type { StoredCheckUp } from '../history';
 import { colors, fonts, radius, spacing, type } from '../theme';
@@ -41,9 +46,10 @@ import { ClarityCheckInScreen } from './ClarityCheckInScreen';
 
 const WARM_UP_SECONDS = 60;
 /** Breath between the warm-up hitting zero and the camera flow starting, so
- * Clara's intro never begins while she is still mid-march. Measurement is
- * already protected (the frame check requires stillness); this is courtesy. */
-const POSITION_BEAT_MS = 4000;
+ * Clara's intro never begins while she is still mid-march — sized to let the
+ * spoken position line finish before the battery's own voice channel starts.
+ * Measurement is already protected (the frame check requires stillness). */
+const POSITION_BEAT_MS = 8000;
 
 /** Follow-along list so she has something to track mid-countdown instead of
  * recalling a sentence read once. The warm-up itself stays fixed (comparability). */
@@ -52,6 +58,15 @@ const WARM_UP_MOVES: readonly string[] = [
   'Roll your shoulders',
   'Add a few easy arm reaches',
 ];
+
+/** Clara paces the fixed warm-up (the check-up is voice-led everywhere else,
+ * and a spoken pace repeats more consistently than self-read text). Keyed by
+ * the countdown value each move begins at; the moves match WARM_UP_MOVES. */
+const WARM_UP_VOICE_AT_REMAINING: Readonly<Record<number, VoiceCueKey>> = {
+  [WARM_UP_SECONDS]: 'checkup-warmup-start',
+  40: 'checkup-warmup-shoulders',
+  20: 'checkup-warmup-reaches',
+};
 
 /**
  * The setup a check-up actually needs, stated at the moment of commitment so
@@ -82,7 +97,7 @@ const CHECKUP_MOVEMENT_GUIDES: readonly Readonly<{
     domain: 'BALANCE',
     phoneView: 'Phone in front',
     title: 'One-leg balance',
-    body: 'Lift one foot and hold with your eyes open. Keep a sturdy support within reach.',
+    body: 'Lift one foot and hold with your eyes open — up to three short holds, with rests between. Keep a sturdy support within reach.',
     accessibilityLabel: 'One-leg balance setup and hold sequence, viewed from the front',
   },
   {
@@ -136,6 +151,16 @@ export function ProgrammeCheckupZeroScreen({
   const [permissionDenied, setPermissionDenied] = React.useState(false);
   const [warmupRemaining, setWarmupRemaining] = React.useState(WARM_UP_SECONDS);
   const startedAtRef = React.useRef<string | null>(initialDraft?.startedAt ?? null);
+  // Created once when the battery phase first renders (its startedAt is the
+  // moment the battery begins, not screen mount); the unified screen's
+  // coordinator locks onto its first initialFlow anyway.
+  const initialFlowRef = React.useRef<MovementProfileV2InternalFlowState | null>(null);
+  // Host-level voice for the warm-up/position corridor only. The battery owns
+  // its own channel; this one is stopped before the battery mounts so Clara
+  // never overlaps herself.
+  const [warmupVoice] = React.useState(() => new VoiceChannel(voiceId));
+
+  React.useEffect(() => () => warmupVoice.stop(), [warmupVoice]);
 
   React.useEffect(() => {
     if (phase !== 'warmup') return;
@@ -153,10 +178,21 @@ export function ProgrammeCheckupZeroScreen({
   }, [phase]);
 
   React.useEffect(() => {
+    if (phase !== 'warmup') return;
+    const cue = WARM_UP_VOICE_AT_REMAINING[warmupRemaining];
+    if (cue) warmupVoice.speak([cue], voicePriority(cue));
+  }, [phase, warmupRemaining, warmupVoice]);
+
+  React.useEffect(() => {
+    if (phase === 'battery') warmupVoice.stop();
+  }, [phase, warmupVoice]);
+
+  React.useEffect(() => {
     if (phase !== 'position') return;
+    warmupVoice.speak(['checkup-warmup-position'], voicePriority('checkup-warmup-position'));
     const timer = setTimeout(() => setPhase('battery'), POSITION_BEAT_MS);
     return () => clearTimeout(timer);
-  }, [phase]);
+  }, [phase, warmupVoice]);
 
   const prepareCheckup = React.useCallback(async () => {
     if (cameraPermissionGranted || (await onRequestCameraPermission())) {
@@ -184,7 +220,7 @@ export function ProgrammeCheckupZeroScreen({
     return (
       <CheckupZeroMessage
         title="Usually about eight minutes, at your pace"
-        subtitle="A fixed warm-up, a balance hold, thirty seconds of chair stands, then an optional Everyday Clarity check-in."
+        subtitle="A fixed warm-up, up to three balance holds, thirty seconds of chair stands, then an optional Everyday Clarity check-in."
         checklist={CHECKUP_SETUP_CHECKLIST}
         panelText="Your phone measures Strength and Balance without showing your video. Everything stays on this device."
       >
@@ -198,7 +234,7 @@ export function ProgrammeCheckupZeroScreen({
     return (
       <CheckupZeroMessage
         title="Easy does it"
-        subtitle="Follow along gently — the same warm-up at every check-up helps make your results more comparable."
+        subtitle="Prop your phone at about hip height, then follow Clara's pace — the same warm-up at every check-up helps make your results more comparable."
         countdownSeconds={warmupRemaining}
         countdownSequence={WARM_UP_MOVES}
       >
@@ -290,11 +326,14 @@ export function ProgrammeCheckupZeroScreen({
   if (!startedAtRef.current) startedAtRef.current = new Date().toISOString();
   // Source type derives from history (baseline vs retake) — these ARE the
   // official check-ups of record; the host saves them as such (2026-07-09).
-  const initialFlow = createMovementProfileV2InternalFlow({
-    startedAt: startedAtRef.current,
-    history,
-    batterySequence: checkupZeroBatterySequence(),
-  });
+  if (!initialFlowRef.current) {
+    initialFlowRef.current = createMovementProfileV2InternalFlow({
+      startedAt: startedAtRef.current,
+      history,
+      batterySequence: checkupZeroBatterySequence(),
+    });
+  }
+  const initialFlow = initialFlowRef.current;
   return (
     <MovementProfileV2UnifiedCheckUpScreen
       startedAt={startedAtRef.current}

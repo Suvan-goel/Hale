@@ -10,7 +10,10 @@ import {
 import { BodySide } from '../checkup/protocolSetup';
 import { DEFAULT_VOICE_ID, getVoice } from '../profile/voices';
 import { movementProfileV2InstructionCueIdsForStage } from '../training/instructionProfiles';
-import { movementProfileV2FlowBatterySequence } from './internalCheckupFlow';
+import {
+  isPearlProgrammeStrengthBalanceSequence,
+  movementProfileV2FlowBatterySequence,
+} from './internalCheckupFlow';
 import { MPV2_CHAIR_COUNTDOWN_CADENCE_MS } from './liveCoordinator';
 import type {
   Mpv2RecoveryEpisode,
@@ -45,6 +48,7 @@ export type MovementProfileV2VoiceCoordinatorAction =
   | { type: 'shoulder_transition_voice_completed' }
   | { type: 'shoulder_setup_voice_completed' }
   | { type: 'hinge_setup_voice_completed' }
+  | { type: 'recovery_instruction_voice_completed'; recoveryId: string }
   | { type: 'recovery_voice_completed'; recoveryId: string };
 
 export interface MovementProfileV2VoiceFailure {
@@ -95,6 +99,9 @@ interface StageVoicePlan {
   startsChairCountdown?: boolean;
   marksCompletionReady?: boolean;
   recoveryEpisode?: Mpv2RecoveryEpisode;
+  /** Extra scopes marked complete when this plan completes — a recovery
+   * resume plan retires its base stage plan so the base cannot replay. */
+  alsoCompletesScopeIds?: readonly string[];
 }
 
 const DIAGNOSTIC_LIMIT = 120;
@@ -235,6 +242,9 @@ export class MovementProfileV2VoiceRuntime {
       selectedShoulder: snapshot.flow.shoulderSide,
       priorStandingLeg: snapshot.flow.priorStandingLeg,
       repeatedAttempt: snapshot.stage === 'balance_ready' || snapshot.stage === 'balance_trial',
+      // Frame-check Help repeats the FIRST item's intro — the balance intro in
+      // the hosted balance-first battery, never the default chair assumption.
+      firstBatteryMovement: movementProfileV2FlowBatterySequence(snapshot.flow)[0],
     });
     if (cues.length === 0) return false;
     const accepted = this.voice.speak(cues, priorityForCues(cues));
@@ -276,6 +286,13 @@ export class MovementProfileV2VoiceRuntime {
       lastFailure: null,
     });
     this.pushDiagnostic({ event: 'request_created', scopeId: plan.scopeId, atMs: this.nowMs() });
+    // A plan with nothing left to say (a timeout-promoted recovery resume with
+    // no base cues) completes immediately: its coordinator actions must still
+    // dispatch or the episode would never resolve.
+    if (plan.cues.length === 0) {
+      this.finishSilentPlan(plan, epoch);
+      return;
+    }
     const optional = !isBlockingRequirement(plan.requirement);
     const result = optional
       ? await this.playOptionalSequence(plan.cues, plan, epoch)
@@ -300,6 +317,9 @@ export class MovementProfileV2VoiceRuntime {
     // coordinator would wait for 'go' forever.
     if (!plan.startsChairCountdown) this.completedScopes.add(plan.scopeId);
     if (result.outcome === 'completed') {
+      for (const scopeId of plan.alsoCompletesScopeIds ?? []) {
+        this.completedScopes.add(scopeId);
+      }
       for (const action of plan.onCompleted ?? []) {
         if (!this.isCurrent(epoch, plan.scopeId)) return;
         this.dispatch(action, result.completedAtMs);
@@ -322,6 +342,31 @@ export class MovementProfileV2VoiceRuntime {
       outcome: result.outcome,
       atMs: result.completedAtMs,
       requestId: result.requestId,
+    });
+  }
+
+  private finishSilentPlan(plan: StageVoicePlan, epoch: number): void {
+    const atMs = this.nowMs();
+    this.completedScopes.add(plan.scopeId);
+    for (const scopeId of plan.alsoCompletesScopeIds ?? []) {
+      this.completedScopes.add(scopeId);
+    }
+    for (const action of plan.onCompleted ?? []) {
+      if (!this.isCurrent(epoch, plan.scopeId)) return;
+      this.dispatch(action, atMs);
+    }
+    this.updateState({
+      blocking: false,
+      activeScopeId: null,
+      activeRequirement: null,
+      completionReady: plan.marksCompletionReady ? true : this.stateValue.completionReady,
+    });
+    this.currentScopeId = null;
+    this.pushDiagnostic({
+      event: 'request_completion',
+      scopeId: plan.scopeId,
+      outcome: 'completed',
+      atMs,
     });
   }
 
@@ -702,19 +747,43 @@ function voicePlanForSnapshot(
   if (!base || !episode || episode.phase === 'voice_completed' || episode.targetStage !== snapshot.stage) {
     return base;
   }
-  const recoveryCues = recoveryCuesForEpisode(episode, snapshot);
-  if (recoveryCues.length === 0) return base;
-  const baseCues = baseCuesAfterRecovery(base.cues, episode);
+  // Recovery speaks in two parts. Part 1 (loss + re-instruction) plays
+  // immediately; the coordinator then waits for actual re-detection before
+  // promoting the episode to stable_ready, so "Good, I can see you again" is
+  // only ever spoken when it is true. A timeout promotion resumes WITHOUT the
+  // recovered claim (episode.stablePromotion === 'timeout').
+  if (episode.phase !== 'stable_ready') {
+    const lossCues = recoveryLossCuesForEpisode(episode, snapshot);
+    return {
+      scopeId: `${base.scopeId}:recovery:${episode.id}:loss`,
+      requirement: base.requirement,
+      cues: lossCues,
+      priority: priorityForCues(lossCues),
+      recoveryEpisode: episode,
+      onCompleted: [{ type: 'recovery_instruction_voice_completed', recoveryId: episode.id }],
+    };
+  }
+  const resumeCues: readonly VoiceCueKey[] = [
+    ...(episode.stablePromotion === 'tracking_confirmed'
+      ? (['tracking-recovered-v21'] as const)
+      : []),
+    ...baseCuesAfterRecovery(base.cues, episode),
+  ];
   return {
     ...base,
-    scopeId: `${base.scopeId}:recovery:${episode.id}`,
-    cues: [...recoveryCues, ...baseCues],
-    priority: priorityForCues([...recoveryCues, ...baseCues]),
+    scopeId: `${base.scopeId}:recovery:${episode.id}:resume`,
+    cues: resumeCues,
+    priority: priorityForCues(resumeCues),
     recoveryEpisode: episode,
     onCompleted: [
       { type: 'recovery_voice_completed', recoveryId: episode.id },
       ...(base.onCompleted ?? []),
     ],
+    // Retire the base plan: after the resume completes the episode reaches
+    // voice_completed and plan selection falls back to the base scope, which
+    // must not replay its cues over the stage. Countdown plans are exempt —
+    // their base stays replayable so an interrupted countdown can restart.
+    ...(base.startsChairCountdown ? {} : { alsoCompletesScopeIds: [base.scopeId] }),
   };
 }
 
@@ -724,10 +793,21 @@ function baseVoicePlanForSnapshot(
 ): StageVoicePlan | null {
   const scopeId = `${scopeBaseForSnapshot(snapshot)}:r${retryEpoch}`;
   switch (snapshot.stage) {
-    case 'standing_frame_check':
-      return plan(scopeId, 'blocking_prerequisite', ['mpv2_checkup_intro', 'step-into-frame'], [
+    case 'standing_frame_check': {
+      // The hosted two-movement check-up arrives here after Clara has already
+      // welcomed her and paced the warm-up, so the standalone battery's
+      // "Welcome to your Movement Check-Up" would be a second, late welcome.
+      // Swap in the hosted bridge (plain cue — the mpv2 cue-policy fingerprint
+      // and its approved takes stay untouched); it keeps the safety sentence.
+      const introCue: VoiceCueKey = isPearlProgrammeStrengthBalanceSequence(
+        movementProfileV2FlowBatterySequence(snapshot.flow)
+      )
+        ? 'checkup-two-movements-intro'
+        : 'mpv2_checkup_intro';
+      return plan(scopeId, 'blocking_prerequisite', [introCue, 'step-into-frame'], [
         { type: 'frame_check_voice_completed' },
       ]);
+    }
     case 'chair_setup': {
       // After the standing frame check, the check-up intro has already
       // played: confirm the framing and go straight to the chair item.
@@ -777,9 +857,9 @@ function baseVoicePlanForSnapshot(
       ])), [{ type: 'balance_setup_voice_completed' }]);
     }
     case 'balance_ready':
-      return plan(scopeId, 'blocking_prerequisite', cuesForCurrentTransition(snapshot, [
-        'mpv2_balance_attempt_start',
-      ]), [{ type: 'balance_attempt_voice_completed' }]);
+      return plan(scopeId, 'blocking_prerequisite', cuesForBalanceReady(snapshot), [
+        { type: 'balance_attempt_voice_completed' },
+      ]);
     case 'balance_rest':
       return plan(scopeId, 'blocking_transition', cuesForCurrentTransition(snapshot, [
         'mpv2_balance_attempt_saved',
@@ -817,8 +897,11 @@ function baseVoicePlanForSnapshot(
 
 /**
  * One-shot advisory cues outside the stage plans. High-confidence findings
- * only (silence-by-default law): a sustained wrong-leg lift being ignored, or
- * a frame check that has failed long enough to suggest the room is too dim.
+ * only (silence-by-default law): a sustained wrong-leg lift being ignored, a
+ * frame check that has failed long enough to suggest the room is too dim, or
+ * a practice stand that detection has not credited long after the instruction
+ * (the confirm control is on a phone propped out of reach, so its existence
+ * must be spoken — the same law as the balance finish-now line).
  * Deduped by scope; the balance notice re-arms per attempt epoch.
  */
 function noticePlanForSnapshot(snapshot: MovementProfileV2LiveSnapshot): StageVoicePlan | null {
@@ -829,6 +912,12 @@ function noticePlanForSnapshot(snapshot: MovementProfileV2LiveSnapshot): StageVo
   if (snapshot.stage === 'standing_frame_check' && snapshot.frameCheckLightingHintAvailable) {
     const scope = `mpv2:notice:frame-check-light:${snapshot.movementEpochId}`;
     return plan(scope, 'optional_reassurance', ['turn-on-light']);
+  }
+  if (snapshot.stage === 'chair_practice' && snapshot.handsFreeFallbackAvailable) {
+    // Same signal that surfaces the "I did the practice stand" fallback
+    // button, so the spoken hint never names a control that is not on screen.
+    const scope = `mpv2:notice:chair-practice-fallback:${snapshot.attemptEpochId ?? snapshot.movementEpochId}`;
+    return plan(scope, 'optional_reassurance', ['checkup-chair-practice-fallback']);
   }
   return null;
 }
@@ -842,26 +931,29 @@ function baseCuesAfterRecovery(
   return baseCues;
 }
 
-function recoveryCuesForEpisode(
+/**
+ * Part-1 recovery cues: announce the loss and re-instruct. The balance and
+ * shoulder item-specific retry lines already open with their own loss
+ * announcement ("I lost sight of you…"), so the generic loss line is dropped
+ * there — one loss acknowledgement, never a stutter. The recovered claim is
+ * NOT here: it belongs to the stable_ready resume plan, gated on evidence.
+ */
+function recoveryLossCuesForEpisode(
   episode: Mpv2RecoveryEpisode,
   snapshot: MovementProfileV2LiveSnapshot
 ): readonly VoiceCueKey[] {
   switch (episode.item) {
     case 'chair':
-      return ['tracking-loss-v21', 'checkup-chair-stand-setup-v21', 'tracking-recovered-v21'];
+      return ['tracking-loss-v21', 'checkup-chair-stand-setup-v21'];
     case 'balance':
-      return episode.itemSpecificCue
-        ? ['tracking-loss-v21', episode.itemSpecificCue, 'tracking-recovered-v21']
-        : ['tracking-loss-v21', 'tracking-recovered-v21'];
+      return [episode.itemSpecificCue ?? 'tracking-loss-v21'];
     case 'shoulder':
       return [
-        'tracking-loss-v21',
         episode.itemSpecificCue ?? 'mpv2_shoulder_tracking_retry',
         shoulderTurnCue(snapshot.flow.shoulderSide),
-        'tracking-recovered-v21',
       ];
     case 'hinge':
-      return ['tracking-loss-v21', 'checkup-hinge-setup-v21', 'tracking-recovered-v21'];
+      return ['tracking-loss-v21', 'checkup-hinge-setup-v21'];
   }
 }
 
@@ -931,6 +1023,24 @@ export function retestBalanceSingleLegCue(
   if (priorStandingLeg === 'left') return 'checkup-balance-single-leg-retest-left';
   if (priorStandingLeg === 'right') return 'checkup-balance-single-leg-retest-right';
   return null;
+}
+
+/**
+ * Once a valid hold is banked, the ready-after-rest line must SPEAK the
+ * finish-now option: the only end-early control is the "Save best result"
+ * fallback button on a phone propped out of reach, so without the spoken
+ * invitation she stands waiting for a cap she can't see. The retry path after
+ * an invalid attempt keeps the plain line — with nothing banked, its fallback
+ * button is Skip, and speaking "Save best result" would name a control that
+ * is not there. Same swap pattern as the retest setup lines above, so the
+ * fingerprinted mpv2 cue set (and its approved takes) stays untouched.
+ */
+function cuesForBalanceReady(snapshot: MovementProfileV2LiveSnapshot): readonly VoiceCueKey[] {
+  const cues = cuesForCurrentTransition(snapshot, ['mpv2_balance_attempt_start']);
+  if (typeof snapshot.balanceBestHoldSec !== 'number') return cues;
+  return cues.map((cue): VoiceCueKey =>
+    cue === 'mpv2_balance_ready_after_30' ? 'checkup-balance-ready-can-finish' : cue
+  );
 }
 
 function cuesForHingeSetup(snapshot: MovementProfileV2LiveSnapshot): readonly VoiceCueKey[] {

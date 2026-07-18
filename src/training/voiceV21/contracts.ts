@@ -83,6 +83,12 @@ export const TRAINING_VOICE_SHARED_LOGICAL_CUES_V21: readonly TrainingVoiceLogic
   cue('times-up-v21', 'Time. Stop there and rest.', 'completion', 'critical_stop'),
   HALFWAY_CUE,
   FIVE_SECONDS_LEFT_CUE,
+  // QUEUED REWORD (2026-07-16, apply with the next audio run — changing this
+  // text before regenerating trips the physical-audio readiness guard):
+  //   'Paused. Take all the time you need, then carry on when you feel ready.'
+  // Why: "will restart" is only true for TIMED sets; a paused rep set keeps
+  // its finished reps (voice-resume-counts says so), so this line should
+  // promise neither. Keep the word "Paused" (hot-lint allowlist tripwire).
   cue('paused-v21', 'Paused. Take your time. This set will restart when you resume.', 'control'),
   cue('resuming-v21', 'Resuming. Get back into position and wait for my countdown.', 'control'),
   cue('retry-v21', "That's okay. We'll try that part again. Take a moment, then follow my voice.", 'recovery', 'result_transition'),

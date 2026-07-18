@@ -347,6 +347,15 @@ const EXERCISE_SAFETY_PROFILES: Readonly<Record<string, PlannedExerciseSafetyCue
 };
 
 export const SESSION_GLOBAL_SAFETY_CUE_IDS: readonly SafetyCueId[] = GLOBAL_STOP_CUES;
+
+/**
+ * Voice-guided daily sessions never mount the camera, so the tracking-recovery
+ * global ("if tracking pauses…") must not be spoken there — it would describe
+ * a system that does not exist in the session she is in.
+ */
+export const VOICE_SESSION_GLOBAL_SAFETY_CUE_IDS: readonly SafetyCueId[] = GLOBAL_STOP_CUES.filter(
+  (cueId) => cueId !== 'global_pause_if_tracking_lost'
+);
 export const REQUIRED_BAND_CUE_IDS: readonly SafetyCueId[] = [...BAND_SETUP, ...BAND_ACTIVE];
 export const REQUIRED_DOOR_ANCHOR_CUE_IDS: readonly SafetyCueId[] = [
   ...DOOR_ANCHOR_SETUP,

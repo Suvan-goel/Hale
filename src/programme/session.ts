@@ -592,6 +592,19 @@ export interface AppliedProgrammeSession {
   decisions: Partial<Record<ProgrammePattern, PromotionDecision>>;
 }
 
+export interface ApplyProgrammeSessionOptions {
+  /**
+   * 'partial' is the early-leave path ("everything you've finished is
+   * saved"): finished exercises still feed the ladders (promotion streaks,
+   * pain regression, double-progression targets), completed prep still
+   * credits rehearsals, and session recency still updates — but the
+   * completed-session counter (A/B and balanced-focus alternation) and the
+   * persisted effort answer (next session's bonus-offer input) stay
+   * untouched, because no session was completed and no check-in was answered.
+   */
+  credit?: 'full' | 'partial';
+}
+
 /**
  * Applies a finished session: promotion evaluation per pattern, rehearsal
  * exposure credits from completed prep (day one onward — that is the point
@@ -602,8 +615,10 @@ export interface AppliedProgrammeSession {
 export function applyProgrammeSessionResults(
   state: ProgrammeState,
   plan: ProgrammeSessionPlan,
-  results: ProgrammeSessionResults
+  results: ProgrammeSessionResults,
+  options: ApplyProgrammeSessionOptions = {}
 ): AppliedProgrammeSession {
+  const partial = options.credit === 'partial';
   let ladders = { ...state.ladders };
   const decisions: Partial<Record<ProgrammePattern, PromotionDecision>> = {};
 
@@ -659,9 +674,11 @@ export function applyProgrammeSessionResults(
       ...state,
       ladders,
       finisher,
-      completedSessionCount: state.completedSessionCount + 1,
+      completedSessionCount: partial
+        ? state.completedSessionCount
+        : state.completedSessionCount + 1,
       lastSessionAtIso: results.completedAtIso,
-      lastSessionEffort: results.sessionEffort ?? null,
+      lastSessionEffort: partial ? state.lastSessionEffort : results.sessionEffort ?? null,
     },
     decisions,
   };

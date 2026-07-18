@@ -72,9 +72,15 @@ describe('VoiceSessionScreen side-contract wiring', () => {
     expect(screenSource).not.toContain('SessionDisclosure');
     expect(screenSource).not.toContain('title="More options"');
     expect(screenSource).not.toContain('accessibilityState={{ expanded: open }}');
-    expect(screenSource).not.toContain('bonusOfferPending');
-    expect(screenSource).not.toContain('title="One more set"');
-    expect(screenSource).not.toContain("'No thanks — move on'");
+  });
+
+  it('bonus-set offer has tap parity in the offer rest (2026-07-16 reversal of 2026-07-11)', () => {
+    // The offer window replaces "Skip rest" with an explicit accept/decline
+    // pair — voice "I'm ready" and the button run the same controller path.
+    expect(screenSource).toContain('snapshot.bonusOfferPending');
+    expect(screenSource).toContain('title="One bonus set"');
+    expect(screenSource).toContain('title="No thanks — move on"');
+    expect(screenSource).toContain('bonusSetOffer,');
   });
 });
 
@@ -89,7 +95,8 @@ describe('v2 shell session-mode wiring', () => {
   it('voice is the only mounted session surface (conductor deleted)', () => {
     expect(shellSource).toContain('<VoiceSessionScreen');
     expect(shellSource).not.toContain('TrainingSessionScreen');
-    expect(shellSource).not.toContain('bonusSetOffer={inputs.bonusSetOffer}');
+    // Bonus-set offers flow again by the 2026-07-16 reversal of 2026-07-11.
+    expect(shellSource).toContain('bonusSetOffer={inputs.bonusSetOffer}');
   });
 
   it('voiceSetup prefs persist through the profile store', () => {

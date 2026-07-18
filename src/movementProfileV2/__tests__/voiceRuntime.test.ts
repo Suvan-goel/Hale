@@ -139,6 +139,9 @@ describe('MovementProfileV2VoiceRuntime', () => {
     runtime.sync(snapshot('chair_setup', {
       attemptEpochId: null,
       movementEpochId: 'chair-2',
+      // A completed balance section always carries its measured best hold;
+      // without one the handoff intentionally drops the completion line.
+      balanceBestHoldSec: 12,
       diagnostics: {
         hinge: { captureValid: true },
         balance: { ceilingReached: false },
@@ -154,6 +157,37 @@ describe('MovementProfileV2VoiceRuntime', () => {
       .map((event) => event.cueKey);
     expect(startedCues).toEqual(['item-complete-v21', 'chair-stand-intro', 'checkup-chair-stand-setup-v21']);
     expect(runtimeActions.map((entry) => entry.action.type)).toEqual(['chair_setup_voice_completed']);
+  });
+
+  it('speaks the finish-now ready line only once a valid balance hold is banked', async () => {
+    // No hold banked (retry rest): the plain next-attempt line — the fallback
+    // button in that state is Skip, so "Save best result" must not be spoken.
+    const runtime = createRuntime();
+    runtime.sync(snapshot('balance_ready', {
+      attemptEpochId: 'balance-ready-2',
+      balanceBestHoldSec: null,
+      lastTransition: { atMs: 4000, from: 'balance_rest', to: 'balance_ready', reason: 'balance_rest_ready' },
+    }));
+    players[players.length - 1].finish();
+    await flushAsync();
+
+    // With a hold banked, the swapped plain cue speaks the finish-now option.
+    runtime.sync(snapshot('balance_ready', {
+      attemptEpochId: 'balance-ready-3',
+      balanceBestHoldSec: 12,
+      lastTransition: { atMs: 9000, from: 'balance_rest', to: 'balance_ready', reason: 'balance_rest_ready' },
+    }));
+    players[players.length - 1].finish();
+    await flushAsync();
+
+    const startedCues = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(startedCues).toEqual(['mpv2_balance_ready_after_30', 'checkup-balance-ready-can-finish']);
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'balance_attempt_voice_completed',
+      'balance_attempt_voice_completed',
+    ]);
   });
 
   it('speaks one-shot advisory notices only after the stage plan and dedupes them per scope', async () => {
@@ -374,6 +408,76 @@ describe('MovementProfileV2VoiceRuntime', () => {
     expect(runtime.state.completionReady).toBe(true);
   });
 
+  it('opens the hosted two-movement battery without a second welcome', async () => {
+    // The host has already welcomed her and paced the warm-up; the standalone
+    // "Welcome to your Movement Check-Up" would be a late second welcome.
+    const runtime = createRuntime();
+    const base = snapshot('standing_frame_check', {
+      attemptEpochId: null,
+      movementEpochId: 'frame-check-1',
+    });
+    runtime.sync({
+      ...base,
+      flow: { ...base.flow, batterySequence: ['balance', 'chair'] },
+    } as MovementProfileV2LiveSnapshot);
+    players[0].finish();
+    await flushAsync();
+    players[1].finish();
+    await flushAsync();
+    const started = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(started).toEqual(['checkup-two-movements-intro', 'step-into-frame']);
+    expect(started).not.toContain('mpv2_checkup_intro');
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual(['frame_check_voice_completed']);
+  });
+
+  it('speaks the practice-stand fallback hint once, only when the fallback button exists', async () => {
+    const runtime = createRuntime();
+    const practice = snapshot('chair_practice', {
+      attemptEpochId: 'chair-practice-1',
+      handsFreeFallbackAvailable: true,
+      lastTransition: { atMs: 0, from: 'chair_setup', to: 'chair_practice', reason: 'chair_setup_confirmed' },
+    });
+    runtime.sync(practice);
+    // The blocking practice instruction owns the channel first.
+    expect(players).toHaveLength(1);
+    players[0].finish();
+    await flushAsync();
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual(['chair_practice_voice_completed']);
+
+    runtime.sync(practice);
+    await flushAsync();
+    expect(players).toHaveLength(2);
+    players[1].finish();
+    await flushAsync();
+    const optionalCues = runtime.state.diagnostics
+      .filter((event) => event.event === 'optional_cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(optionalCues).toContain('checkup-chair-practice-fallback');
+
+    // Deduped per attempt; and it never plays before the fallback timeout.
+    runtime.sync(practice);
+    await flushAsync();
+    expect(players).toHaveLength(2);
+    const runtimeNoFallback = createRuntime();
+    const playersBefore = players.length;
+    runtimeNoFallback.sync(snapshot('chair_practice', {
+      attemptEpochId: 'chair-practice-2',
+      handsFreeFallbackAvailable: false,
+      lastTransition: { atMs: 0, from: 'chair_setup', to: 'chair_practice', reason: 'chair_setup_confirmed' },
+    }));
+    players[playersBefore].finish();
+    await flushAsync();
+    runtimeNoFallback.sync(snapshot('chair_practice', {
+      attemptEpochId: 'chair-practice-2',
+      handsFreeFallbackAvailable: false,
+      lastTransition: { atMs: 0, from: 'chair_setup', to: 'chair_practice', reason: 'chair_setup_confirmed' },
+    }));
+    await flushAsync();
+    expect(players).toHaveLength(playersBefore + 1);
+  });
+
   it('anchors the spoken balance setup to the prior standing leg at a retest', async () => {
     const runtime = createRuntime();
     const base = snapshot('balance_setup', {
@@ -459,18 +563,37 @@ describe('MovementProfileV2VoiceRuntime', () => {
     );
   });
 
-  it('plays one recovery loss cue before the required chair restart sequence', async () => {
+  it('splits chair recovery: loss cues first, recovered + countdown only once stable_ready', async () => {
     const runtime = createRuntime();
+    // Part 1 (attempt_invalidated): the loss announcement and re-instruction
+    // play immediately. The recovered claim must NOT be here — the user may
+    // still be out of frame.
     runtime.sync(snapshot('chair_countdown', {
       recoveryEpisode: recoveryEpisode('chair', 'chair_active', 'chair_countdown'),
     }));
-
-    for (let index = 0; index < 4; index++) {
-      players[index].finish();
-      await flushAsync();
-    }
-
+    players[0].finish(); // tracking-loss-v21
+    await flushAsync();
+    players[1].finish(); // checkup-chair-stand-setup-v21
+    await flushAsync();
+    const part1Cues = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(part1Cues).toEqual(['tracking-loss-v21', 'checkup-chair-stand-setup-v21']);
     expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'recovery_instruction_voice_completed',
+    ]);
+
+    // The coordinator confirmed re-detection (stable_ready): NOW the
+    // recovered claim is true, and the official-ready line + countdown follow.
+    runtime.sync(snapshot('chair_countdown', {
+      recoveryEpisode: recoveryEpisode('chair', 'chair_active', 'chair_countdown', 'stable_ready'),
+    }));
+    players[2].finish(); // tracking-recovered-v21
+    await flushAsync();
+    players[3].finish(); // mpv2_chair_official_ready
+    await flushAsync();
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'recovery_instruction_voice_completed',
       'recovery_voice_completed',
       'chair_official_ready_voice_completed',
       'chair_countdown_started',
@@ -479,16 +602,106 @@ describe('MovementProfileV2VoiceRuntime', () => {
     expect(runtime.state.diagnostics.some((entry) => entry.cueKey === 'tracking-recovered-v21')).toBe(true);
   });
 
+  it('resumes without the recovered claim when stable_ready was reached by timeout', async () => {
+    const runtime = createRuntime();
+    runtime.sync(snapshot('chair_countdown', {
+      recoveryEpisode: recoveryEpisode('chair', 'chair_active', 'chair_countdown', 'stable_ready', 'timeout'),
+    }));
+    players[0].finish(); // mpv2_chair_official_ready — no recovered claim first
+    await flushAsync();
+    const started = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(started).toEqual(['mpv2_chair_official_ready']);
+    expect(started).not.toContain('tracking-recovered-v21');
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'recovery_voice_completed',
+      'chair_official_ready_voice_completed',
+      'chair_countdown_started',
+    ]);
+  });
+
+  it('speaks exactly one loss announcement for balance and shoulder recovery', async () => {
+    // The balance/shoulder item-specific retry lines open with their own
+    // "I lost sight of you…" — the generic loss line would be a stutter.
+    const runtime = createRuntime();
+    runtime.sync(snapshot('balance_rest', {
+      attemptEpochId: 'balance-rest-1',
+      recoveryEpisode: recoveryEpisode('balance', 'balance_trial', 'balance_rest'),
+      lastTransition: { atMs: 0, from: 'balance_trial', to: 'balance_rest', reason: 'balance_invalid_trial_retry_rest' },
+    }));
+    players[0].finish();
+    await flushAsync();
+    expect(
+      runtime.state.diagnostics
+        .filter((event) => event.event === 'cue_playback_start_evidence')
+        .map((event) => event.cueKey)
+    ).toEqual(['mpv2_balance_tracking_retry']);
+
+    const shoulderRuntime = createRuntime();
+    const shoulderPlayersBefore = players.length;
+    shoulderRuntime.sync(snapshot('shoulder_retry_ready', {
+      attemptEpochId: 'shoulder-retry-1',
+      recoveryEpisode: recoveryEpisode('shoulder', 'shoulder_active', 'shoulder_retry_ready'),
+      lastTransition: { atMs: 0, from: 'shoulder_active', to: 'shoulder_retry_ready', reason: 'shoulder_tracking_loss_retry_ready' },
+    }));
+    players[shoulderPlayersBefore].finish();
+    await flushAsync();
+    players[shoulderPlayersBefore + 1].finish();
+    await flushAsync();
+    expect(
+      shoulderRuntime.state.diagnostics
+        .filter((event) => event.event === 'cue_playback_start_evidence')
+        .map((event) => event.cueKey)
+    ).toEqual(['mpv2_shoulder_tracking_retry', 'checkup-shoulder-turn-right-v21']);
+  });
+
+  it('resolves a timeout balance resume silently and never replays the base retry line', async () => {
+    const runtime = createRuntime();
+    const invalidated = snapshot('balance_rest', {
+      attemptEpochId: 'balance-rest-1',
+      recoveryEpisode: recoveryEpisode('balance', 'balance_trial', 'balance_rest'),
+      lastTransition: { atMs: 0, from: 'balance_trial', to: 'balance_rest', reason: 'balance_invalid_trial_retry_rest' },
+    });
+    runtime.sync(invalidated);
+    players[0].finish(); // mpv2_balance_tracking_retry (part 1)
+    await flushAsync();
+
+    // Timeout promotion with nothing banked to say: the episode must still
+    // resolve (recovery_voice_completed) without any playback…
+    runtime.sync(snapshot('balance_rest', {
+      attemptEpochId: 'balance-rest-1',
+      recoveryEpisode: recoveryEpisode('balance', 'balance_trial', 'balance_rest', 'stable_ready', 'timeout'),
+      lastTransition: { atMs: 0, from: 'balance_trial', to: 'balance_rest', reason: 'balance_invalid_trial_retry_rest' },
+    }));
+    await flushAsync();
+    expect(players).toHaveLength(1);
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'recovery_instruction_voice_completed',
+      'recovery_voice_completed',
+    ]);
+
+    // …and the retired base plan must not replay its loss line over the rest.
+    runtime.sync(snapshot('balance_rest', {
+      attemptEpochId: 'balance-rest-1',
+      recoveryEpisode: recoveryEpisode('balance', 'balance_trial', 'balance_rest', 'voice_completed', 'timeout'),
+      lastTransition: { atMs: 0, from: 'balance_trial', to: 'balance_rest', reason: 'balance_invalid_trial_retry_rest' },
+    }));
+    await flushAsync();
+    expect(players).toHaveLength(1);
+  });
+
   it('keeps the forward reach action cue after hinge tracking recovery', async () => {
     const runtime = createRuntime();
+    const transition = {
+      atMs: 0,
+      from: 'hinge_active' as const,
+      to: 'hinge_setup' as const,
+      reason: 'hinge_tracking_loss_recovery_setup',
+    };
     runtime.sync(snapshot('hinge_setup', {
       recoveryEpisode: recoveryEpisode('hinge', 'hinge_active', 'hinge_setup'),
-      lastTransition: {
-        atMs: 0,
-        from: 'hinge_active',
-        to: 'hinge_setup',
-        reason: 'hinge_tracking_loss_recovery_setup',
-      },
+      lastTransition: transition,
     }));
 
     expect(runtime.state.diagnostics).toEqual(
@@ -504,7 +717,15 @@ describe('MovementProfileV2VoiceRuntime', () => {
     await flushAsync();
     players[1].finish();
     await flushAsync();
-    players[2].finish();
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'recovery_instruction_voice_completed',
+    ]);
+
+    runtime.sync(snapshot('hinge_setup', {
+      recoveryEpisode: recoveryEpisode('hinge', 'hinge_active', 'hinge_setup', 'stable_ready'),
+      lastTransition: transition,
+    }));
+    players[2].finish(); // tracking-recovered-v21
     await flushAsync();
 
     expect(runtime.state.diagnostics).toEqual(
@@ -519,6 +740,7 @@ describe('MovementProfileV2VoiceRuntime', () => {
     players[3].finish();
     await flushAsync();
     expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'recovery_instruction_voice_completed',
       'recovery_voice_completed',
       'hinge_setup_voice_completed',
     ]);
@@ -686,12 +908,15 @@ function snapshot(
 function recoveryEpisode(
   item: 'chair' | 'balance' | 'shoulder' | 'hinge',
   lossStage: MovementProfileV2LiveStage,
-  targetStage: MovementProfileV2LiveStage
+  targetStage: MovementProfileV2LiveStage,
+  phase: 'attempt_invalidated' | 'stable_ready' | 'voice_completed' = 'attempt_invalidated',
+  stablePromotion: 'tracking_confirmed' | 'timeout' | null =
+    phase === 'attempt_invalidated' ? null : 'tracking_confirmed'
 ): MovementProfileV2LiveSnapshot['recoveryEpisode'] {
   return {
     id: 'recovery-1',
     item,
-    phase: 'attempt_invalidated',
+    phase,
     startedAtMs: 0,
     updatedAtMs: 0,
     lossStage,
@@ -706,6 +931,7 @@ function recoveryEpisode(
       : item === 'shoulder'
         ? 'mpv2_shoulder_tracking_retry'
         : null,
+    stablePromotion,
     duplicateLossEvents: 0,
     precedence: 'loss_before_terminal_event',
   };

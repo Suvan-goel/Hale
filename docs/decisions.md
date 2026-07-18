@@ -6464,3 +6464,184 @@ Movement Check-Up, storage, and measurement behavior are unchanged.
   `npm run verify:audio` (251 required assets), and the three new lines
   generated with the standard ElevenLabs build step (key from environment,
   never committed).
+
+## 2026-07-16 — Check-up corridor: Clara-paced warm-up, spoken finish-now option, honest no-measurement bridge
+
+**Context:** a full read-only review of the check-up flow found four gaps
+between the flow's own principles (voice-led, honest measurement language,
+phone propped out of reach) and its behaviour. All four were approved and
+implemented together; the chair-window time cue was explicitly deferred as a
+separate protocol ruling because it changes the frozen instrument's stimulus.
+
+- **Clara paces the fixed warm-up (new generated lines):** the 60-second
+  warm-up was the only voiceless stretch of a voice-led ritual, read from a
+  countdown screen while the "prop your phone" moment stayed ambiguous.
+  Clara now opens the warm-up with `checkup-warmup-start` ("Time to warm up.
+  Prop your phone at about hip height where it can see you, and march gently
+  on the spot."), advances the fixed moves at 40s and 20s
+  (`checkup-warmup-shoulders`, `checkup-warmup-reaches`), and closes the
+  positioning beat with `checkup-warmup-position` ("Nicely done. Take a
+  breath, and step back…"). Propping the phone is now the explicit action at
+  warm-up start, on screen and in voice. The moves themselves are unchanged
+  (comparability); the positioning beat grew from 4s to 8s so the spoken line
+  finishes before the battery's own voice channel starts, and the host channel
+  is force-stopped when the battery mounts so Clara never overlaps herself.
+- **Spoken finish-now option after a banked hold (new generated line):** once
+  a valid balance hold existed, the only end-early path was the "Save best
+  result" fallback button on a phone propped out of reach — the voice only
+  ever invited another attempt, so a done-but-dutiful user stood waiting for
+  a cap she couldn't see. The ready-after-rest line now becomes
+  `checkup-balance-ready-can-finish`, which keeps the identical lift
+  instruction and appends "Or, if you're happy with your best hold, you can
+  finish now — tap Save best result on the phone." The retry path (no valid
+  hold banked; its fallback button is Skip, not Save) keeps the plain
+  `mpv2_balance_ready_after_30` line, so the voice never names a control that
+  is not on screen. Implemented as a PLAIN cue swapped in by the voice
+  runtime — the same pattern as the retest setup lines — deliberately NOT as
+  a new mpv2 cue definition: adding one changes the mpv2 cue-policy
+  fingerprint, which would force regeneration of every mpv2 asset INCLUDING
+  the shared, founder-approved `-v21` takes whose sha256s the Voice V2.1
+  metadata pins. `mpv2_balance_ready_after_60` therefore stays (still dead,
+  still documented for removal on the next real mpv2 generation run).
+- **No completion praise for an unmeasured balance item:** "Good. That
+  exercise is done." played even when the balance section ended by skip,
+  retry limit, or hard cap with no valid hold. The chair-handoff and
+  raw-complete bridges now drop `item-complete-v21` when the balance item
+  banked nothing (`balanceBestHoldSec` null) and go straight to the next
+  intro; exits WITH a banked hold keep the acknowledgement, which is honest.
+- **Expectation-setting for multiple holds:** the intro promised "a balance
+  hold" and the guide card showed one; the first hint of more attempts
+  arrived mid-battery. The intro now says "up to three balance holds" and the
+  guide card "up to three short holds, with rests between."
+- **Leave-without-confirm widened one stage:** backing out during
+  `balance_ready` before any valid trial (nothing measured, nothing banked)
+  no longer shows the "results will not be saved" discard modal — there is
+  nothing to lose, matching the frame-check/setup exemptions.
+- **Verified:** 192 Jest suites / 1,726 tests (new runtime-swap and
+  no-measurement-bridge tests included), strict TypeScript, `npx expo config`,
+  `npm run verify:audio` (251 required assets; no existing takes replaced),
+  and the five new lines generated with the standard ElevenLabs build step
+  (key from environment, never committed).
+
+## 2026-07-16 — Recovery voice speaks on evidence; hosted corridor drops the second welcome
+
+**Context:** the second read-only review of the check-up flow found three
+remaining voice-honesty gaps, all approved together: the recovered claim was
+spoken on a schedule rather than on evidence, the hosted corridor replayed the
+standalone battery's "Welcome" ~2.5 minutes in, and the chair-practice
+fallback button existed only on a screen that is propped out of reach.
+
+- **"Good, I can see you again" is now gated on actual re-detection.** The
+  coordinator implements the previously declared-but-unused `stable_ready`
+  recovery phase: recovery voice runs in two parts. Part 1 (loss announcement
+  + item re-instruction) plays immediately and dispatches the new
+  `recovery_instruction_voice_completed` action; the episode is promoted to
+  `stable_ready` only once 4 consecutive good frames confirm the user is
+  visible again — or, for liveness, after a 10-second bound past the spoken
+  instruction, recorded as `stablePromotion: 'timeout'`, in which case the
+  resume plan SKIPS the recovered claim entirely. The chair countdown after a
+  recovery therefore no longer starts blind while she is still walking back
+  into frame. A resume with nothing left to say (balance timeout) resolves
+  silently, and the resume retires its base stage plan so the loss line can
+  never replay over the rest. Episodes whose voice never completed are now
+  cleared whenever the flow moves past their target stage (the departed
+  stage's recovery beat is stale; the new stage's guidance is the honest
+  surface).
+- **One loss announcement, never a stutter:** the balance and shoulder
+  item-specific retry lines already open with "I lost sight of you…", so the
+  generic `tracking-loss-v21` is dropped from those sequences (chair and hinge
+  keep it — their re-instruction lines carry no loss wording). Cue
+  definitions are untouched; the mpv2 cue-policy fingerprint is unchanged.
+- **Hosted two-movement intro (new generated line):** in the Check-up #0 /
+  programme check-up corridor Clara has already welcomed her and paced the
+  warm-up, so the frame check now opens with
+  `checkup-two-movements-intro` ("Now for your two measured movements…"),
+  keeping the safety sentence verbatim. Keyed off the exported
+  `isPearlProgrammeStrengthBalanceSequence` predicate — the standalone/full
+  battery keeps `mpv2_checkup_intro`. Same plain-cue-swap pattern as the
+  retest and finish-now lines (no mpv2 regeneration). The frame check's Help
+  and on-screen guidance now also borrow the FIRST battery item's intro
+  (balance in the hosted battery) instead of always assuming the chair.
+- **Spoken practice-stand fallback (new generated line):** when the practice
+  stand is never credited and the hands-free timeout surfaces the "I did the
+  practice stand" button, Clara now speaks one deduped advisory hint
+  (`checkup-chair-practice-fallback`) naming that exact button — the same law
+  as the balance finish-now line: a control on a phone propped out of reach
+  must be spoken to exist. Same one-shot notice mechanism as the wrong-leg
+  and lighting hints; other fallbacks (skip camera check, skip balance)
+  deliberately stay screen-only for now.
+- **Host hygiene:** `ProgrammeCheckupZeroScreen` now creates the battery's
+  `initialFlow` once (ref), timestamped when the battery phase first renders,
+  instead of rebuilding it every render (the coordinator locked onto the
+  first one anyway).
+- **Verified:** 192 Jest suites / 1,734 tests (new two-part recovery,
+  timeout-promotion, episode-clearing, hosted-intro, and fallback-hint tests),
+  strict TypeScript, `npx expo config`, `npm run verify:audio` (251 required
+  assets; no existing takes replaced), and the two new lines generated with
+  the standard ElevenLabs build step (key from environment, never committed).
+
+## 2026-07-16 — Voice session honesty pass: partial save, resume, visible targets, bonus-set reversal
+
+Follow-ups from a full read-only audit of the training session flow (screens,
+generation, player, voice, results). Every item below is headless-tested;
+192→193 suites green, strict TypeScript, `npx expo config`, `verify:audio`.
+
+- **Early leave now keeps its promise ("everything you've finished is
+  saved"):** the leave/end path previously discarded ALL completed exercises
+  (no ladder outcomes, no recency update) while the modal claimed otherwise.
+  `applyProgrammeSessionResults` gains `{ credit: 'partial' }`: finished
+  exercises feed the ladders (promotion streaks, pain regressions,
+  double-progression targets), completed prep credits rehearsals, and
+  `lastSessionAtIso` updates — but the completed-session counter (A/B +
+  balanced-focus alternation) and `lastSessionEffort` (next session's
+  bonus-offer input) stay untouched. Journey week credit still requires a
+  completed session (founder ruling on the three-way question).
+- **Mid-session resume (new slice):** `ProgrammeSessionSnapshotStore`
+  (`programme-session-in-flight.json`, same HistoryFs scope → adoption and
+  erasure cover it automatically) is written at session start and every item
+  boundary with the frozen plan + finished items. A snapshot only survives an
+  UNEXPECTED exit — deliberate leaves apply-and-clear in the moment. At boot,
+  `decideProgrammeSessionSnapshot` routes it: same local day with work
+  remaining → one calm "Pick up where you left off?" moment before Home
+  (continue replays the SAME frozen plan from the next exercise; the shell
+  merges base + new items for results and keeps the original start as the
+  credit identity); all items handled → apply as a full session (killed on
+  the effort screen; effort stays unanswered = conservative); older →
+  finished work banks as partial results, nothing re-offered. Defensive
+  parse discards any malformed snapshot wholesale (degrades to "no offer").
+- **Per-set targets finally reach her:** voiceScripts' premise ("targets live
+  on screen") was false — `repTargetPerSet` reached no surface, while "done"
+  recorded that target as her REPORTED reps. The bridge now exposes
+  `doseLabelForExercise` ("10 reps", "6 each side", "30 seconds each side",
+  finisher/warm-up/balance labels included) and the session screen shows it
+  under the demo during setup and beside "Set X of Y" during work. Doses
+  remain unspoken by design (a changed target never stales an audio asset).
+- **Bonus-set offer REVERSED back in (deliberate reversal of 2026-07-11):**
+  the founder re-reviewed the "no production session exposes One more set"
+  ruling with full context and chose to reverse it — the offer is optional,
+  reward-framed, fully built and voiced, and the C9 effort channel was built
+  to feed it. The bridge passes `plan.bonusSetEligible` main-exercise ids +
+  `prog-bonus-set-offer` into the player; the offer rest shows an explicit
+  accept/decline pair ("One bonus set" / "No thanks — move on") for tap
+  parity with the spoken "I'm ready". Wiring pins updated to assert presence.
+- **Camera line removed from camera-free sessions:** the voice session intro
+  spoke `global_pause_if_tracking_lost` ("If tracking pauses, return to your
+  setup position…") — a system that does not exist in daily training. New
+  `VOICE_SESSION_GLOBAL_SAFETY_CUE_IDS` filters it; camera-mode players keep
+  the full global list. Pinned by test.
+- **Countdown ordering fix:** confirming "I'm ready" while the say-ready
+  prompt was still playing could clobber the pending "Three" with "Two". The
+  whole countdown now flows through the tick clock (step 0 fires next tick,
+  never overwriting a same-tick line). Pinned by an order test.
+- **Re-prompt highlight now visible:** `tapPromptHighlighted` was threaded
+  through the whole stack but never rendered; the Ready/Done buttons now show
+  a quiet warm-gold ring after the spoken re-prompt.
+- **Spoken-line rewords:** `training-intro` no longer says "you won't need to
+  touch the screen" (false in tap mode — and tap parity is the product's own
+  law); new mode-neutral text is in the generation script and regenerates on
+  the next audio run (bundled mp3 plays the old wording until then). The
+  matching `paused-v21` reword ("this set will restart" is only true for
+  timed sets) is QUEUED as a comment in voiceV21/contracts.ts — changing that
+  contract text before regenerating trips the physical-audio readiness guard
+  (verified: it flips V2.1 selection to legacy), so it must land WITH its
+  audio run.

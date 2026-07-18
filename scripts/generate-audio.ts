@@ -142,6 +142,31 @@ const LINES: Record<string, string> = {
   'checkup-strength-balance-complete':
     "That's both movements done — well done. Take a moment to catch your breath, " +
     "then pick up your phone. There's one short optional check-in on the screen.",
+  // Check-up #0 host warm-up pacing. The warm-up moves are FIXED
+  // (comparability); Clara paces them so the preparation is the same at every
+  // check-up, and propping the phone becomes the explicit action at the start.
+  'checkup-warmup-start':
+    'Time to warm up. Prop your phone at about hip height where it can see you, ' +
+    'and march gently on the spot.',
+  'checkup-warmup-shoulders': 'Lovely. Keep marching, and roll your shoulders.',
+  'checkup-warmup-reaches': 'Now add a few easy arm reaches, up and forward.',
+  'checkup-warmup-position':
+    'Nicely done. Take a breath, and step back to where the camera can see all of you.',
+  // Hosted two-movement check-up frame-check intro: Clara has already welcomed
+  // her and paced the warm-up, so the battery opens without the standalone
+  // "Welcome to your Movement Check-Up" line. The safety sentence is kept
+  // verbatim from the standalone intro.
+  'checkup-two-movements-intro':
+    "Now for your two measured movements. I'll guide you through each step by " +
+    "voice, so you don't need to touch the phone. Move only when I ask you to, " +
+    'and stop if anything feels unsafe.',
+  // One-shot hint when the practice stand is never credited after the
+  // hands-free timeout: the confirm control is on a phone propped out of
+  // reach, so it must be spoken, naming the exact button (same law as the
+  // balance finish-now line).
+  'checkup-chair-practice-fallback':
+    "If you've already done your practice stand and I didn't catch it, tap " +
+    'I did the practice stand on the phone.',
   // Retest balance setup: the standing leg is anchored to the prior official
   // record (side-consistency keeps results comparable); the free-choice line
   // remains the baseline wording.
@@ -155,6 +180,14 @@ const LINES: Record<string, string> = {
     "same side as your last check-up — so your results compare fairly. If that side " +
     "doesn't feel safe today, it's okay to use the other leg. Keep both feet down " +
     "for now. We'll begin once you're standing still.",
+  // Ready-after-rest variant once a valid hold is banked: the invitation to
+  // finish must be spoken (the button is on a phone propped out of reach) and
+  // it names the exact control the fallback shows.
+  'checkup-balance-ready-can-finish':
+    "You can start the next attempt now. Keep your support close. When you're " +
+    'ready, lift your foot high off the floor. The timer starts when I see your ' +
+    "foot lift. Or, if you're happy with your best hold, you can finish now — " +
+    'tap Save best result on the phone.',
   'turn-side-on': 'For the next movement, please turn so your side faces the phone.',
   'face-forward': 'For the next movement, please turn to face the phone.',
   'next-exercise': "Nice work. Let's set up the next movement.",
@@ -207,9 +240,12 @@ const LINES: Record<string, string> = {
     'Marching. Stand tall and march on the spot, driving each knee up nice and ' +
     'high, with a steady rhythm.',
   // Training session flow.
+  // Mode-neutral: she may be in tap mode (voice declined), where touching the
+  // screen is exactly how sets confirm — so this line promises guidance and
+  // patience, never "no touching". Reword requires an audio regeneration run.
   'training-intro':
-    "Time to train. We'll move through a few exercises together. Just follow my " +
-    "voice — you won't need to touch the screen. Let's begin.",
+    "Time to train. We'll move through a few exercises together — I'll guide " +
+    "you the whole way, and nothing starts until you're ready. Let's begin.",
   'thats-your-set': "Good — that's your set.",
   'rest-now': 'Nice work. Take a rest.',
   'next-up': "Let's set up the next exercise.",

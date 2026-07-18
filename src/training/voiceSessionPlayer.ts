@@ -4,7 +4,7 @@ import { getExercise, type ExerciseDefinition, type SetResult } from '../exercis
 import type { VoiceIntent } from '../voice/intents';
 import { SessionFunnelTracker, type TrainingSessionFunnel } from './sessionFunnel';
 import {
-  SESSION_GLOBAL_SAFETY_CUE_IDS,
+  VOICE_SESSION_GLOBAL_SAFETY_CUE_IDS,
   plannedSafetyCueSnapshotForExercises,
   safetyCueTexts,
   type PlannedExerciseSafetyCueProfile,
@@ -192,8 +192,8 @@ export class VoiceSessionPlayer {
       case 'intro':
         if (!this.introSpoken && !busy) {
           this.introSpoken = true;
-          update.voice = cueSequence(['training-intro', ...SESSION_GLOBAL_SAFETY_CUE_IDS]);
-          this.emitSafety(update, SESSION_GLOBAL_SAFETY_CUE_IDS);
+          update.voice = cueSequence(['training-intro', ...VOICE_SESSION_GLOBAL_SAFETY_CUE_IDS]);
+          this.emitSafety(update, VOICE_SESSION_GLOBAL_SAFETY_CUE_IDS);
         } else if (this.introSpoken && !busy) {
           this.enterTransition(0, timestampMs);
         }
@@ -274,8 +274,10 @@ export class VoiceSessionPlayer {
     this.tapPromptHighlighted = false;
     this.phase = 'countdown';
     this.countdownStartMs = atMs;
-    this.countdownStep = 1;
-    this.pendingVoiceLine = cue(COUNTDOWN[0]);
+    // Every countdown cue flows through runCountdown's clock (step 0 fires on
+    // the next tick). A pending "three" used to be clobbered by "two" when the
+    // channel was still busy with the ready prompt at confirm time.
+    this.countdownStep = 0;
     return true;
   }
 
@@ -416,6 +418,9 @@ export class VoiceSessionPlayer {
   }
 
   private runCountdown(ts: number, update: TrainingFrameUpdate): void {
+    // Never overwrite a line already emitted this tick (e.g. a just-consumed
+    // pending line); the missed step fires on the next tick instead.
+    if (update.voice) return;
     if (this.countdownStep < COUNTDOWN.length && ts - this.countdownStartMs >= this.countdownStep * VOICE_SESSION_TIMING.countdownStepMs) {
       const nextCue = COUNTDOWN[this.countdownStep++];
       update.voice = cue(nextCue);

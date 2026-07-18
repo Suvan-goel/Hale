@@ -131,7 +131,7 @@ import {
   completeGuestAdoption,
   guestAdoptionOwner,
 } from '../services/backend/guestAdoptionStore';
-import type { TrainingSessionResult } from '../training/voiceSessionPlayer';
+import type { TrainingItemResult, TrainingSessionResult } from '../training/voiceSessionPlayer';
 import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
 import { CameraSetupScreen } from './CameraSetupScreen';
 import { AuthScreen } from './AuthScreen';
@@ -145,8 +145,12 @@ import { SettingsScreen } from './SettingsScreen';
 import { TodayScreen } from './TodayScreen';
 import { VoiceSessionScreen } from './VoiceSessionScreen';
 import {
+  PROGRAMME_SESSION_SNAPSHOT_SCHEMA_VERSION,
+  ProgrammeSessionSnapshotStore,
+  decideProgrammeSessionSnapshot,
   programmeResultsFromVoiceSession,
   voiceSessionInputsFromPlan,
+  type ProgrammeSessionSnapshot,
 } from '../programme';
 import { generateMockJourney } from '../dev/mockData';
 import { assessmentStatusAfterHealthChange } from '../settings/healthAnswerPreferences';
@@ -184,6 +188,12 @@ export function ProgrammeV2Root() {
   const historyStore = React.useMemo(() => new HistoryStore(localFs), [localFs]);
   const checkUpDraftStore = React.useMemo(
     () => new OfficialCheckUpDraftStore(localFs),
+    [localFs]
+  );
+  // In-flight session snapshot (resume slice): written at session start and
+  // every item boundary; cleared whenever its work is applied or abandoned.
+  const sessionSnapshotStore = React.useMemo(
+    () => new ProgrammeSessionSnapshotStore(localFs),
     [localFs]
   );
   // Local-only install → accepted-baseline funnel (2026-07-14 review): the
@@ -236,6 +246,12 @@ export function ProgrammeV2Root() {
   // without mutating the established programme, history, or saved draft.
   const devOnboardingCheckUpRef = React.useRef(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
+  // Same-day interrupted session awaiting her resume-or-set-aside decision.
+  const [resumeSnapshot, setResumeSnapshot] = React.useState<ProgrammeSessionSnapshot | null>(null);
+  // Items carried into a resumed run (already finished before the interruption).
+  const sessionBaseItemsRef = React.useRef<TrainingItemResult[]>([]);
+  // Items finished by the CURRENTLY mounted run (excludes the resumed base).
+  const sessionItemsRef = React.useRef<TrainingItemResult[]>([]);
   // The expectation CTA's promise when Check-up #0 runs first: completing the
   // check-up chains into the first session (abandoning it lands home — the
   // home CTA remains the unsurprising way in).
@@ -365,6 +381,9 @@ export function ProgrammeV2Root() {
         }
       }
       if (cancelled) return;
+      // Loaded after adoption so a just-moved guest snapshot is included.
+      const inFlightSnapshot = await sessionSnapshotStore.load();
+      if (cancelled) return;
       // 14+ days away → one level down everywhere, once per gap (§12).
       const regression = applyInactivityRegressionIfDue(loaded, new Date().toISOString());
       let reconciledState = regression.state;
@@ -453,7 +472,62 @@ export function ProgrammeV2Root() {
         }
         reconciledState = companionState;
       }
-      if (regression.applied || journeyReconciled) store.save(reconciledState);
+      // Interrupted-session recovery: an in-flight snapshot only survives an
+      // UNEXPECTED exit (a deliberate leave applies + clears it in the moment).
+      // Same-day with work remaining → offer resume; otherwise bank what she
+      // finished (partial: ladders + recency, no session credit; full when
+      // every item was handled — killed on the effort screen) and clear.
+      let pendingResume: ProgrammeSessionSnapshot | null = null;
+      let snapshotApplied = false;
+      if (inFlightSnapshot) {
+        try {
+          const planInputs = voiceSessionInputsFromPlan(inFlightSnapshot.plan);
+          // Fail closed if any plan id no longer resolves (app-update drift).
+          for (const exerciseId of planInputs.exerciseIds) {
+            planInputs.resolveExercise(exerciseId);
+          }
+          const disposition = decideProgrammeSessionSnapshot(inFlightSnapshot, {
+            nowIso: new Date().toISOString(),
+            planExerciseIds: planInputs.exerciseIds,
+          });
+          if (disposition.kind === 'offer_resume') {
+            pendingResume = inFlightSnapshot;
+          } else {
+            if (disposition.kind === 'apply_partial' || disposition.kind === 'apply_full') {
+              const results = programmeResultsFromVoiceSession(
+                inFlightSnapshot.plan,
+                { startedAt: inFlightSnapshot.startedAtIso, items: inFlightSnapshot.completedItems },
+                inFlightSnapshot.savedAtIso
+              );
+              const applied = applyProgrammeSessionResults(
+                reconciledState,
+                inFlightSnapshot.plan,
+                results,
+                { credit: disposition.kind === 'apply_full' ? 'full' : 'partial' }
+              );
+              let recoveredState = applied.state;
+              if (disposition.kind === 'apply_full') {
+                const credit = recordProgrammeJourneySession(recoveredState.journey, {
+                  sessionId: inFlightSnapshot.startedAtIso,
+                  completedAtIso: inFlightSnapshot.savedAtIso,
+                  templateId: inFlightSnapshot.plan.template,
+                });
+                if (credit.kind === 'credited' || credit.kind === 'already_recorded') {
+                  recoveredState = { ...recoveredState, journey: credit.state };
+                }
+              }
+              reconciledState = recoveredState;
+              snapshotApplied = true;
+            }
+            sessionSnapshotStore.clear();
+          }
+        } catch (error) {
+          console.warn('[programme-v2] discarding unusable in-flight session snapshot', error);
+          sessionSnapshotStore.clear();
+        }
+      }
+      if (regression.applied || journeyReconciled || snapshotApplied) store.save(reconciledState);
+      setResumeSnapshot(pendingResume);
       setProgrammeState(reconciledState);
       setPrefs(loadedPrefs);
       if (backendUserId) {
@@ -482,6 +556,7 @@ export function ProgrammeV2Root() {
     profileStore,
     historyStore,
     checkUpDraftStore,
+    sessionSnapshotStore,
     backendUserId,
     queueOnlineProfileSync,
   ]);
@@ -508,7 +583,8 @@ export function ProgrammeV2Root() {
 
   // Android navigation bar: visible only on the tab shell — sessions,
   // check-ups, and full-screen flows run immersive (old-shell behavior).
-  const showTabBar = phase === 'home' && flow === null && resultsView === null;
+  const showTabBar =
+    phase === 'home' && flow === null && resultsView === null && resumeSnapshot === null;
   React.useEffect(() => {
     void setAndroidNavigationBarVisibleAsync(showTabBar);
   }, [showTabBar]);
@@ -871,9 +947,62 @@ export function ProgrammeV2Root() {
     // funnel record itself (with the v3 firstSessionStarted stamp) is owned
     // by the VoiceSessionController — one record per session, never two.
     const wasFirstSession = !programmeState.profile.firstSessionStarted;
-    sessionStartRef.current = { startedAtIso: new Date().toISOString(), wasFirstSession };
+    const startedAtIso = new Date().toISOString();
+    sessionStartRef.current = { startedAtIso, wasFirstSession };
+    sessionBaseItemsRef.current = [];
+    sessionItemsRef.current = [];
     persist(markFirstSessionStarted(programmeState));
-  }, [programmeState, persist]);
+    // A fresh in-flight snapshot from minute zero: an app kill during the
+    // very first item still recovers the same frozen plan.
+    if (plan) {
+      try {
+        sessionSnapshotStore.save({
+          schemaVersion: PROGRAMME_SESSION_SNAPSHOT_SCHEMA_VERSION,
+          startedAtIso,
+          savedAtIso: startedAtIso,
+          plan,
+          completedItems: [],
+        });
+      } catch (error) {
+        console.warn('[programme-v2] in-flight session snapshot write failed', error);
+      }
+    }
+  }, [programmeState, plan, persist, sessionSnapshotStore]);
+
+  // Item boundary: refresh the in-flight snapshot with everything finished so
+  // far (resumed base + this run). A failed write can never interrupt her.
+  const handleSessionItemCompleted = React.useCallback(
+    (items: TrainingItemResult[]) => {
+      sessionItemsRef.current = items;
+      const start = sessionStartRef.current;
+      if (!start || !plan) return;
+      try {
+        sessionSnapshotStore.save({
+          schemaVersion: PROGRAMME_SESSION_SNAPSHOT_SCHEMA_VERSION,
+          startedAtIso: start.startedAtIso,
+          savedAtIso: new Date().toISOString(),
+          plan,
+          completedItems: [...sessionBaseItemsRef.current, ...items],
+        });
+      } catch (error) {
+        console.warn('[programme-v2] in-flight session snapshot write failed', error);
+      }
+    },
+    [plan, sessionSnapshotStore]
+  );
+
+  /** A resumed run's player only saw the remainder; results span both runs. */
+  const withResumedBaseItems = React.useCallback(
+    (result: TrainingSessionResult): TrainingSessionResult =>
+      sessionBaseItemsRef.current.length === 0
+        ? result
+        : {
+            ...result,
+            startedAt: sessionStartRef.current?.startedAtIso ?? result.startedAt,
+            items: [...sessionBaseItemsRef.current, ...result.items],
+          },
+    []
+  );
 
   const handleSessionFinish = React.useCallback(
     (results: ProgrammeSessionResults, rpe: SessionRpe | null) => {
@@ -896,13 +1025,79 @@ export function ProgrammeV2Root() {
       const gatewaySurface = postSessionSurface(stateWithJourney, applied.decisions);
       persist(stateWithJourney);
       setLastDecisions(gatewaySurface ? applied.decisions : {});
+      sessionSnapshotStore.clear();
       sessionStartRef.current = null;
+      sessionBaseItemsRef.current = [];
+      sessionItemsRef.current = [];
       setSessionResult(null);
       setPlan(null);
       setPhase(gatewaySurface ? 'session_done' : 'home');
     },
-    [programmeState, plan, persist]
+    [programmeState, plan, persist, sessionSnapshotStore]
   );
+
+  // Deliberate leave: the finished exercises are applied right now (ladders,
+  // pain regressions, recency — no session credit), keeping the modal's
+  // "everything you've finished so far is saved" promise true. The snapshot
+  // is cleared, so a deliberate leave never re-offers itself as a resume.
+  const handleSessionLeave = React.useCallback(() => {
+    const items = [...sessionBaseItemsRef.current, ...sessionItemsRef.current];
+    if (programmeState && plan && items.length > 0) {
+      const results = programmeResultsFromVoiceSession(plan, {
+        startedAt: sessionStartRef.current?.startedAtIso ?? new Date().toISOString(),
+        items,
+      });
+      const applied = applyProgrammeSessionResults(programmeState, plan, results, {
+        credit: 'partial',
+      });
+      persist(applied.state);
+    }
+    sessionSnapshotStore.clear();
+    sessionStartRef.current = null;
+    sessionBaseItemsRef.current = [];
+    sessionItemsRef.current = [];
+    setPlan(null);
+    setPhase('home');
+  }, [programmeState, plan, persist, sessionSnapshotStore]);
+
+  // Her answer to the same-day resume offer.
+  const resumeInterruptedSession = React.useCallback(() => {
+    if (!resumeSnapshot) return;
+    sessionBaseItemsRef.current = resumeSnapshot.completedItems;
+    sessionItemsRef.current = [];
+    // Keep the original start as the session's credit identity; the
+    // activation guard in handleSessionStart sees this and stays idempotent.
+    sessionStartRef.current = {
+      startedAtIso: resumeSnapshot.startedAtIso,
+      wasFirstSession: false,
+    };
+    setPlan(resumeSnapshot.plan);
+    setResumeSnapshot(null);
+    setPhase('session');
+  }, [resumeSnapshot]);
+
+  const dismissInterruptedSession = React.useCallback(() => {
+    if (!resumeSnapshot) return;
+    if (programmeState && resumeSnapshot.completedItems.length > 0) {
+      const results = programmeResultsFromVoiceSession(
+        resumeSnapshot.plan,
+        {
+          startedAt: resumeSnapshot.startedAtIso,
+          items: resumeSnapshot.completedItems,
+        },
+        resumeSnapshot.savedAtIso
+      );
+      const applied = applyProgrammeSessionResults(
+        programmeState,
+        resumeSnapshot.plan,
+        results,
+        { credit: 'partial' }
+      );
+      persist(applied.state);
+    }
+    sessionSnapshotStore.clear();
+    setResumeSnapshot(null);
+  }, [resumeSnapshot, programmeState, persist, sessionSnapshotStore]);
 
   const handleClearDeviceData = React.useCallback(async () => {
     // Cancel every queued/in-flight reconciliation before deletion. The
@@ -932,7 +1127,10 @@ export function ProgrammeV2Root() {
     setPhysioSignpostVisible(false);
     setResultsView(null);
     setTab('today');
+    setResumeSnapshot(null);
     sessionStartRef.current = null;
+    sessionBaseItemsRef.current = [];
+    sessionItemsRef.current = [];
     pendingFirstSessionRef.current = false;
     assessmentContinuationStateRef.current = null;
     devOnboardingCheckUpRef.current = false;
@@ -1149,34 +1347,39 @@ export function ProgrammeV2Root() {
     return (
       <ProgrammeVoiceSession
         plan={plan}
+        completedItems={sessionBaseItemsRef.current}
         voiceId={prefs.settings.voiceId}
         userId={backendUserId}
         firstSessionStarted={!programmeState.profile.firstSessionStarted}
         voiceSetup={voiceSetup}
         onVoiceSetupChange={handleVoiceSetupChange}
         onStart={handleSessionStart}
+        onItemCompleted={handleSessionItemCompleted}
         onComplete={(result) => {
           setSessionResult(result);
           setPhase('effort');
         }}
-        onCancel={() => {
-          // Abandonment funnel is recorded by the controller on unmount.
-          sessionStartRef.current = null;
-          setPlan(null);
-          setPhase('home');
-        }}
+        onCancel={
+          // Abandonment funnel is recorded by the controller on unmount;
+          // finished exercises are applied as partial results right here.
+          handleSessionLeave
+        }
       />
     );
   }
 
   if (phase === 'effort' && plan && sessionResult) {
     // The C9 effort check-in (session RPE) — the one answer promotion needs.
+    // A resumed run's result covers only the remainder; merge the base first.
+    const fullSessionResult = withResumedBaseItems(sessionResult);
     return (
       <ProgrammeEffortScreen
         onSelect={(rpe) =>
-          handleSessionFinish(programmeResultsFromVoiceSession(plan, sessionResult), rpe)
+          handleSessionFinish(programmeResultsFromVoiceSession(plan, fullSessionResult), rpe)
         }
-        onSkip={() => handleSessionFinish(programmeResultsFromVoiceSession(plan, sessionResult), null)}
+        onSkip={() =>
+          handleSessionFinish(programmeResultsFromVoiceSession(plan, fullSessionResult), null)
+        }
       />
     );
   }
@@ -1498,6 +1701,23 @@ export function ProgrammeV2Root() {
     );
   }
 
+  // Same-day interrupted session: one calm decision before Home. Continuing
+  // replays the SAME frozen plan from the next exercise; setting it aside
+  // banks the finished work as partial results (never a session credit).
+  if (phase === 'home' && resumeSnapshot && flow === null && resultsView === null) {
+    return (
+      <ProgrammeMomentScreen
+        eyebrow="Welcome back"
+        title="Pick up where you left off?"
+        body="Today's session was interrupted partway through. You can carry on from the next exercise, or set it aside — everything you finished still counts."
+        actions={[
+          { label: 'Continue session', onPress: resumeInterruptedSession },
+          { label: 'Not today', variant: 'ghost', onPress: dismissInterruptedSession },
+        ]}
+      />
+    );
+  }
+
   // ── Tab shell (phase 'home') ───────────────────────────────────────────
   // Full-screen flows sit above the three-tab shell. Home owns the next
   // action, Plan owns programme structure, and Progress owns measurement.
@@ -1734,6 +1954,7 @@ function ProgrammeSessionPreview({
       ]}
       resolveExercise={programmeVoiceExerciseDefinition}
       resolveSafetyProfile={programmeVoiceSafetyProfile}
+      doseLabelForExercise={() => '30 seconds'}
       sessionTitle="How sessions work"
       voiceId={voiceId}
       voiceSetup={voiceSetup}
@@ -1746,16 +1967,20 @@ function ProgrammeSessionPreview({
 
 function ProgrammeVoiceSession({
   plan,
+  completedItems,
   voiceId,
   userId,
   firstSessionStarted,
   voiceSetup,
   onVoiceSetupChange,
   onStart,
+  onItemCompleted,
   onComplete,
   onCancel,
 }: {
   plan: ProgrammeSessionPlan;
+  /** Items already finished by an interrupted run of this same plan (resume). */
+  completedItems: readonly TrainingItemResult[];
   voiceId?: string;
   userId?: string | null;
   firstSessionStarted: boolean;
@@ -1763,10 +1988,18 @@ function ProgrammeVoiceSession({
   onVoiceSetupChange: (next: VoiceSetupPrefs) => void;
   /** Fired once on mount — the activation moment (Q4: started, not generated). */
   onStart: () => void;
+  /** Item-boundary snapshots (this run's items only; the shell merges the base). */
+  onItemCompleted: (items: TrainingItemResult[]) => void;
   onComplete: (result: TrainingSessionResult) => void;
   onCancel: () => void;
 }) {
-  const inputs = React.useMemo(() => voiceSessionInputsFromPlan(plan), [plan]);
+  const inputs = React.useMemo(
+    () =>
+      voiceSessionInputsFromPlan(plan, {
+        completedExerciseIds: completedItems.map((item) => item.exerciseId),
+      }),
+    [plan, completedItems]
+  );
   React.useEffect(() => {
     onStart();
     // Fire exactly once per mounted session; onStart guards re-entry itself.
@@ -1778,12 +2011,15 @@ function ProgrammeVoiceSession({
       generatedExercises={inputs.generatedExercises}
       resolveExercise={inputs.resolveExercise}
       resolveSafetyProfile={inputs.resolveSafetyProfile}
+      bonusSetOffer={inputs.bonusSetOffer}
+      doseLabelForExercise={inputs.doseLabelForExercise}
       sessionTitle="Your session"
       voiceId={voiceId}
       userId={userId}
       firstSessionStarted={firstSessionStarted}
       voiceSetup={voiceSetup}
       onVoiceSetupChange={onVoiceSetupChange}
+      onItemCompleted={onItemCompleted}
       onComplete={onComplete}
       onCancel={onCancel}
     />

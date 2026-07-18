@@ -150,6 +150,34 @@ describe('tap-only completeness (TESTED INVARIANT — voice disabled)', () => {
   });
 });
 
+describe('camera-free honesty', () => {
+  it('the intro speaks the global safety lines WITHOUT the camera-tracking one', () => {
+    const player = makeVoicePlayer([STS_STANDARD_ID]);
+    const run = startRun(player);
+    run.tickUntil((u) => u.phase === 'waiting_ready');
+    expect(run.spoken).toContain('training-intro');
+    expect(run.spoken).toContain('global_stop_sharp_or_increasing_pain');
+    // There is no camera in a voice session; "if tracking pauses…" must
+    // never be spoken here (it describes a system she is not using).
+    expect(run.spoken).not.toContain('global_pause_if_tracking_lost');
+  });
+
+  it('the countdown always reaches her in order: three, two, one, go', () => {
+    const player = makeVoicePlayer([STS_STANDARD_ID]);
+    const run = startRun(player);
+    run.tickUntil((u) => u.phase === 'waiting_ready');
+    // Confirm ready while the say-ready prompt is STILL PLAYING — the
+    // regression this pins: a pending "three" being clobbered by "two".
+    expect(run.ts).toBeLessThan(run.voiceBusyUntil);
+    expect(player.confirmReady(run.ts)).toBe(true);
+    run.tickUntil((u) => u.phase === 'set');
+    const countdown = run.spoken.filter((cue) =>
+      ['countdown-three', 'countdown-two', 'countdown-one', 'go'].includes(cue)
+    );
+    expect(countdown).toEqual(['countdown-three', 'countdown-two', 'countdown-one', 'go']);
+  });
+});
+
 describe('voice intent surface', () => {
   function toFirstSet(run: VoiceRun): void {
     run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);

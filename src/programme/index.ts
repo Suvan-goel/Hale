@@ -144,6 +144,7 @@ export {
 } from './session';
 export type {
   AppliedProgrammeSession,
+  ApplyProgrammeSessionOptions,
   GenerateSessionInput,
   ProgrammeFinisherPlanItem,
   ProgrammeSessionExercise,
@@ -152,6 +153,17 @@ export type {
   SessionDurationPreset,
   SessionTemplateId,
 } from './session';
+export {
+  PROGRAMME_SESSION_SNAPSHOT_SCHEMA_VERSION,
+  ProgrammeSessionSnapshotStore,
+  decideProgrammeSessionSnapshot,
+  deserializeProgrammeSessionSnapshot,
+  serializeProgrammeSessionSnapshot,
+} from './sessionSnapshot';
+export type {
+  ProgrammeSessionSnapshot,
+  ProgrammeSessionSnapshotDisposition,
+} from './sessionSnapshot';
 export {
   CHECKUP_ZERO_PROTOCOL_SEQUENCE,
   ROUTINE_CHECKUP_DUE_DAYS,
@@ -180,4 +192,7 @@ export {
   programmeResultsFromVoiceSession,
   voiceSessionInputsFromPlan,
 } from './voiceSession';
-export type { ProgrammeVoiceSessionInputs } from './voiceSession';
+export type {
+  ProgrammeVoiceSessionInputs,
+  VoiceSessionInputOptions,
+} from './voiceSession';

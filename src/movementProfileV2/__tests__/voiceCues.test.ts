@@ -90,14 +90,19 @@ describe('Movement Profile V2 voice cues', () => {
 
   it('bridges mid-battery chair entries generically instead of replaying the check-up intro', () => {
     // Check-up #0: balance → chair. The welcome intro must never replay here.
-    expect(cuesFor('balance_ready', 'chair_setup', 'balance_user_accepted_best')).toEqual([
+    expect(
+      cuesFor('balance_ready', 'chair_setup', 'balance_user_accepted_best', { balanceBestHoldSec: 12 })
+    ).toEqual([
       'mpv2_balance_use_best',
       'item-complete-v21',
       'checkup-chair-stand-intro-v21',
       'checkup-chair-stand-setup-v21',
     ]);
     expect(
-      cuesFor('balance_trial', 'chair_setup', 'balance_section_complete', { balanceCeilingReached: true })
+      cuesFor('balance_trial', 'chair_setup', 'balance_section_complete', {
+        balanceCeilingReached: true,
+        balanceBestHoldSec: 45,
+      })
     ).toEqual([
       'mpv2_balance_full_hold',
       'item-complete-v21',
@@ -106,6 +111,26 @@ describe('Movement Profile V2 voice cues', () => {
     ]);
     // The frame-check entry stays owned by the runtime (framing-ready prefix).
     expect(cuesFor('standing_frame_check', 'chair_setup', 'frame_check_passed')).toEqual([]);
+  });
+
+  it('never claims completion when the balance item ended with nothing measured', () => {
+    // Skip, retry limit, and hard cap without a valid hold bridge straight to
+    // the chair intro — "Good. That exercise is done." would be a small lie.
+    for (const reason of ['balance_skipped_by_user', 'balance_invalid_retry_limit', 'balance_hard_cap']) {
+      expect(cuesFor('balance_ready', 'chair_setup', reason)).toEqual([
+        'checkup-chair-stand-intro-v21',
+        'checkup-chair-stand-setup-v21',
+      ]);
+    }
+    // The same exits WITH a banked hold keep the acknowledgement: a result
+    // was measured and recorded, so completion language is honest.
+    expect(
+      cuesFor('balance_rest', 'chair_setup', 'balance_hard_cap', { balanceBestHoldSec: 9 })
+    ).toEqual([
+      'item-complete-v21',
+      'checkup-chair-stand-intro-v21',
+      'checkup-chair-stand-setup-v21',
+    ]);
   });
 
   it('ends chair-last sequences on the timer line, never the hinge wording', () => {
@@ -117,7 +142,10 @@ describe('Movement Profile V2 voice cues', () => {
       cuesFor('chair_active', 'raw_complete', 'chair_tracking_loss_retry_limit', { hingeCaptureValid: false })
     ).toEqual(['item-complete-v21', 'checkup-complete-v21']);
     expect(
-      cuesFor('balance_ready', 'raw_complete', 'balance_user_accepted_best', { hingeCaptureValid: false })
+      cuesFor('balance_ready', 'raw_complete', 'balance_user_accepted_best', {
+        hingeCaptureValid: false,
+        balanceBestHoldSec: 12,
+      })
     ).toEqual(['mpv2_balance_use_best', 'item-complete-v21', 'checkup-complete-v21']);
   });
 
@@ -218,6 +246,7 @@ function cuesFor(
   reason: string,
   options: {
     balanceCeilingReached?: boolean;
+    balanceBestHoldSec?: number | null;
     hingeCaptureValid?: boolean;
     shoulderSide?: BodySide;
   } = {}
@@ -226,6 +255,7 @@ function cuesFor(
     transition: transition(from, to, reason, 100),
     snapshot: snapshot({
       balanceCeilingReached: options.balanceCeilingReached ?? false,
+      balanceBestHoldSec: options.balanceBestHoldSec ?? null,
       hingeCaptureValid: options.hingeCaptureValid ?? true,
       shoulderSide: options.shoulderSide ?? 'right',
     }),
@@ -248,11 +278,13 @@ function escapeRegExp(value: string): string {
 function snapshot({
   lastTransition = null,
   balanceCeilingReached = false,
+  balanceBestHoldSec = null,
   hingeCaptureValid = true,
   shoulderSide = 'right',
 }: {
   lastTransition?: MovementProfileV2LiveTransitionSummary | null;
   balanceCeilingReached?: boolean;
+  balanceBestHoldSec?: number | null;
   hingeCaptureValid?: boolean;
   shoulderSide?: BodySide;
 } = {}): MovementProfileV2LiveSnapshot {
@@ -260,6 +292,7 @@ function snapshot({
     lastTransition,
     movementEpochId: 'movement-epoch',
     attemptEpochId: 'attempt-epoch',
+    balanceBestHoldSec,
     flow: { shoulderSide },
     diagnostics: {
       balance: { ceilingReached: balanceCeilingReached },

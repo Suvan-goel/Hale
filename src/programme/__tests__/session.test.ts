@@ -717,3 +717,70 @@ describe('session completion applier', () => {
     expect(skipped.state.lastSessionEffort).toBeNull();
   });
 });
+
+describe("partial application (early leave: 'everything you've finished is saved')", () => {
+  it('applies ladders, rehearsal credit, and recency — but neither the session counter nor the effort answer', () => {
+    const state = { ...onboardedState(), lastSessionEffort: 'lots' as const, completedSessionCount: 4 };
+    const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
+    const squat = plan.main.find((exercise) => exercise.pattern === 'squat')!;
+    const applied = applyProgrammeSessionResults(
+      state,
+      plan,
+      {
+        outcomes: [
+          {
+            pattern: 'squat',
+            levelPerformed: squat.level,
+            sets: Array.from({ length: squat.sets }, () => ({ achieved: squat.scheme.max })),
+            effort: null,
+            painFlag: false,
+            performedAtIso: '2026-07-16T10:20:00.000Z',
+          },
+        ],
+        prepCompleted: true,
+        finisherCompleted: false,
+        completedAtIso: '2026-07-16T10:20:00.000Z',
+      },
+      { credit: 'partial' }
+    );
+
+    // What she finished counts toward the ladder…
+    expect(applied.state.ladders.squat.consecutiveTopSessions).toBeGreaterThan(0);
+    expect(applied.state.ladders.hinge.gatewayProgress[5]?.rehearsalExposures).toBe(1);
+    // …and the inactivity clock resets: she trained today, partially.
+    expect(applied.state.lastSessionAtIso).toBe('2026-07-16T10:20:00.000Z');
+    // But no session was completed and no check-in answered: the A/B and
+    // balanced-focus alternation and the next bonus-offer input stay put.
+    expect(applied.state.completedSessionCount).toBe(4);
+    expect(applied.state.lastSessionEffort).toBe('lots');
+  });
+
+  it('a pain halt in a partially-left session still regresses that ladder', () => {
+    const state = onboardedState();
+    state.ladders.squat = freshPatternLadderState('squat', 3);
+    state.ladders.squat = { ...state.ladders.squat, lastPainFreeLevel: 2 };
+    const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
+    const squat = plan.main.find((exercise) => exercise.pattern === 'squat')!;
+    const applied = applyProgrammeSessionResults(
+      state,
+      plan,
+      {
+        outcomes: [
+          {
+            pattern: 'squat',
+            levelPerformed: squat.level,
+            sets: [{ achieved: 4 }],
+            effort: null,
+            painFlag: true,
+            performedAtIso: '2026-07-16T10:20:00.000Z',
+          },
+        ],
+        prepCompleted: true,
+        finisherCompleted: false,
+        completedAtIso: '2026-07-16T10:20:00.000Z',
+      },
+      { credit: 'partial' }
+    );
+    expect(applied.state.ladders.squat.currentLevel).toBeLessThan(3);
+  });
+});

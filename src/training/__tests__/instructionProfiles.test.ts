@@ -58,6 +58,13 @@ describe('canonical instruction profiles', () => {
     expect(protocolIdForMovementProfileV2Stage('balance_ready')).toBe(ONE_LEG_BALANCE_V2_ID);
     expect(protocolIdForMovementProfileV2Stage('shoulder_ready')).toBe(ACTIVE_SHOULDER_REACH_V2_ID);
     expect(protocolIdForMovementProfileV2Stage('hinge_setup')).toBe(HINGE_REACH_ID);
+    // The frame check borrows the FIRST battery item's intro: chair in the
+    // default battery, balance in the hosted balance-first check-up.
+    expect(protocolIdForMovementProfileV2Stage('standing_frame_check')).toBe(CHAIR_RISE_V2_ID);
+    expect(protocolIdForMovementProfileV2Stage('standing_frame_check', 'balance')).toBe(ONE_LEG_BALANCE_V2_ID);
+    expect(
+      movementProfileV2InstructionCueIdsForStage({ stage: 'standing_frame_check', firstBatteryMovement: 'balance' })
+    ).toEqual(['checkup-balance-intro-v21', 'checkup-balance-single-leg-v21']);
     expect(movementProfileV2InstructionCueIdsForStage({ stage: 'shoulder_ready', selectedShoulder: 'left' })).toEqual([
       'checkup-shoulder-turn-left-v21',
       'checkup-shoulder-raise-left-v21',

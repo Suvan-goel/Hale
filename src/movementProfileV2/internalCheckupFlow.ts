@@ -281,7 +281,10 @@ export function movementProfileV2RawCheckUpFromFlow(
   };
 }
 
-function isPearlProgrammeStrengthBalanceSequence(
+/** The hosted two-movement official check-up (Check-up #0 and the routine
+ * programme check-ups): balance first, then the chair rise. Exported as the
+ * single predicate for hosted-sequence voice/copy variants. */
+export function isPearlProgrammeStrengthBalanceSequence(
   sequence: readonly MovementProfileV2BatteryMovement[] | null | undefined
 ): boolean {
   return sequence?.length === 2 && sequence[0] === 'balance' && sequence[1] === 'chair';

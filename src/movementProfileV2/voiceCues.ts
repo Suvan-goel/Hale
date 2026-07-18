@@ -78,6 +78,10 @@ export const MOVEMENT_PROFILE_V2_CUE_DEFINITIONS: readonly MovementProfileV2CueD
   // only the after_30 line plays. Kept (with its bundled audio) because
   // removing a definition changes the cue-policy fingerprint and would force
   // a full mpv2 audio regeneration; drop it on the next real generation run.
+  // (The spoken finish-now variant is the PLAIN cue
+  // 'checkup-balance-ready-can-finish', swapped in by the voice runtime —
+  // same pattern as the retest balance setup lines — precisely so this
+  // fingerprint, and the approved takes behind it, stay untouched.)
   definition('mpv2_balance_ready_after_60', "You're ready for the next attempt. Keep your support close. When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.", 'ready', 70, 'stage_3d_b_2e_a_1_fallback'),
   definition('mpv2_balance_use_best', 'Your best balance hold is saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
   definition('mpv2_balance_tracking_retry', "I lost sight of you, so that attempt won't count. Stand facing the phone again with your whole body in view. We'll try once more.", 'recovery', 100, 'stage_3d_b_2e_a_1_fallback'),
@@ -152,7 +156,11 @@ export function resolveMovementProfileV2CueIdsForTransition(input: {
       if (transition.from === 'standing_frame_check') return [];
       return [
         ...terminalCuesForPrecedingItem(transition, snapshot),
-        'item-complete-v21',
+        // "Good. That exercise is done." must not claim completion when the
+        // balance item ended with nothing measured (skipped, retry limit or
+        // hard cap without a valid hold) — bridge straight into the chair
+        // intro instead.
+        ...(precedingItemEndedUnmeasured(transition, snapshot) ? [] : ['item-complete-v21' as const]),
         'checkup-chair-stand-intro-v21',
         'checkup-chair-stand-setup-v21',
       ];
@@ -211,10 +219,27 @@ export function resolveMovementProfileV2CueIdsForTransition(input: {
           'checkup-complete-v21',
         ];
       }
-      return [...terminalCuesForPrecedingItem(transition, snapshot), 'item-complete-v21', 'checkup-complete-v21'];
+      return [
+        ...terminalCuesForPrecedingItem(transition, snapshot),
+        ...(precedingItemEndedUnmeasured(transition, snapshot) ? [] : ['item-complete-v21' as const]),
+        'checkup-complete-v21',
+      ];
     default:
       return [];
   }
+}
+
+/**
+ * True when the item that just handed off recorded no measurement — a balance
+ * section that ended by skip, retry limit, or hard cap with no valid hold.
+ * The completion acknowledgement ("Good. That exercise is done.") would be a
+ * small lie there; callers bridge straight to the next item's intro instead.
+ */
+function precedingItemEndedUnmeasured(
+  transition: MovementProfileV2LiveTransitionSummary,
+  snapshot: MovementProfileV2LiveSnapshot
+): boolean {
+  return transition.from.startsWith('balance_') && typeof snapshot.balanceBestHoldSec !== 'number';
 }
 
 /**

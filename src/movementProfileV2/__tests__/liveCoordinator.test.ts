@@ -1060,6 +1060,98 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(snapshot.recoveryEpisode).toBeNull();
   });
 
+  it('promotes recovery to stable_ready only after the instruction voice AND confirmed re-detection', () => {
+    const coordinator = new MovementProfileV2LiveCoordinator({
+      ...createMovementProfileV2InternalFlow({ startedAt: STARTED_AT, batterySequence: ['shoulder'] }),
+      sourceType: 'baseline',
+    });
+    const nowMs = 1000;
+    expect(coordinator.receiveUserAction({ type: 'confirm_shoulder_setup', shoulderSide: 'right' }, nowMs)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'shoulder_setup_voice_completed' }, nowMs + 1)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'start_shoulder_capture' }, nowMs + 100)).toBe(true);
+    coordinator.receiveUserAction({ type: 'backgrounded' }, nowMs + 500);
+    coordinator.receiveUserAction({ type: 'resumed' }, nowMs + 600);
+    let snapshot = coordinator.snapshot(nowMs + 600);
+    expect(snapshot.stage).toBe('shoulder_retry_ready');
+    expect(snapshot.recoveryEpisode).toMatchObject({ phase: 'attempt_invalidated', stablePromotion: null });
+    const recoveryId = snapshot.recoveryEpisode!.id;
+
+    // Good frames BEFORE the instruction voice finished must not promote —
+    // the recovered claim would talk over the loss announcement.
+    for (let index = 0; index < 6; index++) {
+      const frameMs = nowMs + 700 + index * 33;
+      feedOutput(coordinator, trackingOutput(balanceRaw(frameMs, 'left', false)), frameMs);
+    }
+    expect(coordinator.snapshot(nowMs + 900).recoveryEpisode?.phase).toBe('attempt_invalidated');
+
+    // Instruction spoken: the already-confirmed streak promotes immediately,
+    // recording that the promotion is evidence-based.
+    expect(
+      coordinator.receiveUserAction(
+        { type: 'recovery_instruction_voice_completed', recoveryId },
+        nowMs + 1000
+      )
+    ).toBe(true);
+    snapshot = coordinator.snapshot(nowMs + 1000);
+    expect(snapshot.recoveryEpisode).toMatchObject({
+      phase: 'stable_ready',
+      stablePromotion: 'tracking_confirmed',
+    });
+  });
+
+  it('promotes recovery to stable_ready by timeout without the recovered claim when re-detection never confirms', () => {
+    const coordinator = new MovementProfileV2LiveCoordinator({
+      ...createMovementProfileV2InternalFlow({ startedAt: STARTED_AT, batterySequence: ['shoulder'] }),
+      sourceType: 'baseline',
+    });
+    const nowMs = 1000;
+    expect(coordinator.receiveUserAction({ type: 'confirm_shoulder_setup', shoulderSide: 'right' }, nowMs)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'shoulder_setup_voice_completed' }, nowMs + 1)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'start_shoulder_capture' }, nowMs + 100)).toBe(true);
+    coordinator.receiveUserAction({ type: 'backgrounded' }, nowMs + 500);
+    coordinator.receiveUserAction({ type: 'resumed' }, nowMs + 600);
+    const recoveryId = coordinator.snapshot(nowMs + 600).recoveryEpisode!.id;
+    expect(
+      coordinator.receiveUserAction(
+        { type: 'recovery_instruction_voice_completed', recoveryId },
+        nowMs + 700
+      )
+    ).toBe(true);
+
+    // No frames return. Just short of the liveness bound: still waiting.
+    coordinator.receiveTimerTick(nowMs + 700 + 9999);
+    expect(coordinator.snapshot(nowMs + 700 + 9999).recoveryEpisode?.phase).toBe('attempt_invalidated');
+
+    // At the bound the flow continues, flagged so the runtime skips the claim.
+    coordinator.receiveTimerTick(nowMs + 700 + 10000);
+    expect(coordinator.snapshot(nowMs + 700 + 10000).recoveryEpisode).toMatchObject({
+      phase: 'stable_ready',
+      stablePromotion: 'timeout',
+    });
+  });
+
+  it('clears an unresolved recovery episode when the flow moves past its target stage', () => {
+    const coordinator = createCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startBalanceTrial(coordinator, nowMs, 'left');
+    let lossMs = nowMs + 1000;
+    for (let index = 0; index < 4; index++) {
+      lossMs += 33;
+      feedOutput(coordinator, lostOutput(lossMs), lossMs);
+    }
+    let snapshot = coordinator.snapshot(lossMs);
+    expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.recoveryEpisode?.phase).toBe('attempt_invalidated');
+
+    // The rest expires with the recovery voice never completed (e.g. she was
+    // away the whole rest): balance_ready's own guidance takes over — the
+    // episode must not pin the "Tracking reset" notice there.
+    coordinator.receiveTimerTick(lossMs + 31000);
+    snapshot = coordinator.snapshot(lossMs + 31000);
+    expect(snapshot.stage).toBe('balance_ready');
+    expect(snapshot.recoveryEpisode).toBeNull();
+  });
+
   it('bounds shoulder retries and records the retry capture from live selected-side frames', () => {
     const coordinator = createCoordinator();
     let nowMs = advanceThroughShoulderSetup(coordinator, 0);

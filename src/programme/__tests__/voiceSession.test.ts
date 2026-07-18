@@ -9,6 +9,7 @@ import type { HistoryFs } from '../../history/store';
 import { SessionFunnelStore } from '../../telemetry/sessionFunnelStore';
 import type { TrainingSessionResult } from '../../training/sessionPlayer';
 import { VoiceSessionController } from '../../voice/voiceSessionController';
+import { freshPatternLadderState } from '../promotion';
 import { defaultProgrammeState } from '../serialize';
 import { generateProgrammeSession, type ProgrammeSessionPlan } from '../session';
 import type { PhysicalTrainingFocus, ProgrammePhasePrescription } from '../prescription';
@@ -201,15 +202,85 @@ describe('plan → voice-player inputs', () => {
     }
   });
 
-  it('keeps bonus-set machinery out of the promoted MVP session', () => {
+  it('passes the bonus-set offer when the plan marked patterns eligible (2026-07-16 reversal)', () => {
+    // Time-based core work shortens the plan enough for real headroom.
+    const state = onboardedState();
+    state.ladders.core = freshPatternLadderState('core', 4);
+    const plan = generateProgrammeSession({
+      state,
+      template: 'A',
+      preset: 'standard',
+      lastSessionEffort: 'lots',
+    });
+    expect(plan.bonusSetEligible.length).toBeGreaterThan(0);
+    const inputs = voiceSessionInputsFromPlan(plan);
+    const eligibleIds = plan.main
+      .filter((exercise) => plan.bonusSetEligible.includes(exercise.pattern))
+      .map((exercise) => exercise.exerciseId);
+    expect(inputs.bonusSetOffer).toEqual({
+      exerciseIds: eligibleIds,
+      offerCue: 'prog-bonus-set-offer',
+    });
+  });
+
+  it('omits the offer entirely when no pattern is eligible (no phantom offers)', () => {
+    // Full-length plan on 'lots': the budget gate leaves nothing eligible.
     const plan = generateProgrammeSession({
       state: onboardedState(),
       template: 'A',
       preset: 'standard',
       lastSessionEffort: 'lots',
     });
+    expect(plan.bonusSetEligible).toEqual([]);
+    expect('bonusSetOffer' in voiceSessionInputsFromPlan(plan)).toBe(false);
+  });
+
+  it('labels every plan item’s per-set target in plain language for the screen', () => {
+    const plan = generateProgrammeSession({
+      state: activeFocusState('balance'),
+      template: 'A',
+      preset: 'standard',
+    });
     const inputs = voiceSessionInputsFromPlan(plan);
-    expect('bonusSetOffer' in inputs).toBe(false);
+    expect(inputs.doseLabelForExercise(PROGRAMME_PREP_ITEM_ID)).toBe(`${plan.prep.minutes} minutes`);
+    for (const exercise of plan.main) {
+      const label = inputs.doseLabelForExercise(exercise.exerciseId);
+      const expected =
+        exercise.scheme.kind === 'reps'
+          ? `${exercise.repTargetPerSet} reps`
+          : exercise.scheme.kind === 'reps_per_side'
+            ? `${exercise.repTargetPerSet} each side`
+            : exercise.scheme.kind === 'seconds'
+              ? `${exercise.repTargetPerSet} seconds`
+              : `${exercise.repTargetPerSet} seconds each side`;
+      expect(label).toBe(expected);
+    }
+    expect(plan.focusBlock?.kind).toBe('balance');
+    const focus = plan.focusBlock!;
+    expect(inputs.doseLabelForExercise(focus.exerciseId)).toBe(
+      `${(focus as { holdSec: number }).holdSec} seconds`
+    );
+    for (const item of plan.finisher) {
+      expect(inputs.doseLabelForExercise(item.id)).toBeTruthy();
+    }
+    expect(inputs.doseLabelForExercise('not.a.plan.item')).toBeNull();
+  });
+
+  it('completedExerciseIds filters a resumed run to the remainder, order preserved', () => {
+    const plan = generateProgrammeSession({ state: onboardedState(), template: 'A', preset: 'standard' });
+    const full = voiceSessionInputsFromPlan(plan);
+    const handled = full.exerciseIds.slice(0, 2);
+    const resumed = voiceSessionInputsFromPlan(plan, { completedExerciseIds: handled });
+    expect(resumed.exerciseIds).toEqual(full.exerciseIds.slice(2));
+    expect(resumed.generatedExercises.map((dose) => dose.exerciseId)).toEqual(
+      full.exerciseIds.slice(2)
+    );
+    // Dose labels and resolvers still cover the whole plan (labels are
+    // plan-scoped; the remainder is a subset).
+    for (const id of resumed.exerciseIds) {
+      expect(resumed.resolveExercise(id).id).toBe(id);
+      expect(resumed.doseLabelForExercise(id)).toBeTruthy();
+    }
   });
 
   it('support-variant exercises get the balance cues; others stay unchanged', () => {

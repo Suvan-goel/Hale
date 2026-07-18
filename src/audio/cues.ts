@@ -53,13 +53,33 @@ export type VoiceCueKey =
   // Check-Up battery orchestration (between-item transitions).
   | 'checkup-intro'
   | 'checkup-complete'
+  // Check-up #0 host warm-up pacing: Clara paces the fixed one-minute warm-up
+  // (voice-led like the rest of the check-up, and a spoken pace is more
+  // repeatable than self-read text) and makes propping the phone the explicit
+  // action at warm-up start.
+  | 'checkup-warmup-start'
+  | 'checkup-warmup-shoulders'
+  | 'checkup-warmup-reaches'
+  | 'checkup-warmup-position'
   // Two-movement official check-up closing bridge: the Clarity appendix (not
   // results) comes next, and the phone is propped out of reach.
   | 'checkup-strength-balance-complete'
+  // Hosted two-movement check-up frame-check intro: Clara has already
+  // welcomed her and paced the warm-up, so the battery opens without the
+  // standalone "Welcome" line (safety sentence kept verbatim).
+  | 'checkup-two-movements-intro'
+  // One-shot hint when the practice stand is never credited: the confirm
+  // control is on a phone propped out of reach, so it must be spoken (it
+  // names the exact button, like the balance finish-now line).
+  | 'checkup-chair-practice-fallback'
   // Retest balance setup: the standing leg is anchored to the prior official
   // record, so the spoken setup names the side instead of inviting a choice.
   | 'checkup-balance-single-leg-retest-left'
   | 'checkup-balance-single-leg-retest-right'
+  // Ready-after-rest variant once a valid balance hold is banked: the only
+  // end-early control lives on a phone propped out of reach, so the
+  // invitation to finish must be spoken (it names the exact button).
+  | 'checkup-balance-ready-can-finish'
   | 'turn-side-on'
   | 'face-forward'
   | 'next-exercise'
@@ -264,6 +284,12 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'microcheck-intro':
     case 'microcheck-complete':
       return 9; // result lines + between-item / between-set transition guidance
+    case 'checkup-warmup-start':
+    case 'checkup-warmup-shoulders':
+    case 'checkup-warmup-reaches':
+    case 'checkup-warmup-position':
+    case 'checkup-two-movements-intro':
+    case 'checkup-chair-practice-fallback':
     case 'chair-stand-intro':
     case 'chair-stand-setup':
     case 'balance-intro':
@@ -275,6 +301,7 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'balance-same-leg':
     case 'checkup-balance-single-leg-retest-left':
     case 'checkup-balance-single-leg-retest-right':
+    case 'checkup-balance-ready-can-finish':
     case 'close-your-eyes':
     case 'open-your-eyes':
     case 'tug-intro':

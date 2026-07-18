@@ -23,7 +23,11 @@
  */
 
 import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
-import type { TrainingItemResult, TrainingSessionResult } from '../training/voiceSessionPlayer';
+import type {
+  TrainingItemResult,
+  TrainingSessionResult,
+  VoiceSessionPlayerOptions,
+} from '../training/voiceSessionPlayer';
 import {
   BALANCE_FEET_TOGETHER_ID,
   BALANCE_SINGLE_LEG_ID,
@@ -58,6 +62,18 @@ export interface ProgrammeVoiceSessionInputs {
   generatedExercises: TrainingSetRuntimeGeneratedExercise[];
   resolveExercise: (exerciseId: string) => ExerciseDefinition;
   resolveSafetyProfile: (exerciseId: string) => PlannedExerciseSafetyCueProfile;
+  /** Present only when the plan marked patterns bonus-eligible (C9 offer). */
+  bonusSetOffer?: VoiceSessionPlayerOptions['bonusSetOffer'];
+  /** Plain-language per-set target for the screen ("10 reps", "30 seconds each side"). */
+  doseLabelForExercise: (exerciseId: string) => string | null;
+}
+
+export interface VoiceSessionInputOptions {
+  /**
+   * Item ids already handled by an interrupted run of this same plan
+   * (completed or skipped) — resumed sessions replay only the remainder.
+   */
+  readonly completedExerciseIds?: readonly string[];
 }
 
 function mainDose(exercise: ProgrammeSessionExercise): TrainingSetRuntimeGeneratedExercise {
@@ -147,15 +163,63 @@ function safetyProfileForPlan(exerciseId: string): PlannedExerciseSafetyCueProfi
   };
 }
 
-export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): ProgrammeVoiceSessionInputs {
+/** Spoken-and-shown per-set target for one main exercise (scheme-aware). */
+function mainDoseLabel(exercise: ProgrammeSessionExercise): string {
+  const target = exercise.repTargetPerSet;
+  switch (exercise.scheme.kind) {
+    case 'reps':
+      return `${target} reps`;
+    case 'reps_per_side':
+      return `${target} each side`;
+    case 'seconds':
+      return `${target} seconds`;
+    case 'seconds_per_side':
+      return `${target} seconds each side`;
+  }
+}
+
+function finisherDoseLabel(item: ProgrammeSessionPlan['finisher'][number]): string {
+  switch (item.dose.kind) {
+    case 'contacts':
+      return `${item.contacts ?? item.dose.min} reps`;
+    case 'sets_reps':
+      return item.dose.perSide ? `${item.dose.min} each side` : `${item.dose.min} reps`;
+    case 'seconds':
+      return `${item.dose.min} seconds`;
+  }
+}
+
+/**
+ * Every plan item's target in plain language, keyed by exercise id. Targets
+ * live ON SCREEN by design (voiceScripts.ts) so a changed dose never stales a
+ * bundled audio asset — this map is what makes that promise true.
+ */
+function doseLabelsForPlan(plan: ProgrammeSessionPlan): Map<string, string> {
+  const labels = new Map<string, string>();
+  labels.set(PROGRAMME_PREP_ITEM_ID, `${plan.prep.minutes} minutes`);
+  for (const exercise of plan.main) labels.set(exercise.exerciseId, mainDoseLabel(exercise));
+  if (plan.focusBlock?.kind === 'balance') {
+    labels.set(plan.focusBlock.exerciseId, `${plan.focusBlock.holdSec} seconds`);
+  }
+  for (const item of plan.finisher) {
+    if (!labels.has(item.id)) labels.set(item.id, finisherDoseLabel(item));
+  }
+  return labels;
+}
+
+export function voiceSessionInputsFromPlan(
+  plan: ProgrammeSessionPlan,
+  options: VoiceSessionInputOptions = {}
+): ProgrammeVoiceSessionInputs {
   const distinctBalanceFocus = plan.focusBlock?.kind === 'balance' ? plan.focusBlock : null;
   const focusDose = balanceFocusDose(plan);
+  const handledIds = new Set(options.completedExerciseIds ?? []);
   const exerciseIds = [
     PROGRAMME_PREP_ITEM_ID,
     ...plan.main.map((exercise) => exercise.exerciseId),
     ...(distinctBalanceFocus ? [distinctBalanceFocus.exerciseId] : []),
     ...plan.finisher.map((item) => item.id),
-  ];
+  ].filter((exerciseId) => !handledIds.has(exerciseId));
   const generatedExercises: TrainingSetRuntimeGeneratedExercise[] = [
     {
       exerciseId: PROGRAMME_PREP_ITEM_ID,
@@ -166,7 +230,7 @@ export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): Programm
     ...plan.main.map(mainDose),
     ...(focusDose ? [focusDose] : []),
     ...plan.finisher.map(finisherDose),
-  ];
+  ].filter((exercise) => !handledIds.has(exercise.exerciseId));
   const supportVariantIds = new Set(
     [
       ...plan.main
@@ -175,6 +239,13 @@ export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): Programm
       ...(distinctBalanceFocus ? [distinctBalanceFocus.exerciseId] : []),
     ]
   );
+  const bonusExerciseIds = plan.main
+    .filter(
+      (exercise) =>
+        plan.bonusSetEligible.includes(exercise.pattern) && !handledIds.has(exercise.exerciseId)
+    )
+    .map((exercise) => exercise.exerciseId);
+  const doseLabels = doseLabelsForPlan(plan);
   return {
     exerciseIds,
     generatedExercises,
@@ -183,6 +254,10 @@ export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): Programm
       const profile = safetyProfileForPlan(exerciseId);
       return supportVariantIds.has(exerciseId) ? withSupportCues(profile) : profile;
     },
+    ...(bonusExerciseIds.length > 0
+      ? { bonusSetOffer: { exerciseIds: bonusExerciseIds, offerCue: 'prog-bonus-set-offer' as const } }
+      : {}),
+    doseLabelForExercise: (exerciseId) => doseLabels.get(exerciseId) ?? null,
   };
 }
 

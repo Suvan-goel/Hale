@@ -6,6 +6,7 @@ import {
   HINGE_REACH_ID,
   ONE_LEG_BALANCE_V2_ID,
 } from '../movements';
+import type { MovementProfileV2BatteryMovement } from '../movementProfileV2/internalCheckupFlow';
 import type { MovementProfileV2LiveStage } from '../movementProfileV2/liveCoordinator';
 
 export interface InstructionCueRef {
@@ -118,9 +119,12 @@ export function visibleInstructionText(profile: CheckUpInstructionProfile): stri
 export function movementProfileV2InstructionProfileForStage(
   stage: MovementProfileV2LiveStage,
   selectedShoulder: BodySide = 'right',
-  priorStandingLeg: BodySide | null = null
+  priorStandingLeg: BodySide | null = null,
+  firstBatteryMovement: MovementProfileV2BatteryMovement = 'chair'
 ): CheckUpInstructionProfile | null {
-  const profile = getCheckUpInstructionProfile(protocolIdForMovementProfileV2Stage(stage));
+  const profile = getCheckUpInstructionProfile(
+    protocolIdForMovementProfileV2Stage(stage, firstBatteryMovement)
+  );
   if (!profile) return null;
   if (profile.protocolId === ONE_LEG_BALANCE_V2_ID && priorStandingLeg !== null) {
     return retestBalanceInstructionProfile(profile, priorStandingLeg);
@@ -178,11 +182,14 @@ export function movementProfileV2InstructionCueIdsForStage(input: {
   readonly selectedShoulder?: BodySide;
   readonly priorStandingLeg?: BodySide | null;
   readonly repeatedAttempt?: boolean;
+  /** The battery's first item — the frame check borrows ITS intro for Help. */
+  readonly firstBatteryMovement?: MovementProfileV2BatteryMovement;
 }): VoiceCueKey[] {
   const profile = movementProfileV2InstructionProfileForStage(
     input.stage,
     input.selectedShoulder ?? 'right',
-    input.priorStandingLeg ?? null
+    input.priorStandingLeg ?? null,
+    input.firstBatteryMovement ?? 'chair'
   );
   if (!profile) return [];
   return instructionCueIds(input.repeatedAttempt ? profile.repeat : profile.help);
@@ -191,17 +198,36 @@ export function movementProfileV2InstructionCueIdsForStage(input: {
 export function movementProfileV2InstructionTextForStage(
   stage: MovementProfileV2LiveStage,
   selectedShoulder: BodySide = 'right',
-  priorStandingLeg: BodySide | null = null
+  priorStandingLeg: BodySide | null = null,
+  firstBatteryMovement: MovementProfileV2BatteryMovement = 'chair'
 ): string | null {
-  const profile = movementProfileV2InstructionProfileForStage(stage, selectedShoulder, priorStandingLeg);
+  const profile = movementProfileV2InstructionProfileForStage(
+    stage,
+    selectedShoulder,
+    priorStandingLeg,
+    firstBatteryMovement
+  );
   return profile ? visibleInstructionText(profile) : null;
 }
 
-export function protocolIdForMovementProfileV2Stage(stage: MovementProfileV2LiveStage): string {
+const BATTERY_MOVEMENT_PROTOCOL_ID: Record<MovementProfileV2BatteryMovement, string> = {
+  chair: CHAIR_RISE_V2_ID,
+  balance: ONE_LEG_BALANCE_V2_ID,
+  shoulder: ACTIVE_SHOULDER_REACH_V2_ID,
+  hinge: HINGE_REACH_ID,
+};
+
+export function protocolIdForMovementProfileV2Stage(
+  stage: MovementProfileV2LiveStage,
+  firstBatteryMovement: MovementProfileV2BatteryMovement = 'chair'
+): string {
   switch (stage) {
-    // The standing frame check precedes the chair item; its Help content is
-    // the chair intro, which opens with the framing directions.
+    // The standing frame check precedes the battery's FIRST item (the chair
+    // in the default battery, balance in the hosted two-movement check-up);
+    // its Help content is that item's intro, which opens with the framing
+    // directions the frame check needs.
     case 'standing_frame_check':
+      return BATTERY_MOVEMENT_PROTOCOL_ID[firstBatteryMovement];
     case 'chair_setup':
     case 'chair_practice':
     case 'chair_countdown':

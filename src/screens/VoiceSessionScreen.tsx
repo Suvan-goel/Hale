@@ -57,6 +57,7 @@ interface Snapshot {
   remainingSec: number;
   tapPromptHighlighted: boolean;
   stopRequested: boolean;
+  bonusOfferPending: boolean;
 }
 
 function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
@@ -67,7 +68,8 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.totalSets === b.totalSets &&
     a.remainingSec === b.remainingSec &&
     a.tapPromptHighlighted === b.tapPromptHighlighted &&
-    a.stopRequested === b.stopRequested
+    a.stopRequested === b.stopRequested &&
+    a.bonusOfferPending === b.bonusOfferPending
   );
 }
 
@@ -82,6 +84,8 @@ export function VoiceSessionScreen({
   generatedExercises,
   resolveExercise,
   resolveSafetyProfile,
+  bonusSetOffer,
+  doseLabelForExercise,
   firstSessionStarted,
   userId,
   voiceSetup,
@@ -100,6 +104,10 @@ export function VoiceSessionScreen({
   /** Injectable catalogue seams (programme v2 bridge); defaults = registry. */
   resolveExercise?: (exerciseId: string) => ReturnType<typeof getExercise>;
   resolveSafetyProfile?: VoiceSessionControllerOptions['resolveSafetyProfile'];
+  /** Once-per-item bonus-set offer (programme v2 bridge). */
+  bonusSetOffer?: VoiceSessionControllerOptions['bonusSetOffer'];
+  /** Plain-language per-set target ("10 reps", "30 seconds each side"). */
+  doseLabelForExercise?: (exerciseId: string) => string | null;
   /** Activation stamp for the funnel record (programme v2 first session). */
   firstSessionStarted?: boolean;
   /** Auth-scoped local telemetry owner; null is the guest scope. */
@@ -119,6 +127,7 @@ export function VoiceSessionScreen({
         generatedExercises,
         resolveExercise,
         resolveSafetyProfile,
+        bonusSetOffer,
         firstSessionStarted,
         funnelStore: new SessionFunnelStore(
           isPreview ? createMemoryFs() : createExpoSessionFunnelFs({ userId })
@@ -141,6 +150,7 @@ export function VoiceSessionScreen({
     remainingSec: NaN,
     tapPromptHighlighted: false,
     stopRequested: false,
+    bonusOfferPending: false,
   });
   const [permission, setPermission] = React.useState<VoicePermissionResponse | null>(null);
   const [availability, setAvailability] = React.useState<OnDeviceAvailability | null>(null);
@@ -167,6 +177,7 @@ export function VoiceSessionScreen({
         remainingSec: Number.isFinite(u.remainingMs) ? Math.ceil(u.remainingMs / 1000) : NaN,
         tapPromptHighlighted: u.tapPromptHighlighted,
         stopRequested: u.stopRequested,
+        bonusOfferPending: u.bonusOfferPending,
       };
       setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
     }, TICK_MS);
@@ -241,6 +252,10 @@ export function VoiceSessionScreen({
       })()
     : null;
 
+  const doseLabel = snapshot.exerciseId
+    ? doseLabelForExercise?.(snapshot.exerciseId) ?? null
+    : null;
+
   const showSafetyLine =
     gate.kind === 'listen' && (gate.showSafetyLine || safetyLineShownThisSession.current);
   const wantsEndConfirm = confirmEnd || snapshot.stopRequested;
@@ -312,10 +327,27 @@ export function VoiceSessionScreen({
         ) : null}
 
         {showInstructionalDemo ? (
-          <ExerciseDemoGraphic
-            exerciseId={snapshot.exerciseId as string}
-            displayName={exerciseName as string}
-          />
+          <>
+            <ExerciseDemoGraphic
+              exerciseId={snapshot.exerciseId as string}
+              displayName={exerciseName as string}
+            />
+            {doseLabel ? (
+              <View
+                style={styles.doseRow}
+                accessible
+                accessibilityLabel={`Today: ${
+                  snapshot.totalSets > 1 ? `${snapshot.totalSets} sets of ${doseLabel}` : doseLabel
+                }`}
+              >
+                <Text style={styles.doseText}>
+                  {snapshot.totalSets > 1
+                    ? `${snapshot.totalSets} sets · ${doseLabel}`
+                    : doseLabel}
+                </Text>
+              </View>
+            ) : null}
+          </>
         ) : exerciseName || Number.isFinite(snapshot.remainingSec) ? (
           <View style={styles.stage}>
             {exerciseName ? (
@@ -323,7 +355,9 @@ export function VoiceSessionScreen({
                 <Text style={styles.exerciseName}>{exerciseName}</Text>
                 <Text style={styles.setLabel}>
                   {snapshot.totalSets > 0
-                    ? `Set ${Math.min(snapshot.setIndex + 1, snapshot.totalSets)} of ${snapshot.totalSets}`
+                    ? `Set ${Math.min(snapshot.setIndex + 1, snapshot.totalSets)} of ${snapshot.totalSets}${
+                        doseLabel ? ` · ${doseLabel}` : ''
+                      }`
                     : phaseLabel}
                 </Text>
               </>
@@ -379,25 +413,46 @@ export function VoiceSessionScreen({
         <View style={styles.controls}>
           {snapshot.phase === 'waiting_ready' ? (
             <PrimaryButton
-              style={styles.primaryAction}
+              style={[
+                styles.primaryAction,
+                snapshot.tapPromptHighlighted && styles.primaryActionHighlighted,
+              ]}
               title="I'm ready"
               onPress={() => controller.handleTap('ready', Date.now())}
             />
           ) : null}
           {snapshot.phase === 'set' ? (
             <PrimaryButton
-              style={styles.primaryAction}
+              style={[
+                styles.primaryAction,
+                snapshot.tapPromptHighlighted && styles.primaryActionHighlighted,
+              ]}
               title="Done"
               onPress={() => controller.handleTap('done', Date.now())}
             />
           ) : null}
           {snapshot.phase === 'rest' ? (
             <>
-              <PrimaryButton
-                style={styles.primaryAction}
-                title="Skip rest"
-                onPress={() => controller.handleTap('skip_rest', Date.now())}
-              />
+              {snapshot.bonusOfferPending ? (
+                <>
+                  <PrimaryButton
+                    style={styles.primaryAction}
+                    title="One bonus set"
+                    onPress={() => controller.handleTap('ready', Date.now())}
+                  />
+                  <SecondaryButton
+                    style={styles.secondaryAction}
+                    title="No thanks — move on"
+                    onPress={() => controller.handleTap('skip_rest', Date.now())}
+                  />
+                </>
+              ) : (
+                <PrimaryButton
+                  style={styles.primaryAction}
+                  title="Skip rest"
+                  onPress={() => controller.handleTap('skip_rest', Date.now())}
+                />
+              )}
               <View style={styles.adjustPanel}>
                 <View style={styles.adjustCopy}>
                   <Text style={styles.adjustEyebrow}>ADJUST LAST SET</Text>
@@ -694,6 +749,27 @@ const styles = StyleSheet.create({
   primaryAction: {
     minHeight: 58,
     borderRadius: radius.pill,
+  },
+  // Gentle emphasis after the spoken re-prompt: a warm-gold ring, never a
+  // colour change or motion — the button was always there; we just point.
+  primaryActionHighlighted: {
+    borderWidth: 1.5,
+    borderColor: colors.accentGold,
+    ...shadow.soft,
+  },
+  doseRow: {
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+  },
+  doseText: {
+    ...type.cardCaption,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    letterSpacing: 1.3,
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   secondaryAction: {
     minHeight: 52,

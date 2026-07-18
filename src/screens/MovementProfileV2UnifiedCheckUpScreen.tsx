@@ -358,7 +358,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
   /** Leaving mid-battery discards completed tests; confirm unless there is
    * nothing to lose (nothing measured yet at a pre-measurement stage — frame
-   * check or any first setup, whichever movement the sequence starts with).
+   * check, any first setup, or balance_ready before any valid hold exists).
    * With a COMPLETED battery, back exits FORWARD through onComplete: the
    * measurements exist, so leaving must apply them (placement + results),
    * never silently skip them because the outro was still speaking. */
@@ -369,7 +369,11 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       return;
     }
     const atPreMeasurementStage =
-      snapshot.stage === 'standing_frame_check' || snapshot.stage.endsWith('_setup');
+      snapshot.stage === 'standing_frame_check' ||
+      snapshot.stage.endsWith('_setup') ||
+      (snapshot.stage === 'balance_ready' &&
+        snapshot.balanceValidTrials === 0 &&
+        snapshot.balanceBestHoldSec === null);
     if (atPreMeasurementStage && snapshot.flow.items.length === 0) {
       onCancel();
       return;
@@ -1020,7 +1024,15 @@ function movementProfileV2ShellNotice({
     return { text: 'Side change affects comparison', action: null };
   }
   return {
-    text: movementProfileV2InstructionTextForStage(live.stage, selectedShoulder) ?? 'Follow the voice guidance',
+    text:
+      movementProfileV2InstructionTextForStage(
+        live.stage,
+        selectedShoulder,
+        null,
+        // The frame check shows the FIRST item's setup guidance — balance in
+        // the hosted balance-first battery, not the default chair assumption.
+        movementProfileV2FlowBatterySequence(live.flow)[0]
+      ) ?? 'Follow the voice guidance',
     action: 'help',
   };
 }

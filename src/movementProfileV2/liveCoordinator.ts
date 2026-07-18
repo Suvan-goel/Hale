@@ -58,6 +58,14 @@ export const BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES = 4;
  * trial clock is retro-dated to the first lift frame so no hold time is lost). */
 export const BALANCE_LIFT_CONFIRM_MS = 150;
 const ACTIVE_TRACKING_LOSS_CONFIRM_FRAMES = 4;
+/** Consecutive good frames before a recovery episode may claim the user is
+ * visible again — "Good, I can see you again" must be TRUE when spoken. */
+const RECOVERY_STABLE_CONFIRM_FRAMES = 4;
+/** Once the recovery instruction has been spoken, how long to wait for
+ * re-detection before continuing WITHOUT the recovered claim. Liveness bound:
+ * a user the camera cannot re-acquire (dim room, odd angle) must still reach
+ * the item's own bounded-retry/partial-result machinery, not wait forever. */
+const RECOVERY_STABLE_TIMEOUT_MS = 10000;
 const BALANCE_LIFT_BU = 0.14;
 const CHAIR_MAX_REPS = 64;
 /** Bounded tracking-loss restarts: after this many full restarts of an item,
@@ -108,6 +116,11 @@ export interface Mpv2RecoveryEpisode {
     MovementProfileV2CueId,
     'mpv2_balance_tracking_retry' | 'mpv2_shoulder_tracking_retry'
   > | null;
+  /** How the episode reached stable_ready: 'tracking_confirmed' means the
+   * camera actually re-acquired the user (the recovered claim may be spoken);
+   * 'timeout' means the flow continued unverified (the claim must NOT be
+   * spoken). Null until the episode leaves attempt_invalidated. */
+  stablePromotion: 'tracking_confirmed' | 'timeout' | null;
   duplicateLossEvents: number;
   precedence: 'terminal_event_before_loss' | 'loss_before_terminal_event';
 }
@@ -171,6 +184,7 @@ export type MovementProfileV2LiveUserAction =
   | { type: 'start_hinge_capture' }
   | { type: 'hinge_setup_voice_completed' }
   | { type: 'finish_hinge_capture' }
+  | { type: 'recovery_instruction_voice_completed'; recoveryId: string }
   | { type: 'recovery_voice_completed'; recoveryId: string }
   | { type: 'backgrounded' }
   | { type: 'resumed' };
@@ -409,6 +423,8 @@ export class MovementProfileV2LiveCoordinator {
   private diagnostics: MutableDiagnostics = createMutableDiagnostics();
   private recoveryCounter = 0;
   private activeRecoveryEpisode: Mpv2RecoveryEpisode | null = null;
+  private recoveryInstructionCompletedAtMs: number | null = null;
+  private recoveryStableGoodFrames = 0;
   private readonly handsFreeMode: boolean;
   private readonly handsFreeSetupDwellMs: number;
   private readonly handsFreeFallbackTimeoutMs: number;
@@ -728,6 +744,16 @@ export class MovementProfileV2LiveCoordinator {
         if (this.stage !== 'hinge_active') return false;
         this.finishHinge(nowMs, 'user_stopped');
         break;
+      case 'recovery_instruction_voice_completed':
+        // The loss + re-instruction lines have been spoken. The recovered
+        // claim now waits on actual re-detection (or the liveness timeout).
+        if (!this.activeRecoveryEpisode || this.activeRecoveryEpisode.id !== action.recoveryId) return false;
+        if (this.activeRecoveryEpisode.phase !== 'attempt_invalidated') return false;
+        this.recoveryInstructionCompletedAtMs = nowMs;
+        this.activeRecoveryEpisode = { ...this.activeRecoveryEpisode, updatedAtMs: nowMs };
+        this.maybePromoteRecoveryToStable(nowMs);
+        this.bump();
+        break;
       case 'recovery_voice_completed':
         if (!this.activeRecoveryEpisode || this.activeRecoveryEpisode.id !== action.recoveryId) return false;
         this.activeRecoveryEpisode = {
@@ -753,6 +779,7 @@ export class MovementProfileV2LiveCoordinator {
     }
     return before !== this.stage ||
       isVoiceBoundaryAction(action) ||
+      action.type === 'recovery_instruction_voice_completed' ||
       action.type === 'recovery_voice_completed' ||
       action.type === 'shoulder_pain_limited' ||
       action.type === 'backgrounded' ||
@@ -762,6 +789,7 @@ export class MovementProfileV2LiveCoordinator {
   receiveTimerTick(nowMs: number): boolean {
     const before = this.revision;
     this.updateHandsFreeWaiting(nowMs);
+    this.maybePromoteRecoveryToStable(nowMs);
     if (this.stage === 'chair_active' && this.chairActiveStartedAtMs !== null) {
       const deadline = this.chairActiveStartedAtMs + DEFAULT_CHAIR_RISE_V2_CONFIG.activeWindowMs;
       if (nowMs >= deadline) {
@@ -813,6 +841,11 @@ export class MovementProfileV2LiveCoordinator {
     else if (sample.trackingQuality === 'uncertain') this.diagnostics.trackingUncertainFrames++;
     else this.diagnostics.trackingLostFrames++;
     this.lastTrackingQuality = sample.trackingQuality;
+    if (this.activeRecoveryEpisode?.phase === 'attempt_invalidated') {
+      this.recoveryStableGoodFrames =
+        sample.trackingQuality === 'good' ? this.recoveryStableGoodFrames + 1 : 0;
+      this.maybePromoteRecoveryToStable(nowMs);
+    }
     // Capture the session's body-unit scale into the flow so the saved
     // CheckUp carries it (comparability metadata; V2 previously stored null).
     if (this.flow.bodyUnit === null && sample.output.bodyUnit !== null) {
@@ -1466,13 +1499,37 @@ export class MovementProfileV2LiveCoordinator {
       partialAttemptInvalidated: true,
       freshStartRequired: true,
       itemSpecificCue: input.itemSpecificCue,
+      stablePromotion: null,
       duplicateLossEvents: 0,
       precedence: 'loss_before_terminal_event',
     };
     this.activeRecoveryEpisode = episode;
+    this.recoveryInstructionCompletedAtMs = null;
+    this.recoveryStableGoodFrames = 0;
     this.diagnostics.recovery.episodeCount++;
     this.diagnostics.recovery.lastEpisodeId = episode.id;
     this.diagnostics.recovery.lastItem = episode.item;
+  }
+
+  /** The recovered claim ("Good, I can see you again") may only be spoken on
+   * evidence: promote once tracking is confirmed again — or, after a bounded
+   * wait past the spoken instruction, promote WITHOUT the claim so nobody is
+   * stranded off-camera (the voice runtime skips the recovered line then). */
+  private maybePromoteRecoveryToStable(nowMs: number): void {
+    const episode = this.activeRecoveryEpisode;
+    if (!episode || episode.phase !== 'attempt_invalidated') return;
+    if (this.recoveryInstructionCompletedAtMs === null) return;
+    const confirmed = this.recoveryStableGoodFrames >= RECOVERY_STABLE_CONFIRM_FRAMES;
+    if (!confirmed && nowMs - this.recoveryInstructionCompletedAtMs < RECOVERY_STABLE_TIMEOUT_MS) {
+      return;
+    }
+    this.activeRecoveryEpisode = {
+      ...episode,
+      phase: 'stable_ready',
+      stablePromotion: confirmed ? 'tracking_confirmed' : 'timeout',
+      updatedAtMs: nowMs,
+    };
+    this.bump();
   }
 
   private passFrameCheck(nowMs: number, reason: string): void {
@@ -1571,15 +1628,14 @@ export class MovementProfileV2LiveCoordinator {
     }
     this.stage = to;
     // A recovery episode is resolved once measurement actually restarts (a
-    // fresh attempt enters an active stage), or once its voice has completed
-    // and the flow moves past the recovery target (rest over, countdown done).
-    // Without this the episode lingered for the rest of the check-up, pinning
-    // the guidance/notice in the "Tracking reset" state.
+    // fresh attempt enters an active stage), or once the flow moves past the
+    // recovery target (rest over, countdown done) — even when its voice never
+    // finished: the departed stage's pending recovery beat is stale, and the
+    // new stage's own guidance is the honest surface. Without this the
+    // episode lingered, pinning the notice in the "Tracking reset" state.
     if (
       this.activeRecoveryEpisode &&
-      (isActiveMeasurementStage(to) ||
-        (this.activeRecoveryEpisode.phase === 'voice_completed' &&
-          to !== this.activeRecoveryEpisode.targetStage))
+      (isActiveMeasurementStage(to) || to !== this.activeRecoveryEpisode.targetStage)
     ) {
       this.activeRecoveryEpisode = null;
     }
