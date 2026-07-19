@@ -6782,3 +6782,28 @@ conscious ruling.
   `movementProfileV2ProgressViewModel` or root props. Guardrail test
   `ProgressAndManualRestoration.test.ts` updated to the new invariants.
 
+## 2026-07-19 — Session controls visual pass: safety pulled out, utilities become buttons
+
+- The visual pass the 2026-07-18 correctness entry left pending. Problem: the
+  "Other controls" panel was flat borderless text rows — hard to parse at
+  arm's length mid-movement — and **"Something hurts", the safety-relevant
+  control, was distinguished only by burgundy text colour, buried mid-list.**
+  Glanceability beats editorial calm in this one context.
+- **"Something hurts" is pulled out of the utility grid** into its own
+  full-width card directly under the primary action — the same position in
+  every phase, so finding it never requires searching. It wears the screen's
+  existing warm safety language (soft-gold `cautionSoft` fill, caution border,
+  gold marker dot) — supportive, never alarm-red, matching what the tap does:
+  stop the set, record the pain event, speak the acknowledgement, move on.
+- **Utilities (Pause / Repeat instructions / Skip exercise) become bordered
+  buttons in a two-column grid**, with Leave session full-width beneath in its
+  quiet tone; the panel's hairline frame is dropped (boxed buttons no longer
+  need it). Pressed states align with the app-wide idiom (opacity + slight
+  scale).
+- **No behavioural change**: every `handleTap` intent, phase condition, and
+  copy string is unchanged; the all-controls-visible / no-disclosure-menus
+  ruling and full tap parity are upheld (wiring test extended to pin the
+  safety control's position outside/above the grid and the bordered grid
+  buttons). `SessionControlButton` keeps its name; its `tone` now selects the
+  container, not just text colour.
+

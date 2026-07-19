@@ -74,6 +74,18 @@ describe('VoiceSessionScreen side-contract wiring', () => {
     expect(screenSource).not.toContain('accessibilityState={{ expanded: open }}');
   });
 
+  it('pulls the safety control out above the utility grid (2026-07-19 visual pass)', () => {
+    // "Something hurts" holds one position under the primary action in every
+    // phase — before (outside) the "Other controls" grid in source order —
+    // and utilities are bordered buttons, not flat text rows.
+    expect(screenSource.indexOf('title="Something hurts"')).toBeLessThan(
+      screenSource.indexOf('Other controls')
+    );
+    expect(screenSource).toContain('tone="safety"');
+    expect(screenSource).toContain('safetyControl');
+    expect(screenSource).toContain('controlGridButton');
+  });
+
   it('bonus-set offer has tap parity in the offer rest (2026-07-16 reversal of 2026-07-11)', () => {
     // The offer window replaces "Skip rest" with an explicit accept/decline
     // pair — voice "I'm ready" and the button run the same controller path.

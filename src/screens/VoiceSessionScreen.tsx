@@ -15,7 +15,16 @@
  */
 
 import * as React from 'react';
-import { AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  AppState,
+  Modal,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from 'react-native';
 
 import {
   ExpoVoiceCommandsModule,
@@ -292,6 +301,12 @@ export function VoiceSessionScreen({
   const showSafetyLine =
     gate.kind === 'listen' && (gate.showSafetyLine || safetyLineShownThisSession.current);
   const wantsEndConfirm = confirmEnd || snapshot.stopRequested;
+  // One condition for both the pulled-out safety control and the utility
+  // grid: any active exercise, in every phase until the session closes.
+  const showSessionControls =
+    !!snapshot.exerciseId &&
+    snapshot.phase !== 'complete' &&
+    snapshot.phase !== 'done';
   const showInstructionalDemo =
     !!snapshot.exerciseId &&
     !!exerciseName &&
@@ -501,6 +516,24 @@ export function VoiceSessionScreen({
               )}
             </>
           ) : null}
+          {snapshot.phase === 'voice_paused' ? (
+            <PrimaryButton
+              style={styles.primaryAction}
+              title="Resume"
+              onPress={() => controller.handleTap('resume', Date.now())}
+            />
+          ) : null}
+          {showSessionControls ? (
+            // Safety sits out of the utility grid: one warm full-width control
+            // in the same position through every phase, so "where do I press
+            // if it hurts" never needs searching mid-movement.
+            <SessionControlButton
+              title="Something hurts"
+              detail="Stop this movement"
+              tone="safety"
+              onPress={() => controller.handleTap('pain', Date.now())}
+            />
+          ) : null}
           {snapshot.repAdjustAvailable ? (
             // Rendered exactly when the player's ±rep window is open: rep-set
             // rests, plus the post-final-set moment until the next exercise
@@ -524,16 +557,7 @@ export function VoiceSessionScreen({
               </View>
             </View>
           ) : null}
-          {snapshot.phase === 'voice_paused' ? (
-            <PrimaryButton
-              style={styles.primaryAction}
-              title="Resume"
-              onPress={() => controller.handleTap('resume', Date.now())}
-            />
-          ) : null}
-          {snapshot.exerciseId &&
-          snapshot.phase !== 'complete' &&
-          snapshot.phase !== 'done' ? (
+          {showSessionControls ? (
             <View style={styles.controlPanel}>
               <Text style={styles.controlPanelLabel}>Other controls</Text>
               <View style={styles.controlGrid}>
@@ -541,6 +565,7 @@ export function VoiceSessionScreen({
                   <SessionControlButton
                     title="Pause"
                     detail="Take a moment"
+                    style={styles.controlGridItem}
                     onPress={() => controller.handleTap('pause', Date.now())}
                   />
                 ) : null}
@@ -548,33 +573,29 @@ export function VoiceSessionScreen({
                   <SessionControlButton
                     title="Repeat instructions"
                     detail="Hear Clara again"
+                    style={styles.controlGridItem}
                     onPress={() => controller.handleTap('repeat', Date.now())}
                   />
                 ) : null}
                 <SessionControlButton
                   title="Skip exercise"
                   detail="Move to the next one"
+                  style={styles.controlGridItem}
                   onPress={() => controller.handleTap('skip', Date.now())}
                 />
-                <SessionControlButton
-                  title="Something hurts"
-                  detail="Stop this movement"
-                  tone="safety"
-                  onPress={() => controller.handleTap('pain', Date.now())}
-                />
-                <SessionControlButton
-                  title={
-                    isPreview
-                      ? 'Leave preview'
-                      : snapshot.phase === 'voice_paused'
-                        ? 'End session'
-                        : 'Leave session'
-                  }
-                  detail={isPreview ? 'Nothing will be saved' : 'Finished work is saved'}
-                  tone="quiet"
-                  onPress={() => setConfirmEnd(true)}
-                />
               </View>
+              <SessionControlButton
+                title={
+                  isPreview
+                    ? 'Leave preview'
+                    : snapshot.phase === 'voice_paused'
+                      ? 'End session'
+                      : 'Leave session'
+                }
+                detail={isPreview ? 'Nothing will be saved' : 'Finished work is saved'}
+                tone="quiet"
+                onPress={() => setConfirmEnd(true)}
+              />
             </View>
           ) : null}
         </View>
@@ -656,39 +677,55 @@ function SessionProgress({
   );
 }
 
+// The tone decides the whole container, not just the text colour (2026-07-19
+// visual pass): `safety` is the pulled-out warm-gold card that holds one
+// position through every phase; `default`/`quiet` are bordered grid buttons
+// that read as buttons at arm's length — flat text rows tested too subtle
+// mid-movement for the 50+ audience.
 function SessionControlButton({
   title,
   detail,
   tone = 'default',
+  style,
   onPress,
 }: {
   title: string;
   detail: string;
   tone?: 'default' | 'safety' | 'quiet';
+  style?: StyleProp<ViewStyle>;
   onPress: () => void;
 }) {
+  if (tone === 'safety') {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}. ${detail}`}
+        style={({ pressed }) => [styles.safetyControl, pressed && styles.controlPressed, style]}
+      >
+        <View style={styles.safetyControlMarker} />
+        <View style={styles.safetyControlCopy}>
+          <Text style={styles.safetyControlTitle}>{title}</Text>
+          <Text style={styles.controlDetail}>{detail}</Text>
+        </View>
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${detail}`}
       style={({ pressed }) => [
-        styles.controlTile,
+        styles.controlGridButton,
         pressed && styles.controlPressed,
+        style,
       ]}
     >
-      <View style={styles.controlTileCopy}>
-        <Text
-          style={[
-            styles.controlTileTitle,
-            tone === 'safety' && styles.controlTileTitleSafety,
-            tone === 'quiet' && styles.controlTileTitleQuiet,
-          ]}
-        >
-          {title}
-        </Text>
-        <Text style={styles.controlTileDetail}>{detail}</Text>
-      </View>
+      <Text style={[styles.controlGridTitle, tone === 'quiet' && styles.controlTitleQuiet]}>
+        {title}
+      </Text>
+      <Text style={[styles.controlDetail, styles.controlDetailCentered]}>{detail}</Text>
     </Pressable>
   );
 }
@@ -942,10 +979,35 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingTop: spacing.sm,
   },
+  // The pulled-out safety control: the screen's warm safety language (soft
+  // gold, like the mic safety line) — supportive and findable, never alarm-red.
+  safetyControl: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.button,
+    backgroundColor: colors.cautionSoft,
+    borderWidth: 1,
+    borderColor: colors.cautionBorder,
+  },
+  safetyControlMarker: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accentGold,
+  },
+  safetyControlCopy: { flex: 1, minWidth: 0, gap: 2 },
+  safetyControlTitle: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.textPrimary,
+  },
   controlPanel: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
+    gap: spacing.sm,
   },
   controlPanelLabel: {
     ...type.cardCaption,
@@ -955,34 +1017,46 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     letterSpacing: 1.3,
     textTransform: 'uppercase',
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   controlGrid: {
-    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
-  controlTile: {
-    width: '100%',
-    minHeight: 70,
+  controlGridItem: {
+    flexGrow: 1,
+    flexBasis: '45%',
+  },
+  controlGridButton: {
+    minHeight: 64,
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
+    borderRadius: radius.button,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  controlTileCopy: { gap: 2 },
-  controlTileTitle: {
+  controlGridTitle: {
     ...type.bodySmall,
     fontFamily: fonts.sansMedium,
     color: colors.textPrimary,
+    textAlign: 'center',
   },
-  controlTileTitleSafety: { color: colors.accentDeep },
-  controlTileTitleQuiet: { color: colors.textMuted },
-  controlTileDetail: {
+  controlTitleQuiet: { color: colors.textMuted },
+  controlDetail: {
     ...type.caption,
     color: colors.textSecondary,
   },
+  controlDetailCentered: {
+    textAlign: 'center',
+  },
   controlPressed: {
-    opacity: 0.62,
+    opacity: 0.86,
+    transform: [{ scale: 0.99 }],
   },
   adjustPanel: {
     gap: spacing.md,
