@@ -1,10 +1,13 @@
 import { supabase } from '../../../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
-import { Linking } from 'react-native';
+import * as Crypto from 'expo-crypto';
+import { Linking, Platform } from 'react-native';
 import { ensureCurrentProfile } from '../profileService';
 import {
   clearLocalSession,
+  signInWithApple,
   signInWithEmail,
   signUpWithEmail,
   subscribeToAuthDeepLinks,
@@ -25,6 +28,12 @@ jest.mock('expo-apple-authentication', () => ({
   signInAsync: jest.fn(),
 }));
 
+jest.mock('expo-crypto', () => ({
+  CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
+  getRandomBytesAsync: jest.fn(),
+  digestStringAsync: jest.fn(),
+}));
+
 jest.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: jest.fn(),
   openAuthSessionAsync: jest.fn(),
@@ -43,6 +52,7 @@ jest.mock('../../../lib/supabase', () => ({
     auth: {
       signUp: jest.fn(),
       signInWithPassword: jest.fn(),
+      signInWithIdToken: jest.fn(),
       updateUser: jest.fn(),
       getSession: jest.fn(),
       getUser: jest.fn(),
@@ -223,5 +233,68 @@ describe('auth session/profile separation', () => {
       expect.objectContaining({ isSignedIn: true, isPasswordRecovery: true })
     );
     unsubscribe();
+  });
+});
+
+describe('Apple sign-in replay protection', () => {
+  const mockIsAvailableAsync = jest.mocked(AppleAuthentication.isAvailableAsync);
+  const mockAppleSignInAsync = jest.mocked(AppleAuthentication.signInAsync);
+  const mockGetRandomBytesAsync = jest.mocked(Crypto.getRandomBytesAsync);
+  const mockDigestStringAsync = jest.mocked(Crypto.digestStringAsync);
+  const mockSignInWithIdToken = jest.mocked(supabase.auth.signInWithIdToken);
+
+  // 32 bytes of 0xab → rawNonce, 16 bytes of 0xcd → state.
+  const RAW_NONCE_HEX = 'ab'.repeat(32);
+  const STATE_HEX = 'cd'.repeat(16);
+  const HASHED_NONCE = 'sha256-of-raw-nonce';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Platform.OS = 'ios';
+    mockIsAvailableAsync.mockResolvedValue(true);
+    mockGetRandomBytesAsync
+      .mockResolvedValueOnce(new Uint8Array(32).fill(0xab))
+      .mockResolvedValueOnce(new Uint8Array(16).fill(0xcd));
+    mockDigestStringAsync.mockResolvedValue(HASHED_NONCE);
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('binds the attempt with a hashed nonce to Apple and the raw nonce to Supabase', async () => {
+    const { session, user } = authFixture();
+    mockAppleSignInAsync.mockResolvedValue({
+      identityToken: 'apple-identity-token',
+      state: STATE_HEX,
+      fullName: null,
+    } as never);
+    mockSignInWithIdToken.mockResolvedValue({
+      data: { session, user },
+      error: null,
+    } as never);
+
+    await expect(signInWithApple()).resolves.toMatchObject({ isSignedIn: true, session });
+
+    expect(mockDigestStringAsync).toHaveBeenCalledWith('SHA-256', RAW_NONCE_HEX);
+    expect(mockAppleSignInAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ nonce: HASHED_NONCE, state: STATE_HEX })
+    );
+    expect(mockSignInWithIdToken).toHaveBeenCalledWith({
+      provider: 'apple',
+      token: 'apple-identity-token',
+      nonce: RAW_NONCE_HEX,
+    });
+  });
+
+  it('rejects a credential whose state does not answer this request', async () => {
+    mockAppleSignInAsync.mockResolvedValue({
+      identityToken: 'apple-identity-token',
+      state: 'some-other-request-state',
+      fullName: null,
+    } as never);
+
+    await expect(signInWithApple()).rejects.toThrow(
+      'Apple sign-in returned a credential for a different request. Try again.'
+    );
+    expect(mockSignInWithIdToken).not.toHaveBeenCalled();
   });
 });

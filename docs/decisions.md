@@ -6807,3 +6807,72 @@ conscious ruling.
   buttons). `SessionControlButton` keeps its name; its `tone` now selects the
   container, not just text colour.
 
+## 2026-07-19 — Online profiles enabled for dev; Apple sign-in gains per-attempt nonce/state replay protection
+
+**Context.** The optional Supabase account surface (auth screens, provider,
+owner-only profile sync, guest adoption, self-service deletion) was fully
+built and tested but rollout-disabled. The one remaining client-side code gap
+was the deliberate Apple sign-in gate: the native ID-token flow shipped
+without cryptographic nonce/state binding, so the release audit rejects
+`EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=1`.
+
+**Decision.**
+- `EXPO_PUBLIC_ENABLE_ONLINE_PROFILES=1` in the local `.env` (development
+  builds). Beta/release builds keep it off until the Supabase environment
+  checklist in `docs/auth-supabase-setup.md` is verified and an HTTPS privacy
+  policy URL exists (the `app.config.js` audit enforces both).
+- `signInWithApple` now generates per-attempt replay guards with `expo-crypto`
+  (already autolinked transitively via `expo-auth-session`; now a direct
+  dependency): a 32-byte raw nonce whose SHA-256 hash is sent to Apple and
+  embedded in the identity token's nonce claim, the raw nonce sent to
+  `signInWithIdToken` for Supabase-side verification, and a 16-byte state
+  value that the returned credential must echo or the credential is rejected
+  before any Supabase call. A captured identity token can no longer be
+  replayed against Supabase from a different attempt.
+- The Apple release-flag gate stays in place: the remaining preconditions are
+  Supabase Apple provider + Apple Developer App ID configuration and a
+  real-device replay test, not client code.
+
+**Tests.** `authService.test.ts` gains a hashed-nonce/raw-nonce/state binding
+test and a state-mismatch rejection test.
+
+## 2026-07-19 — Balance focus block moves to fresh legs; abandoned first session keeps the minimum dose
+
+**Context.** A full read-through of the training-session flow surfaced two
+ordering/routing accidents. (1) The phase's Balance focus hold — prescribed
+exactly when the check-up measured balance as the weak domain — was appended
+AFTER all five strength patterns, so the highest-fall-risk users performed
+their single-leg/tandem work on the most fatigued legs of the session.
+(2) The 15-minute `first_session` preset was keyed on the
+`firstSessionStarted` activation stamp (written at session START), so a
+started-then-abandoned first session silently promoted her next attempt to
+the full 25-minute plan she had never once completed. The live shell had also
+inlined a duplicate of the A/B + preset rule that `nextProgrammeSessionInput`
+was extracted to own, leaving the Home card's promised duration free to drift
+from the generated session.
+
+**Decision.**
+- `voiceSessionInputsFromPlan` now orders sessions warm-up → Balance focus
+  (when prescribed) → main → finisher. Fresh-state balance practice is better
+  motor learning and safer sequencing, and an early slot means a partial
+  session still banks the phase's promised emphasis. Everything downstream
+  (results mapping, resume filtering, snapshot disposition, dose labels) is
+  id-keyed, so only the bridge's two arrays changed.
+- `nextProgrammeSessionInput` keys the preset on
+  `completedSessionCount === 0`, not `firstSessionStarted`. Partial credit
+  never increments the counter, so she retries the gentle dose until one
+  session is actually completed. `firstSessionStarted` remains the activation
+  stamp only (Q4 conformance unchanged: written at start).
+- `ProgrammeV2Root.startSessionFromHome` now calls
+  `nextProgrammeSessionInput` instead of duplicating it, restoring the
+  one-owner rule shared with the Today preview.
+
+**Boundaries.** No change to plan generation, trim priorities, doses, voice
+lines, or the player's phase machine. The chained first-session paths
+(onboarding CTA, post-baseline) already hardcode `first_session` and are
+untouched.
+
+**Tests.** `voiceSession.test.ts` ordering assertion updated to the new
+sequence; `appLifecycle.test.ts` gains an abandoned-first-session pin
+(started, nothing completed → still `first_session`). Full suite green
+(193 suites / 1758 tests).

@@ -1,6 +1,7 @@
 import { makeRedirectUri } from 'expo-auth-session';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform } from 'react-native';
@@ -193,6 +194,40 @@ function isAppleCancel(error: unknown): boolean {
     'code' in error &&
     String((error as { code?: unknown }).code) === 'ERR_REQUEST_CANCELED'
   );
+}
+
+interface AppleReplayGuards {
+  /** Sent to Supabase, which SHA-256-hashes it and compares against the token's nonce claim. */
+  rawNonce: string;
+  /** Sent to Apple; embedded verbatim as the identity token's nonce claim. */
+  hashedNonce: string;
+  /** Echoed back unmodified by Apple; must match or the credential is rejected. */
+  state: string;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  let hex = '';
+  for (const byte of bytes) {
+    hex += byte.toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+// Per-attempt replay protection for the native Apple ID-token flow: a fresh
+// cryptographic nonce binds the returned identity token to this sign-in
+// attempt (Supabase verifies SHA256(rawNonce) against the token's nonce
+// claim), and a fresh state value confirms the credential answers this
+// request. A captured identity token cannot be replayed against Supabase
+// because its nonce claim will not match any future attempt's nonce.
+async function createAppleReplayGuards(): Promise<AppleReplayGuards> {
+  const rawNonce = bytesToHex(await Crypto.getRandomBytesAsync(32));
+  const state = bytesToHex(await Crypto.getRandomBytesAsync(16));
+  const hashedNonce = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    rawNonce
+  );
+
+  return { rawNonce, hashedNonce, state };
 }
 
 function appleFullName(fullName: AppleAuthentication.AppleAuthenticationFullName | null): string | undefined {
@@ -426,21 +461,33 @@ export async function signInWithApple(): Promise<AuthState> {
   }
 
   try {
+    const guards = await createAppleReplayGuards();
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
         AppleAuthentication.AppleAuthenticationScope.EMAIL,
       ],
+      nonce: guards.hashedNonce,
+      state: guards.state,
     });
+
+    if (credential.state !== guards.state) {
+      throw new Error(
+        'Apple sign-in returned a credential for a different request. Try again.'
+      );
+    }
 
     if (!credential.identityToken) {
       throw new Error('Apple sign-in did not return an identity token.');
     }
 
-    // TODO(supabase-auth): Enable Apple in Supabase Auth and configure the Apple app identifiers.
+    // Requires the Supabase Apple provider to list this bundle id as an
+    // authorized client id (docs/auth-supabase-setup.md). Supabase validates
+    // the token audience and the nonce claim against rawNonce.
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: credential.identityToken,
+      nonce: guards.rawNonce,
     });
 
     if (error) throw error;

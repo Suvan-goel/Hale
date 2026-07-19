@@ -94,9 +94,13 @@ on they additionally require an HTTPS privacy-policy URL. Keep it `0` until the
 migration, function, providers, email delivery, policy, and deletion page have
 all been verified in the target Supabase environment.
 
-Keep `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=0`. The release config rejects Apple
-sign-in until a separate approved change adds per-attempt cryptographic nonce
-and state validation across Expo and Supabase, with real-device replay tests.
+Keep `EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN=0` in tester/release builds. The
+client now implements per-attempt cryptographic nonce and state validation
+(2026-07-19: raw nonce → Supabase, SHA-256 hash → Apple, state echo checked
+before any Supabase call). The release config still rejects the flag until
+the Supabase Apple provider and Apple Developer App ID are configured and the
+flow passes a real-device replay test; enable it in a development build for
+that test.
 
 Keeping the existing Supabase project is fine — the `profiles` schema is
 brand-agnostic, so existing accounts keep working and
