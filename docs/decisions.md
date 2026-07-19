@@ -6741,43 +6741,44 @@ conscious ruling.
   punishment. The "everything you've finished is saved" promise refers to
   completed items on the leave path, which is true.
 
-## 2026-07-19 — Balance focus block moves to fresh legs; abandoned first session keeps the minimum dose
+## 2026-07-18 — Progress redesign: journey cue, honest trend, empty-state Start action
 
-**Context.** A full read-through of the training-session flow surfaced two
-ordering/routing accidents. (1) The phase's Balance focus hold — prescribed
-exactly when the check-up measured balance as the weak domain — was appended
-AFTER all five strength patterns, so the highest-fall-risk users performed
-their single-leg/tandem work on the most fatigued legs of the session.
-(2) The 15-minute `first_session` preset was keyed on the
-`firstSessionStarted` activation stamp (written at session START), so a
-started-then-abandoned first session silently promoted her next attempt to
-the full 25-minute plan she had never once completed. The live shell had also
-inlined a duplicate of the A/B + preset rule that `nextProgrammeSessionInput`
-was extracted to own, leaving the Home card's promised duration free to drift
-from the generated session.
+- **Empty state gains a direct Start action (reverses the 2026-07-10 "Home owns
+  the action" pin).** Before the first check-up, the no-profile state was
+  informational only, deferring to Home. It now offers a "Start Movement
+  Check-Up" primary button — wired to the same `goAssessment` handler Home
+  uses, so there is no second code path or cadence risk, just a closer door
+  from the tab a user often opens first. Home remains a start point too; it is
+  no longer the *only* one. Everything else the 2026-07-10 entry pinned
+  (no second-check-up-CTA duplication of Plan's three-step explainer, no
+  restated camera privacy) stays removed.
+- **Checkpoint journey cue.** A quiet 4-segment track ("Movement Check-Ups ·
+  N of 4"), matching Plan's phase track, gives place across the 12 weeks so the
+  first month (when no comparison exists yet) reads as forward motion, not an
+  empty tab. It reports measurement cadence only; Plan still owns training-week
+  structure.
+- **"What's next" renders once.** When change is not yet comparable, the
+  readiness sentence now sits once on the cue instead of being printed as each
+  domain's delta line (it had appeared verbatim under both Strength and
+  Balance, even naming both under Balance).
+- **Change is a before→after dot timeline, not an auto-fit SVG line.** Across
+  the 12 weeks there are only ever 2–4 comparable measurements; the old filled
+  line chart used a `spread * 0.45` auto-fit y-scale, so the slope the eye read
+  did not match the real change — the least measurement-honest element on a
+  measurement-honesty screen. The magnitude now lives entirely in the numbers
+  ("18 → 21", "+3 rises") with an evenly spaced dot timeline connected by a
+  neutral hairline. Labels stay native Text (respect system font scaling; SVG
+  text does not). Each domain now leads with a single serif verdict — the
+  competing second big number (the separate "Current level" stat) is dropped in
+  the charted state and kept only for the single-point baseline.
+- **Clarity lightened; measured domains strengthened.** The only boxed element
+  on Progress had been the *subordinate* Everyday Clarity card, inverting the
+  visual weight. Clarity keeps its tinted container (it is a separate
+  observational track, Product Law 8) but sheds vertical padding, and the
+  domains lead. Low-affordance chevron-only disclosures (history, "what this is
+  based on") gain clearer pressed/chevron treatments without becoming heavy
+  cards.
+- Presentation-only: no change to
+  `movementProfileV2ProgressViewModel` or root props. Guardrail test
+  `ProgressAndManualRestoration.test.ts` updated to the new invariants.
 
-**Decision.**
-- `voiceSessionInputsFromPlan` now orders sessions warm-up → Balance focus
-  (when prescribed) → main → finisher. Fresh-state balance practice is better
-  motor learning and safer sequencing, and an early slot means a partial
-  session still banks the phase's promised emphasis. Everything downstream
-  (results mapping, resume filtering, snapshot disposition, dose labels) is
-  id-keyed, so only the bridge's two arrays changed.
-- `nextProgrammeSessionInput` keys the preset on
-  `completedSessionCount === 0`, not `firstSessionStarted`. Partial credit
-  never increments the counter, so she retries the gentle dose until one
-  session is actually completed. `firstSessionStarted` remains the activation
-  stamp only (Q4 conformance unchanged: written at start).
-- `ProgrammeV2Root.startSessionFromHome` now calls
-  `nextProgrammeSessionInput` instead of duplicating it, restoring the
-  one-owner rule shared with the Today preview.
-
-**Boundaries.** No change to plan generation, trim priorities, doses, voice
-lines, or the player's phase machine. The chained first-session paths
-(onboarding CTA, post-baseline) already hardcode `first_session` and are
-untouched.
-
-**Tests.** `voiceSession.test.ts` ordering assertion updated to the new
-sequence; `appLifecycle.test.ts` gains an abandoned-first-session pin
-(started, nothing completed → still `first_session`). Full suite green
-(193 suites / 1758 tests).

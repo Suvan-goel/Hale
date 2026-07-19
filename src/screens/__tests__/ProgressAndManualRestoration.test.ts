@@ -4,15 +4,23 @@ import { join } from 'node:path';
 // The old Plan/manual-check-up surfaces retired with promotion commit 2.
 // A smaller informational Plan returned on 2026-07-10; these pins keep
 // Progress focused on measured results rather than programme structure.
-// 2026-07-15 visual pass: both measured domains render stacked in one scroll
-// (no hidden domain tabs), the chart labels its endpoints directly, and every
-// non-ready state shares one quiet notice pattern.
+// 2026-07-18 redesign: both measured domains render stacked in one scroll (no
+// hidden domain tabs); change shows as a before→after dot timeline in native
+// Text (no SVG, no auto-fit line whose slope misreads the real change); a
+// checkpoint journey cue gives place across the 12 weeks; the "what's next"
+// sentence renders once on the cue, not duplicated under each domain; and the
+// empty state now carries a direct Start action (the 2026-07-18 reversal of
+// "Home owns the action" — same goAssessment handler, no second code path).
 describe('Progress UI restoration', () => {
-  it('keeps the no-profile state informational so Home owns the check-up action', () => {
+  it('gives the no-profile state its own Start action alongside the journey cue', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
 
     expect(progress).toContain("viewModel.status === 'no_profile'");
-    expect(progress).toContain('if (onStartCheckUp) return <ProgressEmptyState />');
+    expect(progress).toContain('return <ProgressEmptyState onStartCheckUp={onStartCheckUp} />');
+    // The empty state offers the check-up directly (reversal of "Home owns the
+    // action") via a primary button, and situates the wait with the cue.
+    expect(progress).toContain('title="Start Movement Check-Up"');
+    expect(progress).toContain('<ProgressJourneyCue completed={0}');
     expect(progress).toContain('Your results will begin here');
     expect(progress).toContain('compare the same check-up at weeks 4, 8 and 12');
     expect(progress).toContain("alignItems: 'center'");
@@ -24,7 +32,6 @@ describe('Progress UI restoration', () => {
     expect(progress).not.toContain('Set your starting point');
     expect(progress).not.toContain('Plan preparation steps');
     expect(progress).not.toContain('<ProgressEmptyStep');
-    expect(progress).not.toContain('actionLabel: \'Start check-up\'');
   });
 
   it('shares one quiet notice pattern across blocked, recovery, and retake states', () => {
@@ -49,16 +56,22 @@ describe('Progress UI restoration', () => {
       progress.indexOf('function MovementProfileCard'),
       progress.indexOf('function DomainSection')
     );
+    const domainSection = progress.slice(
+      progress.indexOf('function DomainSection'),
+      progress.indexOf('function DomainTrend')
+    );
 
-    // The Progress tab: both measured domains stacked (Strength then Balance,
-    // never behind tabs), collapsed history, and observational Clarity. Plan
-    // owns journey structure; unscheduled extra official check-ups are
+    // The Progress tab: a checkpoint journey cue, then both measured domains
+    // stacked (Strength then Balance, never behind tabs), collapsed history,
+    // and observational Clarity. Plan owns training-week structure; the cue is
+    // measurement cadence only. Unscheduled extra official check-ups are
     // deliberately absent: they would break the frozen comparison cadence.
     expect(progress).toContain('<MovementProfileCard');
+    expect(progress).toContain('<ProgressJourneyCue completed={completed}');
     expect(progress).toContain('<DomainSection');
     expect(progress).toContain('availableDomains.map');
     expect(progress).not.toContain('<DomainTabs');
-    expect(progress).toContain('<ProgressChart');
+    expect(progress).toContain('<DomainTrend');
     expect(progress).toContain('Latest check-up · ${dateLabel}');
     expect(progress).toContain("'30-second chair stand'");
     expect(progress).toContain("'One-leg balance'");
@@ -81,13 +94,19 @@ describe('Progress UI restoration', () => {
     expect(progress.indexOf('<ClarityProgressCard')).toBeLessThan(
       progress.indexOf('<MovementProfileV2HistoryCard')
     );
+    // The "what's next" readiness sentence renders once on the cue, never
+    // duplicated as each domain's delta line (the pre-redesign bug).
+    expect(progress).toContain('nextStep={nextStep}');
+    expect(domainSection).not.toContain('readiness');
     // Programme structure and practice-ladder mechanics stay off Progress.
     expect(progress).not.toContain('<MovementProfileV2PlanSummaryCard');
     expect(progress).not.toContain('<TrainingProgressCard');
     expect(profileCard).not.toContain('See full results');
     expect(profileCard).not.toContain('Latest check-up focus');
     expect(profileCard).not.toContain('Camera readings are estimates');
-    expect(progress).toContain('straightChartPath');
+    // The old auto-fit SVG chart and its path helpers are gone.
+    expect(progress).not.toContain('<ProgressChart');
+    expect(progress).not.toContain('straightChartPath');
     expect(progress).not.toContain('smoothChartPath');
     expect(profileCard).not.toMatch(/Frozen|reference labels|schema|fingerprint/);
     // The summary stays own-trend first. Published comparison copy is explicit
@@ -97,16 +116,21 @@ describe('Progress UI restoration', () => {
     expect(progress).not.toContain('Your current plan is based on your previous Movement Profile');
   });
 
-  it('labels the chart endpoints directly with system-scaling text instead of a y-axis', () => {
+  it('draws change as a before→after dot timeline in native Text, not an SVG line', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
 
-    // Endpoint values are native Text (respects the system font-size setting,
-    // unlike SVG text) and there is no tick axis for her to decode.
-    expect(progress).toContain('<ChartPointLabel');
-    expect(progress).toContain('<ChartMonthLabel');
+    // Values and dates are native Text (respects the system font-size setting,
+    // unlike SVG text) and the timeline is a neutral connector, never a
+    // value-encoded slope for a handful of points.
+    expect(progress).toContain('<DomainTrend');
+    expect(progress).toContain('styles.trendValue');
+    expect(progress).toContain('styles.trendDate');
+    // One continuous baseline behind the dots — no per-column connector seams.
+    expect(progress).toContain('styles.trendBaseline');
+    expect(progress).not.toContain("from 'react-native-svg'");
     expect(progress).not.toContain('SvgText');
     expect(progress).not.toContain('tickStep');
-    // A single check-up never draws a chart frame around a lone dot.
+    // A single check-up never draws a timeline around a lone dot.
     expect(progress).toContain('if (series.length < 2) return null');
   });
 });

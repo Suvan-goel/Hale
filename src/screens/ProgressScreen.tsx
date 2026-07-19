@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
 
-import { NoticeCard, Screen } from '../components/ui';
+import { NoticeCard, PrimaryButton, Screen } from '../components/ui';
 import { ClarityProgressCard } from '../components/ClarityProgressCard';
 import { PageHeader } from '../components/PageHeader';
 import {
@@ -17,6 +16,11 @@ import type { ClarityTrendViewModel } from '../pearlFlow/clarityTrend';
 import { colors, fonts, radius, spacing, type } from '../theme';
 
 import { BRAND } from '../brand';
+
+// The fixed MVP journey: baseline, week 4, week 8, week 12 (CLAUDE.md). The
+// count of completed measurements gives Progress a sense of place across the
+// whole 12 weeks, so the first month never reads as an empty tab.
+const CHECKUP_TOTAL = 4;
 
 export function ProgressScreen({
   onStartCheckUp,
@@ -53,9 +57,13 @@ export function ProgressScreen({
   );
 }
 
-function ProgressEmptyState() {
+// The empty state now carries a direct Start action (see the 2026-07-18
+// decision reversing "Home owns the action"): the same goAssessment handler
+// Home uses, so there is no second code path — just a second, closer door.
+function ProgressEmptyState({ onStartCheckUp }: { onStartCheckUp?: () => void }) {
   return (
     <View style={styles.emptyProgress}>
+      <ProgressJourneyCue completed={0} total={CHECKUP_TOTAL} />
       <View style={styles.emptyProgressHero}>
         <Text style={styles.emptyProgressEyebrow}>YOUR RESULTS</Text>
         <Text style={styles.emptyProgressTitle}>Your results will begin here</Text>
@@ -64,6 +72,53 @@ function ProgressEmptyState() {
           compare the same check-up at weeks 4, 8 and 12.
         </Text>
       </View>
+      {onStartCheckUp ? (
+        <PrimaryButton
+          title="Start Movement Check-Up"
+          onPress={onStartCheckUp}
+          style={styles.emptyProgressAction}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+// The 12-week measurement cadence as a quiet 4-segment track, matching Plan's
+// phase track so the two journey surfaces read as one system. It reports how
+// many comparable check-ups exist — measurement status, never programme
+// structure (Plan still owns that).
+function ProgressJourneyCue({
+  completed,
+  total,
+  nextStep,
+}: {
+  completed: number;
+  total: number;
+  nextStep?: string;
+}) {
+  const safeCompleted = Math.max(0, Math.min(completed, total));
+  return (
+    <View
+      style={styles.journeyCue}
+      accessible
+      accessibilityRole="summary"
+      accessibilityLabel={`Movement Check-Ups. ${safeCompleted} of ${total} complete.${
+        nextStep ? ` ${nextStep}` : ''
+      }`}
+    >
+      <View style={styles.journeyCueHeader}>
+        <Text style={styles.eyebrow}>MOVEMENT CHECK-UPS</Text>
+        <Text style={styles.journeyCueCount}>{safeCompleted} of {total}</Text>
+      </View>
+      <View style={styles.journeyTrack}>
+        {Array.from({ length: total }).map((_, index) => (
+          <View
+            key={index}
+            style={[styles.journeySegment, index < safeCompleted && styles.journeySegmentComplete]}
+          />
+        ))}
+      </View>
+      {nextStep ? <Text style={styles.journeyNextStep}>{nextStep}</Text> : null}
     </View>
   );
 }
@@ -88,7 +143,7 @@ function MovementProfileV2ProgressContent({
 
   if (viewModel.status !== 'ready') {
     if (viewModel.status === 'no_profile') {
-      if (onStartCheckUp) return <ProgressEmptyState />;
+      if (onStartCheckUp) return <ProgressEmptyState onStartCheckUp={onStartCheckUp} />;
       const blocked = blockedCheckUpCopy(checkUpBlockedReason);
       return <NoticeCard title={blocked.title} body={blocked.body} />;
     }
@@ -106,9 +161,11 @@ function MovementProfileV2ProgressContent({
   return <MovementProfileCard viewModel={viewModel} />;
 }
 
-// The reference-led Progress experience: both measured domains stacked in one
-// scroll — no hidden tabs — each with its verdict headline first and the
-// evidence (chart + current level) grouped beneath it.
+// The reference-led Progress experience: a journey cue for place across the 12
+// weeks, then both measured domains stacked in one scroll — no hidden tabs —
+// each with its verdict headline first and the evidence grouped beneath it.
+// The "what's next" sentence for a not-yet-comparable check-up lives ONCE on
+// the cue, never repeated under each domain.
 function MovementProfileCard({
   viewModel,
 }: {
@@ -119,19 +176,26 @@ function MovementProfileCard({
     (domain) => domain.domain === 'strength_power' || domain.domain === 'balance'
   );
   if (availableDomains.length === 0) return null;
-  const readiness = viewModel.change ? null : viewModel.changeReadiness;
+  const readiness: MovementProfileV2ProgressChangeReadiness | null = viewModel.change
+    ? null
+    : viewModel.changeReadiness;
+  const completed = Math.min(CHECKUP_TOTAL, viewModel.officialHistory.length);
+  const nextStep =
+    readiness && readiness.status !== 'ready' ? readiness.body : undefined;
 
   return (
-    <View style={styles.domainStack}>
-      {availableDomains.map((summary) => (
-        <DomainSection
-          key={summary.domain}
-          summary={summary}
-          change={viewModel.change?.domains.find((domain) => domain.domain === summary.domain)}
-          readiness={readiness}
-          dateLabel={hero.dateLabel}
-        />
-      ))}
+    <View style={styles.profile}>
+      <ProgressJourneyCue completed={completed} total={CHECKUP_TOTAL} nextStep={nextStep} />
+      <View style={styles.domainStack}>
+        {availableDomains.map((summary) => (
+          <DomainSection
+            key={summary.domain}
+            summary={summary}
+            change={viewModel.change?.domains.find((domain) => domain.domain === summary.domain)}
+            dateLabel={hero.dateLabel}
+          />
+        ))}
+      </View>
     </View>
   );
 }
@@ -139,26 +203,19 @@ function MovementProfileCard({
 function DomainSection({
   summary,
   change,
-  readiness,
   dateLabel,
 }: {
   summary: MovementProfileV2ProgressDomainSummary;
   change?: MovementProfileV2ProgressChangeDomain;
-  readiness: MovementProfileV2ProgressChangeReadiness | null;
   dateLabel: string;
 }) {
   const domain = summary.domain;
-  const hasChart = (change?.series.length ?? 0) > 1;
-  const deltaText = change
-    ? progressDelta(change)
-    : readiness && readiness.status !== 'ready'
-      ? readiness.body
-      : 'Your first comparable result is saved.';
+  const hasTrend = (change?.series.length ?? 0) > 1;
 
   return (
     <View style={styles.domainSection}>
       {/* The movement name is the heading's caption — it balances the rule
-          and saves a whole text layer above the chart. */}
+          and saves a whole text layer above the evidence. */}
       <View style={styles.domainHeading}>
         <Text style={styles.eyebrow}>
           {progressDomainTitle(domain, summary.title).toUpperCase()}
@@ -169,21 +226,19 @@ function DomainSection({
         </Text>
       </View>
 
+      {/* One dominant type moment per domain: the serif verdict. The delta is
+          its quiet subordinate line, and the numbers themselves live in the
+          trend below — no second competing big number. */}
       <View style={styles.verdictBlock}>
         <Text style={styles.verdict}>{progressHeroTitle(domain, change)}</Text>
-        <Text style={styles.delta}>{deltaText}</Text>
+        {change ? <Text style={styles.delta}>{changeDeltaLine(change)}</Text> : null}
       </View>
 
       {/* Evidence sits directly on the page background like every section on
-          Home and Plan — Pearl's tab pages are flat editorial surfaces, and
-          the only filled container on Progress is the Clarity card. */}
-      <View style={styles.evidence}>
-        {hasChart && change ? (
-          <>
-            <ProgressChart domain={domain} change={change} />
-            <View style={styles.evidenceDivider} />
-          </>
-        ) : null}
+          Home and Plan — Pearl's tab pages are flat editorial surfaces. */}
+      {hasTrend && change ? (
+        <DomainTrend domain={domain} change={change} />
+      ) : (
         <View style={styles.stat}>
           <Text style={styles.statLabel}>Current level</Text>
           <View style={styles.statValueRow}>
@@ -192,30 +247,25 @@ function DomainSection({
           </View>
           <Text style={styles.statMeta}>{`Latest check-up · ${dateLabel}`}</Text>
         </View>
-        {change?.supportCopy ? (
-          <Text style={styles.changeSupport}>{change.supportCopy}</Text>
-        ) : null}
-      </View>
+      )}
+      {change?.supportCopy ? (
+        <Text style={styles.changeSupport}>{change.supportCopy}</Text>
+      ) : null}
     </View>
   );
 }
 
 /* ----------------------------------------------------------------------------
- * Chart — personal trend with directly labelled endpoints. No y-axis to read:
- * the start and latest values sit on the chart itself as native Text, so they
- * respect the system font-size setting (SVG text does not).
+ * Trend — a before→after dot timeline, not a value-encoded line. Across the 12
+ * weeks there are only ever 2–4 comparable measurements; a filled line chart
+ * with an auto-fit y-scale drew a slope that did not match the real change. The
+ * magnitude now lives entirely in the numbers ("18 → 21", "+3 rises"), and the
+ * dots are an evenly spaced timeline connected by a neutral hairline. All
+ * labels are native Text so they respect the system font-size setting (SVG
+ * text does not).
  * ------------------------------------------------------------------------- */
 
-const CHART_W = 360;
-const CHART_H = 150;
-// Inset keeps the 9px latest-point ring inside the viewBox on both edges.
-const PLOT_LEFT = 12;
-const PLOT_RIGHT = 348;
-const PLOT_TOP = 34;
-const PLOT_BOTTOM = 132;
-const PLOT_MID_Y = (PLOT_TOP + PLOT_BOTTOM) / 2;
-
-function ProgressChart({
+function DomainTrend({
   domain,
   change,
 }: {
@@ -226,20 +276,6 @@ function ProgressChart({
   if (series.length < 2) return null;
 
   const values = series.map((point) => point.value);
-  const rawMin = Math.min(...values);
-  const rawMax = Math.max(...values);
-  const spread = rawMax - rawMin;
-  const pad = spread > 0 ? spread * 0.45 : Math.max(1, rawMax * 0.15);
-  const min = rawMin - pad;
-  const max = rawMax + pad;
-  const points = values.map((value, index) => ({
-    x: PLOT_LEFT + (index / (values.length - 1)) * (PLOT_RIGHT - PLOT_LEFT),
-    y: PLOT_BOTTOM - ((value - min) / (max - min)) * (PLOT_BOTTOM - PLOT_TOP),
-  }));
-  const first = points[0];
-  const last = points[points.length - 1];
-  const linePath = straightChartPath(points);
-  const areaPath = `${linePath} L ${last.x} ${PLOT_BOTTOM} L ${first.x} ${PLOT_BOTTOM} Z`;
   const includeDay =
     new Set(series.map((point) => monthKey(point.atIso))).size < series.length;
   const chartUnit = domain === 'balance' ? 'Seconds' : 'Rises';
@@ -247,133 +283,50 @@ function ProgressChart({
     `${movementTitle(domain)}, ${chartUnit}. ` +
     `${progressDomainTitle(domain, domain)} changed from ${values[0]} to ${values[values.length - 1]} ` +
     `across ${series.length} comparable check-ups.`;
+  // Dots are centered in equal columns, so the first sits half a column from
+  // the left edge and the last half a column from the right. One baseline
+  // spanning exactly between them (behind the opaque dots) reads as a single
+  // continuous line with no per-column seams, whatever the values' text size.
+  const edgeInset: `${number}%` = `${50 / series.length}%`;
 
   return (
-    <View style={styles.chartSection}>
-      <View style={styles.chartPlot} accessible accessibilityLabel={accessibilityLabel}>
-        <Svg width="100%" height="100%" viewBox={`0 0 ${CHART_W} ${CHART_H}`} fill="none">
-          <Path
-            d={`M ${PLOT_LEFT} ${PLOT_BOTTOM} H ${PLOT_RIGHT}`}
-            stroke={colors.borderHairline}
-            strokeWidth={1}
-          />
-          <Path d={areaPath} fill={colors.accentSoft} />
-          <Path
-            d={linePath}
-            stroke={colors.accentDeep}
-            strokeWidth={3}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {points.map((point, index) => {
-            const latest = index === points.length - 1;
-            return latest ? (
-              <React.Fragment key={`${point.x}-${point.y}`}>
-                <Circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={9}
-                  fill={colors.background}
-                  stroke={colors.accentDeep}
-                  strokeWidth={1.8}
-                />
-                <Circle cx={point.x} cy={point.y} r={4.6} fill={colors.accentDeep} />
-              </React.Fragment>
-            ) : (
-              <Circle
-                key={`${point.x}-${point.y}`}
-                cx={point.x}
-                cy={point.y}
-                r={5.6}
-                fill={colors.accentDeep}
-              />
-            );
-          })}
-        </Svg>
-        <ChartPointLabel point={first} text={formatAxisValue(values[0])} anchor="start" />
-        <ChartPointLabel
-          point={last}
-          text={formatAxisValue(values[values.length - 1])}
-          anchor="end"
-          emphasis
-        />
-      </View>
-      <View style={styles.chartMonthRow}>
+    <View style={styles.trend} accessible accessibilityLabel={accessibilityLabel}>
+      <View style={styles.trendValuesRow}>
         {series.map((point, index) => (
-          <ChartMonthLabel
+          <Text
             key={point.atIso}
-            xPct={(points[index].x / CHART_W) * 100}
-            anchor={index === 0 ? 'start' : index === series.length - 1 ? 'end' : 'middle'}
-            text={formatChartDate(point.atIso, includeDay)}
-          />
+            style={[
+              styles.trendValue,
+              index === series.length - 1 && styles.trendValueLatest,
+            ]}
+            numberOfLines={1}
+          >
+            {formatAxisValue(point.value)}
+          </Text>
+        ))}
+      </View>
+      <View style={styles.trendDotsRow}>
+        <View style={[styles.trendBaseline, { left: edgeInset, right: edgeInset }]} />
+        {series.map((point, index) => (
+          <View key={point.atIso} style={styles.trendDotCell}>
+            {index === series.length - 1 ? (
+              <View style={styles.trendDotLatestRing}>
+                <View style={styles.trendDotLatestCore} />
+              </View>
+            ) : (
+              <View style={styles.trendDot} />
+            )}
+          </View>
+        ))}
+      </View>
+      <View style={styles.trendDatesRow}>
+        {series.map((point) => (
+          <Text key={point.atIso} style={styles.trendDate} numberOfLines={1}>
+            {formatChartDate(point.atIso, includeDay)}
+          </Text>
         ))}
       </View>
     </View>
-  );
-}
-
-function ChartPointLabel({
-  point,
-  text,
-  anchor,
-  emphasis = false,
-}: {
-  point: { x: number; y: number };
-  text: string;
-  anchor: 'start' | 'end';
-  emphasis?: boolean;
-}) {
-  const xPct = (point.x / CHART_W) * 100;
-  const yPct = (point.y / CHART_H) * 100;
-  const horizontal =
-    anchor === 'start' ? { left: `${xPct}%` as const } : { right: `${100 - xPct}%` as const };
-  // Points in the lower half take their label above the dot, and vice versa,
-  // so labels never collide with the line for either trend direction.
-  const vertical =
-    point.y >= PLOT_MID_Y
-      ? { bottom: `${100 - yPct}%` as const, marginBottom: spacing.md }
-      : { top: `${yPct}%` as const, marginTop: spacing.md };
-  return (
-    <View pointerEvents="none" style={[styles.chartPointLabel, horizontal, vertical]}>
-      <Text style={[styles.chartPointLabelText, emphasis && styles.chartPointLabelTextEmphasis]}>
-        {text}
-      </Text>
-    </View>
-  );
-}
-
-function ChartMonthLabel({
-  xPct,
-  anchor,
-  text,
-}: {
-  xPct: number;
-  anchor: 'start' | 'middle' | 'end';
-  text: string;
-}) {
-  const positioning =
-    anchor === 'start'
-      ? { left: `${xPct}%` as const }
-      : anchor === 'end'
-        ? { right: `${100 - xPct}%` as const }
-        : {
-            left: `${xPct}%` as const,
-            width: 84,
-            marginLeft: -42,
-            alignItems: 'center' as const,
-          };
-  return (
-    <View style={[styles.chartMonthLabel, positioning]}>
-      <Text style={styles.chartMonthText}>{text}</Text>
-    </View>
-  );
-}
-
-function straightChartPath(points: readonly { x: number; y: number }[]): string {
-  if (points.length === 0) return '';
-  return points.slice(1).reduce(
-    (path, point) => `${path} L ${point.x} ${point.y}`,
-    `M ${points[0].x} ${points[0].y}`
   );
 }
 
@@ -389,17 +342,18 @@ function progressHeroTitle(
   return 'Holding steady';
 }
 
-function progressDelta(change: MovementProfileV2ProgressChangeDomain): string {
+// The plain-language change line, derived directly from the view model's
+// caption and direction (no fragile capture-group reparse). The up headline
+// already names the month ("Stronger than in April"), so its delta stays bare;
+// the down headline doesn't, so its delta carries the "since" context.
+function changeDeltaLine(change: MovementProfileV2ProgressChangeDomain): string {
   const since = sinceMonth(change);
   if (change.direction === 'steady') return `Holding steady since ${since}`;
   const sign = change.direction === 'up' ? '+' : '−';
-  const match = change.caption.match(/(?:Up|Down)\s+([\d.]+)\s*(.*)/i);
-  if (!match) return `${change.caption} since ${since}`;
-  // The up headline already names the month ("Stronger than in April"), so
-  // the delta stays bare; the down headline doesn't, so its delta carries it.
+  const magnitude = change.caption.replace(/^(Up|Down)\s+/i, '');
   return change.direction === 'up'
-    ? `${sign}${match[1]} ${match[2]}`
-    : `${sign}${match[1]} ${match[2]} since your ${since} check-up`;
+    ? `${sign}${magnitude}`
+    : `${sign}${magnitude} since your ${since} check-up`;
 }
 
 function currentMetricValue(metric: string): string {
@@ -458,7 +412,7 @@ function MovementProfileV2HistoryCard({
   return (
     <View style={styles.historyCard}>
       <Pressable
-        style={({ pressed }) => [styles.historyDisclosure, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.historyDisclosure, pressed && styles.disclosurePressed]}
         onPress={() => setExpanded((current) => !current)}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
@@ -581,14 +535,19 @@ function progressDomainTitle(domain: MovementProfileV2Domain, fallback: string):
 const styles = StyleSheet.create({
   screenContent: {
     flexGrow: 1,
-    gap: spacing.xxl,
+    gap: spacing.xxxl,
+  },
+  profile: {
+    gap: spacing.xxxl,
   },
   domainStack: {
     // Generous separation so each domain reads as its own story.
     gap: spacing.huge,
   },
   domainSection: {
-    gap: spacing.lg,
+    // Roomy internal rhythm so the heading, verdict, and trend each read as
+    // their own beat rather than one dense block.
+    gap: spacing.xxl,
   },
   domainHeading: {
     flexDirection: 'row',
@@ -620,8 +579,8 @@ const styles = StyleSheet.create({
   verdict: {
     color: colors.textPrimary,
     fontFamily: fonts.serifRegular,
-    fontSize: 30,
-    lineHeight: 37,
+    fontSize: 31,
+    lineHeight: 38,
     letterSpacing: -0.3,
   },
   delta: {
@@ -631,43 +590,115 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     maxWidth: 350,
   },
-  evidence: {
-    gap: spacing.lg,
-  },
-  evidenceDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.divider,
-  },
-  chartSection: {
+  // Journey cue — the 12-week measurement cadence, matching Plan's phase track.
+  // Stretches full width so its segment track fills the row even inside the
+  // centered empty state (which otherwise shrinks children to content width).
+  journeyCue: {
+    alignSelf: 'stretch',
     gap: spacing.sm,
   },
-  chartPlot: {
-    aspectRatio: CHART_W / CHART_H,
-    width: '100%',
+  journeyCueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
   },
-  chartPointLabel: {
-    position: 'absolute',
-  },
-  chartPointLabelText: {
+  journeyCueCount: {
     color: colors.textSecondary,
     fontFamily: fonts.sansMedium,
     fontSize: 13,
-    lineHeight: 17,
+    lineHeight: 18,
     fontVariant: ['tabular-nums'],
   },
-  chartPointLabelTextEmphasis: {
+  journeyTrack: { flexDirection: 'row', gap: spacing.xs },
+  journeySegment: {
+    flex: 1,
+    height: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgElevated,
+  },
+  journeySegmentComplete: { backgroundColor: colors.accentGold },
+  journeyNextStep: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: spacing.xs,
+    maxWidth: 380,
+  },
+  // Trend — before→after dot timeline (native views + Text, no SVG). Three
+  // aligned rows (values, dots, dates): keeping the numbers off the dots' row
+  // means their text size can never shift a dot out of line.
+  trend: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.lg,
+  },
+  trendValuesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  trendDatesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  trendValue: {
+    flex: 1,
+    textAlign: 'center',
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 22,
+    lineHeight: 26,
+    fontVariant: ['tabular-nums'],
+  },
+  trendValueLatest: {
     color: colors.accentDeep,
-    fontSize: 15,
-    lineHeight: 19,
+    fontFamily: fonts.sansMedium,
+    fontSize: 26,
+    lineHeight: 30,
   },
-  chartMonthRow: {
+  trendDotsRow: {
     height: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  chartMonthLabel: {
+  // One neutral baseline behind the dots — a timeline, never a value-encoded
+  // slope. It spans first-dot centre to last-dot centre (left/right insets set
+  // inline from the point count); the opaque dots sit on top of it.
+  trendBaseline: {
     position: 'absolute',
-    top: 0,
+    top: 8.25,
+    height: 1.5,
+    backgroundColor: colors.border,
   },
-  chartMonthText: {
+  trendDotCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trendDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    backgroundColor: colors.accentDeep,
+  },
+  trendDotLatestRing: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.8,
+    borderColor: colors.accentDeep,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trendDotLatestCore: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: colors.accentDeep,
+  },
+  trendDate: {
     color: colors.textSecondary,
     fontFamily: fonts.sansRegular,
     fontSize: 12,
@@ -715,6 +746,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xxl,
   },
   emptyProgressHero: {
     width: '100%',
@@ -748,6 +780,9 @@ const styles = StyleSheet.create({
     maxWidth: 370,
     textAlign: 'center',
   },
+  emptyProgressAction: {
+    alignSelf: 'stretch',
+  },
   historyCard: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
@@ -758,6 +793,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.lg,
+    marginHorizontal: -spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
   },
   historyDisclosureLabel: {
     ...type.cardBody,
@@ -776,15 +814,21 @@ const styles = StyleSheet.create({
     ...type.cardBody,
     color: colors.textSecondary,
   },
+  // The app-wide disclosure treatment (shared with the Clarity card's basis
+  // toggle): dark label left, bare accent chevron right, no filled well —
+  // affordance comes from the pressed background, not resting chrome.
   historyDisclosureChevron: {
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
-    fontSize: 22,
-    lineHeight: 26,
+    fontSize: 20,
+    lineHeight: 24,
     transform: [{ rotate: '0deg' }],
   },
   historyDisclosureChevronOpen: {
     transform: [{ rotate: '90deg' }],
+  },
+  disclosurePressed: {
+    backgroundColor: colors.bgElevated,
   },
   historyList: {
     borderTopWidth: StyleSheet.hairlineWidth,
