@@ -6740,3 +6740,44 @@ conscious ruling.
   so counting it would reset her promotion streak and turn skipping into a
   punishment. The "everything you've finished is saved" promise refers to
   completed items on the leave path, which is true.
+
+## 2026-07-19 — Balance focus block moves to fresh legs; abandoned first session keeps the minimum dose
+
+**Context.** A full read-through of the training-session flow surfaced two
+ordering/routing accidents. (1) The phase's Balance focus hold — prescribed
+exactly when the check-up measured balance as the weak domain — was appended
+AFTER all five strength patterns, so the highest-fall-risk users performed
+their single-leg/tandem work on the most fatigued legs of the session.
+(2) The 15-minute `first_session` preset was keyed on the
+`firstSessionStarted` activation stamp (written at session START), so a
+started-then-abandoned first session silently promoted her next attempt to
+the full 25-minute plan she had never once completed. The live shell had also
+inlined a duplicate of the A/B + preset rule that `nextProgrammeSessionInput`
+was extracted to own, leaving the Home card's promised duration free to drift
+from the generated session.
+
+**Decision.**
+- `voiceSessionInputsFromPlan` now orders sessions warm-up → Balance focus
+  (when prescribed) → main → finisher. Fresh-state balance practice is better
+  motor learning and safer sequencing, and an early slot means a partial
+  session still banks the phase's promised emphasis. Everything downstream
+  (results mapping, resume filtering, snapshot disposition, dose labels) is
+  id-keyed, so only the bridge's two arrays changed.
+- `nextProgrammeSessionInput` keys the preset on
+  `completedSessionCount === 0`, not `firstSessionStarted`. Partial credit
+  never increments the counter, so she retries the gentle dose until one
+  session is actually completed. `firstSessionStarted` remains the activation
+  stamp only (Q4 conformance unchanged: written at start).
+- `ProgrammeV2Root.startSessionFromHome` now calls
+  `nextProgrammeSessionInput` instead of duplicating it, restoring the
+  one-owner rule shared with the Today preview.
+
+**Boundaries.** No change to plan generation, trim priorities, doses, voice
+lines, or the player's phase machine. The chained first-session paths
+(onboarding CTA, post-baseline) already hardcode `first_session` and are
+untouched.
+
+**Tests.** `voiceSession.test.ts` ordering assertion updated to the new
+sequence; `appLifecycle.test.ts` gains an abandoned-first-session pin
+(started, nothing completed → still `first_session`). Full suite green
+(193 suites / 1758 tests).

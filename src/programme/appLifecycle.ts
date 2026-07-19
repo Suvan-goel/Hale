@@ -55,14 +55,17 @@ export interface NextProgrammeSessionInput {
 }
 
 /**
- * A/B alternation by completed-session parity; the first-ever session runs
- * the 15-minute minimum-dose preset (§7). Extracted from the dev shell so
- * preview and start-session generation can never drift apart.
+ * A/B alternation by completed-session parity; the 15-minute minimum-dose
+ * preset (§7) holds until she has COMPLETED a session (2026-07-19: keyed on
+ * completedSessionCount, not firstSessionStarted, so an abandoned first
+ * session retries the same gentle dose instead of jumping to the full plan —
+ * partial credit never increments the counter). Extracted from the dev shell
+ * so preview and start-session generation can never drift apart.
  */
 export function nextProgrammeSessionInput(state: ProgrammeState): NextProgrammeSessionInput {
   return {
     template: state.completedSessionCount % 2 === 0 ? 'A' : 'B',
-    preset: state.profile.firstSessionStarted ? 'standard' : 'first_session',
+    preset: state.completedSessionCount === 0 ? 'first_session' : 'standard',
     lastSessionEffort: state.lastSessionEffort,
   };
 }

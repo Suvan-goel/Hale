@@ -78,6 +78,7 @@ import {
   generateProgrammeSession,
   initialOnboardingFlowState,
   markFirstSessionStarted,
+  nextProgrammeSessionInput,
   onboardingCompletionRoute,
   PELVIC_PHYSIO_SIGNPOST_COPY,
   PROGRAMME_PREP_ITEM_ID,
@@ -928,14 +929,14 @@ export function ProgrammeV2Root() {
     const regression = applyInactivityRegressionIfDue(programmeState, new Date().toISOString());
     if (regression.applied) persist(regression.state);
     const current = regression.state;
-    // A/B alternation by completed-session parity; effort from the persisted
-    // last-session answer (survives restarts).
+    // The one A/B + preset rule lives in nextProgrammeSessionInput — shared
+    // with the Today preview, so the card's promised duration and the
+    // generated session can never drift apart (2026-07-19: this call replaced
+    // an inline duplicate of the rule).
     setPlan(
       generateProgrammeSession({
         state: current,
-        template: current.completedSessionCount % 2 === 0 ? 'A' : 'B',
-        preset: current.profile.firstSessionStarted ? 'standard' : 'first_session',
-        lastSessionEffort: current.lastSessionEffort,
+        ...nextProgrammeSessionInput(current),
       })
     );
     setPhase('session');

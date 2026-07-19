@@ -325,7 +325,7 @@ describe('plan → voice-player inputs', () => {
     expect(inputs.generatedExercises.find((dose) => dose.exerciseId === focusId)?.sets).toBe(3);
   });
 
-  it('places a distinct supported Balance block between main work and the finisher', () => {
+  it('places a distinct supported Balance block first after the warm-up, on fresh legs (2026-07-19)', () => {
     const plan = generateProgrammeSession({
       state: activeFocusState('balance'),
       template: 'A',
@@ -336,8 +336,8 @@ describe('plan → voice-player inputs', () => {
     const inputs = voiceSessionInputsFromPlan(plan);
     expect(inputs.exerciseIds).toEqual([
       PROGRAMME_PREP_ITEM_ID,
-      ...plan.main.map((exercise) => exercise.exerciseId),
       focus.exerciseId,
+      ...plan.main.map((exercise) => exercise.exerciseId),
       ...plan.finisher.map((item) => item.id),
     ]);
     expect(inputs.generatedExercises.find((dose) => dose.exerciseId === focus.exerciseId)).toMatchObject({

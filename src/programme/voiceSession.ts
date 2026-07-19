@@ -2,9 +2,10 @@
  * Programme v2 ↔ voice-player session mapping (the bridge's data plane).
  *
  * voiceSessionInputsFromPlan turns a generated ProgrammeSessionPlan into the
- * inputs the voice-guided player consumes: item order (warm-up → main →
- * finisher), per-item doses as generatedExercises (the player honors these
- * over any definition fallback), and the two injected catalogue seams.
+ * inputs the voice-guided player consumes: item order (warm-up → balance
+ * focus when prescribed → main → finisher), per-item doses as
+ * generatedExercises (the player honors these over any definition fallback),
+ * and the two injected catalogue seams.
  *
  * programmeResultsFromVoiceSession maps the player's TrainingSessionResult
  * back into ProgrammeSessionResults. Data honesty (C10/N5): every achieved
@@ -235,10 +236,15 @@ export function voiceSessionInputsFromPlan(
   const distinctBalanceFocus = plan.focusBlock?.kind === 'balance' ? plan.focusBlock : null;
   const focusDose = balanceFocusDose(plan);
   const handledIds = new Set(options.completedExerciseIds ?? []);
+  // The Balance focus hold runs FIRST after the warm-up (2026-07-19): the
+  // users prescribed it are exactly those whose check-up measured balance
+  // weakest, so the hold belongs on fresh legs — before strength fatigue
+  // raises the stakes of a single-leg stance — and an early slot means a
+  // partial session still banks the phase's promised emphasis.
   const exerciseIds = [
     PROGRAMME_PREP_ITEM_ID,
-    ...plan.main.map((exercise) => exercise.exerciseId),
     ...(distinctBalanceFocus ? [distinctBalanceFocus.exerciseId] : []),
+    ...plan.main.map((exercise) => exercise.exerciseId),
     ...plan.finisher.map((item) => item.id),
   ].filter((exerciseId) => !handledIds.has(exerciseId));
   const generatedExercises: TrainingSetRuntimeGeneratedExercise[] = [
@@ -248,8 +254,8 @@ export function voiceSessionInputsFromPlan(
       secondsPerSet: plan.prep.minutes * 60,
       restSeconds: 0,
     },
-    ...plan.main.map(mainDose),
     ...(focusDose ? [focusDose] : []),
+    ...plan.main.map(mainDose),
     ...plan.finisher.map(finisherDose),
   ].filter((exercise) => !handledIds.has(exercise.exerciseId));
   const supportVariantIds = new Set(

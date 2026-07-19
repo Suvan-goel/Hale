@@ -60,6 +60,19 @@ describe('nextProgrammeSessionInput (the one A/B + preset rule)', () => {
     const two = training({ completedSessionCount: 2, lastSessionEffort: 'a_few' });
     expect(nextProgrammeSessionInput(two).template).toBe('A');
   });
+
+  it('an abandoned first session keeps the minimum-dose preset until one is completed (2026-07-19)', () => {
+    // Started (activation stamped) but never finished: partial credit leaves
+    // completedSessionCount at 0, so she retries the same gentle 15-minute
+    // dose — never a jump to the full plan she has yet to complete once.
+    const abandoned = onboarded({ firstSessionStarted: true, assessmentStatus: 'done' });
+    expect(abandoned.completedSessionCount).toBe(0);
+    expect(nextProgrammeSessionInput(abandoned)).toEqual({
+      template: 'A',
+      preset: 'first_session',
+      lastSessionEffort: null,
+    });
+  });
 });
 
 describe('programmeTodayViewModel', () => {
