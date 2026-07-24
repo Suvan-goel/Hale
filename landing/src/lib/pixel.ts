@@ -29,11 +29,11 @@ let pixelLoaded = false;
 export function loadPixel(): void {
   if (pixelLoaded || typeof window === "undefined") return;
   if (!PIXEL_ID) {
-    console.info("[pearl] Meta Pixel not loaded — VITE_META_PIXEL_ID is not set.");
+    console.info("[pearl] Meta Pixel not loaded - VITE_META_PIXEL_ID is not set.");
     return;
   }
   if (!/^\d+$/.test(PIXEL_ID)) {
-    console.info("[pearl] Meta Pixel not loaded — VITE_META_PIXEL_ID must be digits only.");
+    console.info("[pearl] Meta Pixel not loaded - VITE_META_PIXEL_ID must be digits only.");
     return;
   }
   if (!window.fbq) {

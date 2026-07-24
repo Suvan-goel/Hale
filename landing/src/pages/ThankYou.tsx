@@ -3,7 +3,7 @@ import { CONTACT_EMAIL } from "../config";
 /**
  * Post-submit page, served at /thanks so conversions have a real URL. The
  * Pixel `Lead` event is fired by App at the moment of successful submit, not
- * here — a direct visit to /thanks records nothing.
+ * here - a direct visit to /thanks records nothing.
  */
 export function ThankYou({ email }: { email: string }) {
   return (

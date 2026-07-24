@@ -113,7 +113,7 @@ export default function App() {
     try {
       localStorage.setItem(CONSENT_KEY, choice);
     } catch {
-      // Storage unavailable — the choice just won't persist across visits.
+      // Storage unavailable - the choice just won't persist across visits.
     }
     setConsent(choice);
     // Declining after the pixel already loaded this page load: a reload is the
@@ -153,7 +153,7 @@ export default function App() {
     try {
       sessionStorage.setItem(LEAD_EMAIL_KEY, email);
     } catch {
-      // Storage unavailable — the thank-you page just shows generic copy.
+      // Storage unavailable - the thank-you page just shows generic copy.
     }
     navigate("thanks");
   }

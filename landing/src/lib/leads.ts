@@ -3,12 +3,12 @@
  * backend is a one-file change.
  *
  * Two supported backends, checked in order:
- *   1. VITE_LEAD_ENDPOINT — any endpoint that accepts this JSON payload as a
+ *   1. VITE_LEAD_ENDPOINT - any endpoint that accepts this JSON payload as a
  *      POST (Vercel function, Formspree, worker, ...).
- *   2. VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY — inserts into
+ *   2. VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY - inserts into
  *      public.landing_leads via PostgREST. The table ships in
  *      supabase/migrations/20260722000100_landing_leads.sql with RLS on and an
- *      insert-only anon grant — the key cannot read anything back, which is
+ *      insert-only anon grant - the key cannot read anything back, which is
  *      also why a duplicate email arrives as a 409 (PostgREST's
  *      ignore-duplicates mode needs SELECT privilege). 409 means "already on
  *      the list", so it is treated as success.

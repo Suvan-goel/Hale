@@ -112,11 +112,11 @@ const FAQS = [
   },
   {
     q: "Do I need any equipment?",
-    a: "No. The check-up needs your phone and a sturdy chair. Training uses your bodyweight and things already in your home — a chair, a wall, a bottom stair. Every exercise has a no-equipment version.",
+    a: "No. The check-up needs your phone and a sturdy chair. Training uses your bodyweight and things already in your home - a chair, a wall, a bottom stair. Every exercise has a no-equipment version.",
   },
   {
     q: "What phone do I need?",
-    a: "Any reasonably recent iPhone or Android phone. The camera it already has is the only check-up sensor involved — no wearable or extra hardware.",
+    a: "Any reasonably recent iPhone or Android phone. The camera it already has is the only check-up sensor involved - no wearable or extra hardware.",
   },
   {
     q: "Is my check-up data private?",
@@ -124,19 +124,19 @@ const FAQS = [
   },
   {
     q: "I'm exhausted most days. Is this realistic?",
-    a: "That's exactly who it's designed for. Sessions are short, done at home, and matched to your measured starting point — not a presenter's. The week-4, week-8 and week-12 check-ups make small changes visible.",
+    a: "That's exactly who it's designed for. Sessions are short, done at home, and matched to your measured starting point - not a presenter's. The week-4, week-8 and week-12 check-ups make small changes visible.",
   },
   {
     q: "I've never done strength training. Is this for me?",
-    a: "Yes — especially. Your plan is built from your own measured starting point, so sessions begin where you are, not where a video presenter is. Movements scale down as well as up.",
+    a: "Yes - especially. Your plan is built from your own measured starting point, so sessions begin where you are, not where a video presenter is. Movements scale down as well as up.",
   },
   {
     q: "When does it launch?",
-    a: "We're testing Pearl with a small early group now. The waitlist is invited in waves as places open — joining today puts you nearer the front of the queue.",
+    a: "We're testing Pearl with a small early group now. The waitlist is invited in waves as places open - joining today puts you nearer the front of the queue.",
   },
   {
     q: "What will it cost?",
-    a: "Final pricing isn't set. Waitlist members get early access first and founding-member pricing — our thank-you for being early.",
+    a: "Final pricing isn't set. Waitlist members get early access first and founding-member pricing - our thank-you for being early.",
   },
 ];
 
@@ -208,7 +208,7 @@ export function Landing({
               <span className="mt-0.5 shrink-0">
                 <LockIcon />
               </span>
-              Check-up measurement happens on your phone — self-view video is never shown or stored.
+              Check-up measurement happens on your phone - self-view video is never shown or stored.
             </p>
           </div>
         </div>
@@ -234,7 +234,7 @@ export function Landing({
               {[
                 "I feel weaker than I did last year.",
                 "Mid-sentence, the word just… goes.",
-                "I know strength training matters — I just don't know where to start.",
+                "I know strength training matters - I just don't know where to start.",
                 "I've tried things. I have no idea if any of it worked.",
               ].map((line) => (
                 <li key={line} className="flex gap-3">
@@ -250,7 +250,7 @@ export function Landing({
                 life where training matters most leaves the least room for trial and error.
               </p>
               <p>
-                Most apps answer with videos, streaks and minutes — more effort in, no evidence
+                Most apps answer with videos, streaks and minutes - more effort in, no evidence
                 out. And you can't work on what nobody will measure.
               </p>
             </div>
@@ -333,7 +333,7 @@ export function Landing({
                 The tests aren't ours. <em className="italic text-brass">The convenience is.</em>
               </p>
               <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-ink/70">
-                Pearl's check-up uses a 30-second chair stand and timed one-leg balance — familiar
+                Pearl's check-up uses a 30-second chair stand and timed one-leg balance - familiar
                 functional tests with published reference values behind them. The same movements,
                 order and setup repeat at every check-up. Your phone does not invent the
                 measurements; it makes a consistent protocol easier to repeat at home.
@@ -384,7 +384,7 @@ export function Landing({
               Built around proof, not streaks.
             </h2>
             <p className="mt-5 text-[17px] leading-relaxed text-ink/70">
-              Fitness apps count what you did — sessions, streaks, minutes. Pearl pairs a
+              Fitness apps count what you did - sessions, streaks, minutes. Pearl pairs a
               structured 12-week plan with comparable check-ups at baseline and after weeks 4, 8
               and 12. Strength and Balance guide the plan; Everyday Clarity remains an optional,
               separate observation rather than a promise about cognition.
@@ -449,11 +449,11 @@ export function Landing({
               <p>
                 I've been obsessed with health and fitness for years. When I finally convinced my
                 parents to take their own health seriously, the change in their quality of life
-                was profound — and it left me wanting to help more women build strength with
+                was profound - and it left me wanting to help more women build strength with
                 clear, private guidance.
               </p>
               <p>
-                Then I started noticing changes in my mum. Anxiety, mood swings, forgetfulness —
+                Then I started noticing changes in my mum. Anxiety, mood swings, forgetfulness -
                 she didn't quite seem herself. It led to one of the most honest conversations
                 we've ever had: about menopause, how much it asks of women, and how little clear
                 help they're given.
@@ -461,7 +461,7 @@ export function Landing({
               <p>
                 I'm a student at Imperial College London, and building software and AI systems is
                 what I know how to do. So I built what I wished existed for her: a way to see
-                clearly what's changing — strength, balance, clarity — and whether the work she
+                clearly what's changing - strength, balance, clarity - and whether the work she
                 puts in is paying her back.
               </p>
               <p>
@@ -481,7 +481,7 @@ export function Landing({
                 )}
               </p>
             </div>
-            <p className="mt-8 font-display text-2xl italic">— Suvan</p>
+            <p className="mt-8 font-display text-2xl italic">- Suvan</p>
             <p className="mt-1 text-sm text-ink/60">Founder, Pearl</p>
           </Reveal>
         </div>
@@ -586,7 +586,7 @@ export function Landing({
               <WaitlistForm onSubmit={onJoin} />
             </div>
             <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-bone/65">
-              You're on the list the moment you join. Invites go out in waves — the earlier you
+              You're on the list the moment you join. Invites go out in waves - the earlier you
               join, the earlier your wave.
             </p>
           </Reveal>

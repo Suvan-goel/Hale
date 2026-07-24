@@ -26,7 +26,7 @@ export function captureUtm(): void {
     if (Object.keys(found).length === 0) return;
     sessionStorage.setItem(STORE_KEY, JSON.stringify({ ...getUtm(), ...found }));
   } catch {
-    // Storage unavailable (strict private mode) — attribution just won't persist.
+    // Storage unavailable (strict private mode) - attribution just won't persist.
   }
 }
 

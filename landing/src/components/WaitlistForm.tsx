@@ -19,7 +19,7 @@ export function WaitlistForm({
     const trimmed = email.trim().toLowerCase();
     if (!EMAIL_RE.test(trimmed)) {
       setStatus("error");
-      setError("That doesn't look like an email address — mind checking it?");
+      setError("That doesn't look like an email address - mind checking it?");
       return;
     }
     setStatus("submitting");

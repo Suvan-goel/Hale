@@ -1,4 +1,4 @@
-/* Self-hosted Fraunces + Inter (OFL licensed) — no Google Fonts connection. */
+/* Self-hosted Fraunces + Inter (OFL licensed) - no Google Fonts connection. */
 @import "./fonts.css";
 @import "tailwindcss";
 
@@ -40,7 +40,7 @@ body {
   outline-offset: 2px;
 }
 
-/* Scroll reveal — inert under prefers-reduced-motion */
+/* Scroll reveal - inert under prefers-reduced-motion */
 .reveal {
   opacity: 0;
   transform: translateY(18px);
