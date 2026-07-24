@@ -45,6 +45,17 @@ alter table public.profiles
   drop constraint if exists profiles_birth_year_value_check,
   drop constraint if exists profiles_sex_value_check;
 
+-- Legacy remotes created some of these columns NOT NULL; the canonical
+-- owner-only schema has them nullable, and the scrub below can write null
+-- into any of them. DROP NOT NULL is a no-op when the column is already
+-- nullable, so this stays re-runnable.
+alter table public.profiles
+  alter column local_user_id drop not null,
+  alter column full_name drop not null,
+  alter column birth_year drop not null,
+  alter column sex drop not null,
+  alter column onboarding_completed_at drop not null;
+
 alter table public.profiles
   alter column profile_json type jsonb using coalesce(profile_json::jsonb, '{}'::jsonb),
   alter column onboarding_json type jsonb using coalesce(onboarding_json::jsonb, '{}'::jsonb),
