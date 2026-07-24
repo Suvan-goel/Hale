@@ -1,39 +1,43 @@
-import { ScoreDial } from "./ScoreDial";
+import { useState } from "react";
+
+import homeScreen from "../assets/landing/app-home.png";
+import planScreen from "../assets/landing/app-plan.png";
+import progressScreen from "../assets/landing/app-progress.png";
+
+const APP_SCREENS = [
+  {
+    id: "home",
+    label: "Home",
+    src: homeScreen,
+    alt: "The real Pearl Home screen showing a balance-focused session from a sample journey.",
+  },
+  {
+    id: "plan",
+    label: "Plan",
+    src: planScreen,
+    alt: "The real Pearl Plan screen showing the completed Foundations, Build and Progress phases from a sample journey.",
+  },
+  {
+    id: "progress",
+    label: "Progress",
+    src: progressScreen,
+    alt: "The real Pearl Progress screen showing four comparable Strength and Balance check-ups from a sample journey.",
+  },
+] as const;
+
+type AppScreenId = (typeof APP_SCREENS)[number]["id"];
 
 /**
- * Code-built phone mockup of the app's results screen — the hero visual.
- * Example data; Strength and Balance guide the plan, while optional Everyday
- * Clarity is presented separately rather than folded into a composite score.
+ * Real captures from the current Pearl iOS app, populated through the app's
+ * developer-only sample journey. The web page adds only the device frame and
+ * screen picker; none of the app UI shown here is recreated in HTML.
  */
-
-function CategoryBar({ name, value, focus }: { name: string; value: number; focus?: boolean }) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="flex items-center gap-2 text-[13px] font-medium text-ink">
-          {name}
-          {focus && (
-            <span className="rounded-full bg-[rgba(142,49,88,0.10)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-blush">
-              Focus area
-            </span>
-          )}
-        </span>
-        <span className="text-[13px] font-semibold tabular-nums text-ink">{value}</span>
-      </div>
-      <div className="mt-1.5 h-1.5 w-full rounded-full bg-elevated">
-        <div
-          className={`h-full rounded-full ${focus ? "bg-pine" : "bg-sage"}`}
-          style={{ width: `${value}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export function PhoneMockup() {
+  const [activeId, setActiveId] = useState<AppScreenId>("progress");
+  const activeScreen = APP_SCREENS.find((screen) => screen.id === activeId) ?? APP_SCREENS[2];
+
   return (
     <div className="relative mx-auto w-[280px] sm:w-[300px]">
-      {/* Echo of the dial arc behind the phone */}
       <svg
         viewBox="0 0 100 100"
         aria-hidden="true"
@@ -53,35 +57,40 @@ export function PhoneMockup() {
           />
         </g>
       </svg>
-      <div className="relative rounded-[44px] border-[9px] border-[#211D1F] bg-paper shadow-[0_34px_74px_-28px_rgba(56,39,28,0.38)]">
-        <div className="absolute left-1/2 top-2.5 h-[17px] w-[84px] -translate-x-1/2 rounded-full bg-[#211D1F]" />
-        <div className="px-5 pb-5 pt-11">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink/45">
-            Strength + Balance
-          </p>
-          <div className="mt-0.5 flex items-baseline justify-between">
-            <h3 className="text-[17px] font-semibold text-ink">Week 8 check-up</h3>
-            <span className="text-[11px] font-medium text-ink/45">3 of 4</span>
-          </div>
-          <div className="mt-3 -mb-4 flex justify-center">
-            <ScoreDial value={68} label="Strength focus" size={164} delta="+7 since May" />
-          </div>
-          <div className="mt-4 space-y-3.5 border-t border-line pt-4">
-            <CategoryBar name="Strength" value={68} focus />
-            <CategoryBar name="Balance" value={74} />
-          </div>
-          <div className="mt-4 rounded-2xl border border-line bg-elevated px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] font-medium text-ink/60">Everyday Clarity</span>
-              <span className="text-[11px] font-semibold text-ink">Check-in saved</span>
-            </div>
-            <p className="mt-1 text-[9px] leading-relaxed text-ink/45">Tracked separately from your plan</p>
-          </div>
-          <div className="mt-4 flex items-center justify-between rounded-2xl bg-elevated px-4 py-3">
-            <span className="text-[11px] font-medium text-ink/60">Next check-up</span>
-            <span className="text-[11px] font-semibold text-ink">4 weeks</span>
-          </div>
-        </div>
+
+      <div className="relative overflow-hidden rounded-[44px] border-[9px] border-[#211D1F] bg-paper shadow-[0_34px_74px_-28px_rgba(56,39,28,0.38)]">
+        <img
+          key={activeScreen.id}
+          src={activeScreen.src}
+          alt={activeScreen.alt}
+          className="block aspect-[440/956] w-full object-contain"
+          loading="lazy"
+        />
+      </div>
+
+      <div
+        className="relative mt-5 flex items-center justify-center gap-2"
+        role="group"
+        aria-label="Choose a Pearl app screen"
+      >
+        {APP_SCREENS.map((screen) => {
+          const selected = screen.id === activeScreen.id;
+          return (
+            <button
+              key={screen.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setActiveId(screen.id)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                selected
+                  ? "border-pine bg-pine text-white"
+                  : "border-pine/20 bg-paper/80 text-ink/65 hover:border-pine/45 hover:text-ink"
+              }`}
+            >
+              {screen.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

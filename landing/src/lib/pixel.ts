@@ -62,3 +62,8 @@ export function trackLead(): void {
   if (!pixelLoaded) return;
   window.fbq?.("track", "Lead");
 }
+
+/** True once fbevents.js has been injected this page load. */
+export function isPixelLoaded(): boolean {
+  return pixelLoaded;
+}

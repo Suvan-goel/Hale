@@ -1,11 +1,14 @@
 /**
  * UK/GDPR consent for the Meta Pixel. The pixel loads only after Accept;
- * declining changes nothing about how the page or form works.
+ * declining changes nothing about how the page or form works. Reopenable via
+ * the footer's "Cookie preferences".
  */
 export function ConsentBanner({
   onChoice,
+  onPrivacy,
 }: {
   onChoice: (choice: "accepted" | "declined") => void;
+  onPrivacy: () => void;
 }) {
   return (
     <div
@@ -15,7 +18,14 @@ export function ConsentBanner({
     >
       <p className="text-sm leading-relaxed text-ink/75">
         We use one optional cookie (Meta Pixel) to measure our ads. Decline and everything here
-        still works.
+        still works. Details are in our{" "}
+        <button
+          onClick={onPrivacy}
+          className="font-medium text-pine underline underline-offset-2 hover:text-blush"
+        >
+          privacy policy
+        </button>
+        .
       </p>
       <div className="mt-3 flex items-center gap-4">
         <button

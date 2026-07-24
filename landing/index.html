@@ -10,6 +10,8 @@
     />
     <meta name="theme-color" content="#FAF8F7" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pearl" />
+    <meta property="og:locale" content="en_GB" />
     <meta
       property="og:title"
       content="Pearl — Measure your strength. Track your clarity."
@@ -18,19 +20,20 @@
       property="og:description"
       content="Measure Strength and Balance at four comparable check-ups, follow a voice-paced 12-week home plan, and optionally track Everyday Clarity."
     />
+    <!-- og:image/og:url/canonical are made absolute at build time from VITE_SITE_URL (see vite.config.ts). -->
     <meta property="og:image" content="/og/pearl-og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Pearl home strength check-up with a phone and chair." />
     <meta name="twitter:card" content="summary_large_image" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237C405D'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' font-style='italic' text-anchor='middle' fill='white'%3EP%3C/text%3E%3C/svg%3E"
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340..600;1,9..144,340..600&family=Inter:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Fonts are self-hosted (src/fonts.css); preload the three above-the-fold latin files. -->
+    <link rel="preload" href="/fonts/fraunces-normal-340-600-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/fraunces-italic-340-600-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-normal-400-latin.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>

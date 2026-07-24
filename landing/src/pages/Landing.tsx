@@ -144,7 +144,7 @@ export function Landing({
   onJoin,
   onScrollToForm,
 }: {
-  onJoin: (email: string) => Promise<void>;
+  onJoin: (email: string, honeypot: string) => Promise<void>;
   onScrollToForm: () => void;
 }) {
   return (
@@ -376,7 +376,7 @@ export function Landing({
       </section>
 
       {/* ── The differentiator ────────────────────────────────────────── */}
-      <section className="overflow-hidden bg-elevated text-ink">
+      <section id="app-screens" className="overflow-hidden bg-elevated text-ink">
         <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
           <Reveal className="max-w-2xl">
             <Eyebrow>Why Pearl</Eyebrow>
@@ -396,7 +396,7 @@ export function Landing({
               <div className="mx-auto max-w-[340px]">
                 <PhoneMockup />
                 <p className="mt-6 text-center text-xs tracking-wide text-ink/60">
-                  Example check-up · illustrative data, not a diagnosis
+                  Actual Pearl app · sample journey data, not a diagnosis
                 </p>
               </div>
             </Reveal>

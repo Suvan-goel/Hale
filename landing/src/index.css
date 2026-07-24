@@ -1,3 +1,5 @@
+/* Self-hosted Fraunces + Inter (OFL licensed) — no Google Fonts connection. */
+@import "./fonts.css";
 @import "tailwindcss";
 
 @theme {

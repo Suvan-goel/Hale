@@ -41,15 +41,19 @@ npm run preview
 
 | What | Where |
 |---|---|
+| Lead backend (default) | `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY`; inserts into `public.landing_leads` (migration `supabase/migrations/20260722000100_landing_leads.sql`, RLS insert-only, duplicates ignored). |
+| Lead backend (alternative) | `VITE_LEAD_ENDPOINT`; waitlist submissions are POSTed as JSON. Takes precedence when set. |
 | Meta Pixel ID | `VITE_META_PIXEL_ID`; digits only. Without it, the pixel is a no-op. |
-| Form endpoint | `VITE_LEAD_ENDPOINT`; waitlist submissions are POSTed as JSON. |
+| Site origin | `VITE_SITE_URL`; production origin used to emit absolute `og:image`/`og:url`/canonical tags at build time. Required for the Facebook share card. |
 | Contact email | `VITE_CONTACT_EMAIL`, defaulting to `suvangoel@gmail.com`. |
 | Legal copy | `src/pages/Legal.tsx`; owner review is required before paid traffic. |
 
 The Meta Pixel loads only after consent. The consent choice is stored under
-`pearl:consent`; campaign attribution is stored under `pearl:utm` for the
-session. `PageView` fires after acceptance and `Lead` after a successful form
-submission.
+`pearl:consent` and can be reopened from the footer's "Cookie preferences";
+campaign attribution is stored under `pearl:utm` for the session. `PageView`
+fires after acceptance and `Lead` after a successful form submission, which
+lands on `/thanks`. The form carries a honeypot field; trapped submissions
+show the normal thank-you page but store nothing and fire no event.
 
 ## Claims and privacy discipline
 
@@ -65,13 +69,21 @@ the mounted MVP journey.
 
 ## Assets and performance
 
-The page uses three optimized JPEGs plus code-built UI/SVG visuals. Scroll
-reveals use IntersectionObserver and respect `prefers-reduced-motion`. The Open
-Graph image is `public/og/pearl-og.jpg`.
+The page uses three optimized JPEGs plus code-built UI/SVG visuals. Fraunces
+and Inter are self-hosted from `public/fonts/` (OFL licensed; `src/fonts.css`)
+— no Google Fonts connection. Scroll reveals use IntersectionObserver and
+respect `prefers-reduced-motion`. The Open Graph image is
+`public/og/pearl-og.jpg`.
 
 ## Before launch
 
-- [ ] Set `VITE_META_PIXEL_ID`.
-- [ ] Point `VITE_LEAD_ENDPOINT` to the real waitlist backend.
-- [ ] Review legal pages and confirm the public contact email.
+- [ ] Apply the `landing_leads` migration to the Supabase project
+      (`supabase db push` from the repo root) and set `VITE_SUPABASE_URL` +
+      `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel.
+- [ ] Create the pixel in Meta Events Manager and set `VITE_META_PIXEL_ID`.
+- [ ] Deploy on the production domain and set `VITE_SITE_URL` to it.
+- [ ] Review legal pages (controller identity, provider list, dates) and
+      confirm the public contact email.
+- [ ] Submit a real test lead end to end; confirm the row in Supabase and the
+      `Lead` event in Meta Test Events.
 - [ ] Test the final social card and domain in Meta's Sharing Debugger.

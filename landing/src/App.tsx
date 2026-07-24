@@ -6,15 +6,17 @@ import { ConsentBanner } from "./components/ConsentBanner";
 import { StickyCta } from "./components/StickyCta";
 import { captureUtm, getUtm } from "./lib/utm";
 import { submitLead } from "./lib/leads";
-import { loadPixel, trackLead } from "./lib/pixel";
+import { loadPixel, trackLead, isPixelLoaded } from "./lib/pixel";
 import { CONTACT_EMAIL } from "./config";
 
-type Route = "home" | "privacy" | "terms" | "delete-account";
+type Route = "home" | "thanks" | "privacy" | "terms" | "delete-account";
 type Consent = "pending" | "accepted" | "declined";
 
 const CONSENT_KEY = "pearl:consent";
+const LEAD_EMAIL_KEY = "pearl:lead-email";
 
 function routeFromPath(path: string): Route {
+  if (path.startsWith("/thanks")) return "thanks";
   if (path.startsWith("/privacy")) return "privacy";
   if (path.startsWith("/terms")) return "terms";
   if (path.startsWith("/delete-account")) return "delete-account";
@@ -30,7 +32,21 @@ function readStoredConsent(): Consent {
   }
 }
 
-function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
+function readLeadEmail(): string {
+  try {
+    return sessionStorage.getItem(LEAD_EMAIL_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function Footer({
+  onNavigate,
+  onCookiePreferences,
+}: {
+  onNavigate: (route: Route) => void;
+  onCookiePreferences: () => void;
+}) {
   return (
     <footer className="border-t border-line bg-elevated text-ink">
       <div className="mx-auto max-w-6xl px-5 py-12 md:px-8">
@@ -47,6 +63,9 @@ function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
             </button>
             <button onClick={() => onNavigate("delete-account")} className="hover:text-pine">
               Delete account
+            </button>
+            <button onClick={onCookiePreferences} className="hover:text-pine">
+              Cookie preferences
             </button>
             {CONTACT_EMAIL ? (
               <a href={`mailto:${CONTACT_EMAIL}`} className="text-pine hover:text-blush">
@@ -69,7 +88,6 @@ function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
 export default function App() {
   const [route, setRoute] = useState<Route>(() => routeFromPath(window.location.pathname));
   const [consent, setConsent] = useState<Consent>(readStoredConsent);
-  const [lead, setLead] = useState<{ email: string } | null>(null);
 
   useEffect(() => {
     captureUtm();
@@ -98,6 +116,18 @@ export default function App() {
       // Storage unavailable — the choice just won't persist across visits.
     }
     setConsent(choice);
+    // Declining after the pixel already loaded this page load: a reload is the
+    // only way to actually unload it, and it honours the new choice on boot.
+    if (choice === "declined" && isPixelLoaded()) window.location.reload();
+  }
+
+  function reopenConsent() {
+    try {
+      localStorage.removeItem(CONSENT_KEY);
+    } catch {
+      // Ignore: the banner below still reopens for this page load.
+    }
+    setConsent("pending");
   }
 
   function scrollToForm() {
@@ -108,34 +138,40 @@ export default function App() {
     }, 650);
   }
 
-  async function handleJoin(email: string) {
-    await submitLead({
-      kind: "lead",
-      email,
-      submittedAt: new Date().toISOString(),
-      utm: getUtm(),
-    });
-    trackLead(); // no-op unless the visitor accepted the pixel
-    setLead({ email });
-    window.scrollTo(0, 0);
+  async function handleJoin(email: string, honeypot: string) {
+    // A filled honeypot means a bot: show the normal success path but save
+    // nothing and fire no conversion event.
+    if (!honeypot) {
+      await submitLead({
+        kind: "lead",
+        email,
+        submittedAt: new Date().toISOString(),
+        utm: getUtm(),
+      });
+      trackLead(); // no-op unless the visitor accepted the pixel
+    }
+    try {
+      sessionStorage.setItem(LEAD_EMAIL_KEY, email);
+    } catch {
+      // Storage unavailable — the thank-you page just shows generic copy.
+    }
+    navigate("thanks");
   }
 
   return (
     <>
       {route === "home" ? (
-        lead ? (
-          <ThankYou email={lead.email} />
-        ) : (
-          <Landing onJoin={handleJoin} onScrollToForm={scrollToForm} />
-        )
+        <Landing onJoin={handleJoin} onScrollToForm={scrollToForm} />
+      ) : route === "thanks" ? (
+        <ThankYou email={readLeadEmail()} />
       ) : (
         <Legal kind={route} onHome={() => navigate("home")} />
       )}
-      <Footer onNavigate={navigate} />
-      {route === "home" && !lead && (
-        <StickyCta hidden={consent === "pending"} onClick={scrollToForm} />
+      <Footer onNavigate={navigate} onCookiePreferences={reopenConsent} />
+      {route === "home" && <StickyCta hidden={consent === "pending"} onClick={scrollToForm} />}
+      {consent === "pending" && (
+        <ConsentBanner onChoice={chooseConsent} onPrivacy={() => navigate("privacy")} />
       )}
-      {consent === "pending" && <ConsentBanner onChoice={chooseConsent} />}
     </>
   );
 }

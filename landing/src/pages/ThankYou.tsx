@@ -1,8 +1,9 @@
 import { CONTACT_EMAIL } from "../config";
 
 /**
- * Post-submit state: keep the paid-traffic funnel clean after the lead event.
- * The Pixel `Lead` event is fired by App at the moment of successful submit.
+ * Post-submit page, served at /thanks so conversions have a real URL. The
+ * Pixel `Lead` event is fired by App at the moment of successful submit, not
+ * here — a direct visit to /thanks records nothing.
  */
 export function ThankYou({ email }: { email: string }) {
   return (
@@ -24,8 +25,14 @@ export function ThankYou({ email }: { email: string }) {
             You're on the list.
           </h1>
           <p className="mt-4 text-[17px] leading-relaxed text-ink/70">
-            We'll email <span className="font-semibold text-ink">{email}</span> when early access
-            opens.
+            {email ? (
+              <>
+                We'll email <span className="font-semibold text-ink">{email}</span> when early
+                access opens.
+              </>
+            ) : (
+              <>We'll email you when early access opens.</>
+            )}
           </p>
         </div>
 
