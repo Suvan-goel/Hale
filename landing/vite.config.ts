@@ -37,7 +37,9 @@ function absoluteSocialTags(siteUrl: string, isProdBuild: boolean): Plugin {
 }
 
 export default defineConfig(({ mode, command }) => {
-  const env = loadEnv(mode, __dirname, "");
+  // "." = the landing root (builds always run from here); avoids __dirname,
+  // which needs @types/node that a clean install doesn't have.
+  const env = loadEnv(mode, ".", "");
   const siteUrl = (env.VITE_SITE_URL ?? "").trim().replace(/\/+$/, "");
   return {
     plugins: [
